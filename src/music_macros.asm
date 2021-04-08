@@ -3,7 +3,7 @@
 MACRO SELECT_MUSIC_SLOT
 {
     lda &f4:pha
-    lda SLOT_MUSIC  ; swram_slots_base + 
+    lda #SLOT_MUSIC  ; swram_slots_base + 
     sta &f4:sta &fe30
 }
 ENDMACRO

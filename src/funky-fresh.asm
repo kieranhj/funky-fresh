@@ -70,7 +70,7 @@ ENDMACRO
 
 MACRO SWRAM_SELECT slot
 {
-    LDA slot:STA &F4:STA &FE30      ; "swram_slots_base + slot" for dynamic SWRAM.
+    LDA #slot:STA &F4:STA &FE30      ; "swram_slots_base + slot" for dynamic SWRAM.
 }
 ENDMACRO
 
