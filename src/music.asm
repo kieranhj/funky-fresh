@@ -45,7 +45,7 @@ INCLUDE "lib/vgcplayer.asm"
 .music_data_start
 ; no need for VGC data to be page aligned.
 .vgc_data_tune
-INCBIN "data/music/acid_demo.vgc"
+INCBIN "build/beeb-demo.bbc.vgc"
 .music_data_end
 
 \ ******************************************************************
