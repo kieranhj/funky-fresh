@@ -1,3 +1,40 @@
+;
+; Copyright (c) 2002 - 2018 Magnus Lind.
+;
+; This software is provided 'as-is', without any express or implied warranty.
+; In no event will the authors be held liable for any damages arising from
+; the use of this software.
+;
+; Permission is granted to anyone to use this software for any purpose,
+; including commercial applications, and to alter it and redistribute it
+; freely, subject to the following restrictions:
+;
+;   1. The origin of this software must not be misrepresented; you must not
+;   claim that you wrote the original software. If you use this software in a
+;   product, an acknowledgment in the product documentation would be
+;   appreciated but is not required.
+;
+;   2. Altered source versions must be plainly marked as such, and must not
+;   be misrepresented as being the original software.
+;
+;   3. This notice may not be removed or altered from any distribution.
+;
+;   4. The names of this software and/or it's copyright holders may not be
+;   used to endorse or promote products derived from this software without
+;   specific prior written permission.
+;
+; -------------------------------------------------------------------
+
+; NB. This is Exomizer 3.0.2 exodecrunch.s implementation but with the
+; following changes:
+;   stack used for the decrunch tabke
+;   there’s no “extra table for length 3”
+;   encoded entries hardcoded to 52
+;   relocation of destination was added.
+;
+; Compress using the command line:
+;   exomizer.exe level -c -M256 file.bin@0x0000 -o file.exo
+
 ; -------------------------------------------------------------------
 ; Controls if the shared get_bits routines should be inlined or not.
 INLINE_GET_BITS=1
@@ -5,12 +42,12 @@ INLINE_GET_BITS=1
 ; if literal sequences is not used (the data was crunched with the -c
 ; flag) then the following line can be uncommented for shorter and.
 ; slightly faster code.
-LITERAL_SEQUENCES_NOT_USED = 1
+LITERAL_SEQUENCES_NOT_USED=1
 ; -------------------------------------------------------------------
 ; if the sequence length is limited to 256 (the data was crunched with
 ; the -M256 flag) then the following line can be uncommented for
 ; shorter and slightly faster code.
-MAX_SEQUENCE_LENGTH_256 = 1
+MAX_SEQUENCE_LENGTH_256=1
 
 decrunch_table = $101 ; yes! we have enough stack space to use page 1 here
 ;.decrunch_table SKIP 156
@@ -111,12 +148,12 @@ ENDIF
 {
 	lda #$AD ; LDA abs
 	sta get_crunched_byte
-	ldx #get_crunched_byte_copy_end-get_crunched_byte_copy
+	ldx #get_crunched_byte_copy_end-get_crunched_byte_copy-1
 .copyloop
 	lda get_crunched_byte_copy,X
 	sta get_crunched_byte_code,X
 	dex
-	bne copyloop
+	bpl copyloop
         rts
 }
 

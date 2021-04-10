@@ -74,12 +74,6 @@ MACRO SWRAM_SELECT slot
 }
 ENDMACRO
 
-MACRO RESTORE_SLOT
-{
-    pla:sta &f4:sta &fe30
-}
-ENDMACRO
-
 MACRO RND
 {
     LDA seed
@@ -267,9 +261,13 @@ GUARD screen_addr + RELOC_SPACE
     }
     ENDIF
 
-    \\ Set MODE w/out using OS.
-    \\ TODO: Remember why? To avoid any flicker / garbage? Move to boot loader.
-
+    \\ Set MODE w/out using MOS.
+    \\ NB: This was done to avoid the flicker & garbage associated with MOS MODE change.
+    \\ TODO: Move to boot loader.
+    IF 1
+    lda #22:jsr oswrch
+    lda #2:jsr oswrch
+    ELSE
 	\\ Set CRTC registers
 	ldx #0
 	.crtc_loop
@@ -294,12 +292,14 @@ GUARD screen_addr + RELOC_SPACE
     ldy #HI(screen_addr)
     ldx #HI(&8000 - screen_addr)
     jsr clear_pages
-    
+
     \\ TODO: Set CRTC address wraparound bits!
+    ENDIF
 
     \\ Init system
     lda &fe44:sta seed
     lda &fe45:sta seed+1
+    jsr exo_init
 
     \\ Init music - has to be here for reload.
     SWRAM_SELECT SLOT_MUSIC
@@ -338,6 +338,10 @@ GUARD screen_addr + RELOC_SPACE
     \\ Init debug system here.
 
     \\ Complete any initial preload.
+    ldx #LO(exo_data)
+    ldy #HI(exo_data)
+    lda #HI(screen_addr)
+    jsr decrunch_to_page_A
 
     \\ Start music player
     {
@@ -497,6 +501,9 @@ ENDIF
 	EQUB HI(screen_addr/8)	; R12 screen start address, high
 	EQUB LO(screen_addr/8)	; R13 screen start address, low
 }
+
+.exo_data
+INCBIN "build/logo-mode2.exo"
 
 .data_end
 

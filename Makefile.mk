@@ -13,23 +13,31 @@ EXO?=exomizer
 PYTHON3?=python
 endif
 
+VGM_CONVERTER=./bin/vgmconverter.py
+VGM_PACKER=./bin/vgmpacker.py
+PNG2BBC=./bin/png2bbc.py
+PNG2BBC_DEPS:=./bin/png2bbc.py ./bin/bbc.py
+EXO_AND_ARGS=$(EXO) level -B -c -M256
 
 ##########################################################################
 ##########################################################################
 
 .PHONY:disc
-disc: code music
+disc: code
 	$(RM_RF) "disc"
 	$(MKDIR_P) "./disc"
 	$(BEEBASM) -i src/disc-layout.asm -do disc/funky-fresh.ssd -title "FUNKY FRESH" -boot FRESH -v
 
 .PHONY:code
-code: music
+code: music assets
 	$(MKDIR_P) "./build"
 	$(BEEBASM) -i src/funky-fresh.asm -v > build/compile.txt
 
 .PHONY:music
-music: build/beeb-demo.bbc.vgc
+music: ./build/beeb-demo.bbc.vgc
+
+.PHONY:assets
+assets: ./build/logo-mode2.bin ./build/logo-mode2.exo
 
 ##########################################################################
 ##########################################################################
@@ -45,7 +53,15 @@ clean:
 ./build/beeb-demo.bbc.vgc: ./build/beeb-demo.bbc.vgm
 ./build/beeb-demo.bbc.vgm: ./data/music/beeb-demo.vgm
 	$(MKDIR_P) "./build"
-	$(PYTHON2) bin/vgmconverter.py data/music/beeb-demo.vgm -t bbc -o build/beeb-demo.bbc.vgm
+	$(PYTHON2) $(VGM_CONVERTER) data/music/beeb-demo.vgm -t bbc -o build/beeb-demo.bbc.vgm
+
+##########################################################################
+##########################################################################
+
+# Try to avoid having raw binaries without source assets!
+./build/logo-mode2.bin: ./data/raw/logo-mode2.bin
+	$(MKDIR_P) "./build"
+	copy .\data\raw\logo-mode2.bin build
 
 ##########################################################################
 ##########################################################################
@@ -53,7 +69,17 @@ clean:
 # Rule to pack VGM files.
 %.vgc : %.vgm
 	$(MKDIR_P) "./build"
-	$(PYTHON2) bin/vgmpacker.py $< -o $@
+	$(PYTHON2) $(VGM_PACKER) $< -o $@
+
+# Rule to convert PNG files, assumes MODE 2.
+%.bin : %.png $(PNG2BBC_DEPS)
+	$(MKDIR_P) "./build"
+	$(PYTHON2) $(PNG2BBC) -q -o $@ $< 2
+
+# Rule to EXO compress bin files.
+%.exo : %.bin
+	$(MKDIR_P) "./build"
+	$(EXO_AND_ARGS) -o $@ $<@0x0000
 
 ##########################################################################
 ##########################################################################
