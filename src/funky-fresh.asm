@@ -1,6 +1,6 @@
 \ -*- mode:beebasm -*-
 \ ******************************************************************
-\ *	FUNKY FRESH DEMO
+\ *	FUNKY FRESH DEMO FRAMEWORK
 \ ******************************************************************
 
 _DEBUG = TRUE
@@ -43,36 +43,7 @@ ULA_Mode8   = &E0
 \ *	MACROS
 \ ******************************************************************
 
-\\ TODO: Move standard macros to macros.h.asm.
-
-MACRO PAGE_ALIGN
-H%=P%
-ALIGN &100
-PRINT "Lost ", P%-H%, "bytes"
-ENDMACRO
-
-MACRO PAGE_ALIGN_FOR_SIZE size
-IF HI(P%+size) <> HI(P%)
-	PAGE_ALIGN
-ENDIF
-ENDMACRO
-
-MACRO CODE_ALIGN size
-PRINT "Lost ", size, "bytes for code alignment."
-skip size
-ENDMACRO
-
-MACRO CHECK_SAME_PAGE_AS base
-IF HI(P%-1) <> HI(base)
-PRINT "WARNING! Table or branch base address",~base, "may cross page boundary at",~P%
-ENDIF
-ENDMACRO
-
-MACRO SWRAM_SELECT slot
-{
-    LDA #slot:STA &F4:STA &FE30      ; "swram_slots_base + slot" for dynamic SWRAM.
-}
-ENDMACRO
+include "lib/macros.h.asm"
 
 MACRO RND
 {
@@ -116,7 +87,8 @@ screen_addr = &3000
 
 ; Exact time for a 50Hz frame less latch load time
 FramePeriod = 312*64-2
-TimerValue = (32+254)*64 - 2*64
+; Exact time so that the FX draw function call starts at VCC=0,HCC=0.
+TimerValue = 32*64 - 2*64 - 54 -2
 
 KEY_PAUSE_INKEY = -56           ; 'P'
 KEY_STEP_FRAME_INKEY = -68      ; 'F'
@@ -136,14 +108,25 @@ GUARD zp_top
 
 INCLUDE "lib/exo.h.asm"
 
-.readptr            skip 2
-.writeptr           skip 2
-.music_enabled      skip 1
+.readptr                skip 2
+.writeptr               skip 2
+.row_count				skip 1
+.temp					skip 1
+.lock                   skip 1
 
-.task_request       skip 1
-.seed               skip 2
+.music_enabled          skip 1
+.task_request           skip 1
+.seed                   skip 2
 
 INCLUDE "lib/vgcplayer.h.asm"
+
+.v						skip 2
+.dv						skip 2
+.prev_scanline			skip 1
+
+ORG &70
+GUARD &9F
+.zoom					skip 1
 
 .zp_end
 
@@ -173,18 +156,7 @@ GUARD screen_addr + RELOC_SPACE
 
 .main
 {
-    SEI
-    lda &fe4e
-    sta previous_ifr+1
-	LDA #&7F					; (disable all interrupts)
-	STA &FE4E					; R14=Interrupt Enable
-
-    LDA IRQ1V:STA old_irqv
-    LDA IRQ1V+1:STA old_irqv+1
-    CLI
-
     \\ TODO: Load banks and relocate data in a boot loader at &1900.
-
 	\\ Relocate data to lower RAM
     IF 0
 	lda #HI(reloc_from_start)
@@ -267,6 +239,14 @@ GUARD screen_addr + RELOC_SPACE
     IF 1
     lda #22:jsr oswrch
     lda #2:jsr oswrch
+
+	\\ Turn off cursor
+	LDA #10: STA &FE00
+	LDA #32: STA &FE01
+
+	\\ Turn off interlace
+	lda #8:sta &fe00
+	lda #0:sta &fe01
     ELSE
 	\\ Set CRTC registers
 	ldx #0
@@ -309,22 +289,81 @@ GUARD screen_addr + RELOC_SPACE
     sec ; loop
     jsr vgm_init
 
-	\\ Set interrupts and handler
-	SEI							; disable CPU interupts
-    ldx #2: jsr wait_frames
+    \\ Complete any initial preload.
+    ldx #LO(exo_data)
+    ldy #HI(exo_data)
+    lda #HI(screen_addr)
+    jsr decrunch_to_page_A
 
-	\\ Not stable but close enough for our purposes
-	; Write T1 low now (the timer will not be written until you write the high byte)
-    LDA #LO(TimerValue):STA &FE44
-    ; Get high byte ready so we can write it as quickly as possible at the right moment
-    LDX #HI(TimerValue):STX &FE45            ; start T1 counting		; 4c +1/2c 
+    \\ Init debug system here.
+
+    \\ Late init.
+   	lda #0:sta zoom
+
+	SEI
+    lda &fe4e:sta previous_ifr+1
+    LDA IRQ1V:STA old_irqv
+    LDA IRQ1V+1:STA old_irqv+1
+
+	\\ Ensure the CRTC column counter is incrementing starting from a
+	\\ known state with respect to the cycle stretching. Because the vsync
+	\\ signal is reported via the VIA, which is a 1MHz device, the timing
+	\\ could be out by 0.5 usec in 2MHz modes.
+	\\
+	\\ To fix: set R0=0, wait 256 cycles to ensure the horizontal counter
+	\\ is stuck at 0, then set the horizontal counter to its correct
+	\\ value. The 6845 is always accessed at 1MHz so the cycle counter
+	\\ starts running on a 1MHz boundary.
+	\\
+	\\ Note: when R0=0, DRAM refresh is off. Don't delay too long.
+	lda #0
+	sta $fe00:sta $fe01
+	ldx #2:jsr cycles_wait_scanlines
+	sta $fe00:lda #127:sta $fe01
+
+	\\ Wait for vsync
+	{
+		lda #2
+        sta &fe4d
+		.vsync1
+		bit &FE4D
+		beq vsync1
+	}
+	; Roughly synced to VSync
+
+    ; Now fine tune by waiting just less than one frame
+    ; and check if VSync has fired. Repeat until it hasn't.
+    ; One frame = 312*128 = 39936 cycles
+	{
+		.syncloop
+		STA &FE4D       ; 6
+		LDX #209        ; 2
+		.outerloop
+		LDY #37         ; 2
+		.innerloop
+		DEY             ; 2
+		BNE innerloop   ; 3/2 (innerloop = 5*37+2-1 = 186)
+		DEX             ; 2
+		BNE outerloop   ; 3/2 (outerloop = (186+2+3)*209+2-1 = 39920)
+		BIT &FE4D       ; 6
+		BNE syncloop    ; 3 (total = 39920+6+6+3 = 39935, one cycle less than a frame!)
+		IF HI(syncloop) <> HI(P%)
+		ERROR "This loop must execute within the same page"
+		ENDIF
+	}
+    ; We are synced precisely with VSync!
+
+	\\ Set up Timer1 to start at the first scanline
+    LDA #LO(TimerValue):STA &FE44		; 8c
+    LDA #HI(TimerValue):STA &FE45		; 8c
 
   	; Latch T1 to interupt exactly every 50Hz frame
-	LDA #LO(FramePeriod):STA &FE46
-	LDA #HI(FramePeriod):STA &FE47
+	LDA #LO(FramePeriod):STA &FE46		; 8c
+	LDA #HI(FramePeriod):STA &FE47		; 8c
 
 	LDA #&7F					; (disable all interrupts)
 	STA &FE4E					; R14=Interrupt Enable
+	STA &FE6E					; R14=Interrupt Enable
 	STA &FE43					; R3=Data Direction Register "A" (set keyboard data direction)
 	LDA #&C0					; 
 	STA &FE4E					; R14=Interrupt Enable
@@ -333,24 +372,9 @@ GUARD screen_addr + RELOC_SPACE
 
     LDA #LO(irq_handler):STA IRQ1V
     LDA #HI(irq_handler):STA IRQ1V+1		; set interrupt handler
-    CLI
-
-    \\ Init debug system here.
-
-    \\ Complete any initial preload.
-    ldx #LO(exo_data)
-    ldy #HI(exo_data)
-    lda #HI(screen_addr)
-    jsr decrunch_to_page_A
-
-    \\ Start music player
-    {
-        inc music_enabled
-    }
 
     \\ Go!
-    jsr wait_for_vsync
-    jsr show_screen
+    CLI
 
     \\ Main loop!
     .loop
@@ -365,6 +389,7 @@ GUARD screen_addr + RELOC_SPACE
     }
     jmp loop
 
+    \\ TODO: Can we ever finish?
     .finished
     SEI
     .previous_ifr
@@ -380,28 +405,63 @@ GUARD screen_addr + RELOC_SPACE
 	lda &FC
 	pha
 
-	lda &FE4D
-	and #&40
-	bne is_timer1_sysvia
-
- 	.return
-	pla
-	sta &FC
-	rti 
+    \\ Note that IFR will still be set with Vsync even if it didn't trigger an interrupt.
+    lda &fe4d
+    and #&40
+    beq return
 
     .is_timer1_sysvia
-	\\ Acknowledge vsync interrupt
-	sta &FE4D
+    sta &fe4d
+    inc lock
 
-    \\ Play music
+    \\ Stabilise the raster.
+    {
+		\\ Reading the T1 low order counter also resets the T1 interrupt flag in IFR
+		LDA &FE44
+
+		\\ New stable raster NOP slide thanks to VectorEyes 8)
+        ; Extract lowest 3 bits, use result to control a NOP slide. This corrects for timer jitter and provides stable raster.
+        and #7
+        eor #7
+        sta branch+1
+        .branch
+        bpl branch \always
+        .slide
+        ; Note: this slide delays (CPU cycles) by TWICE the 'input' to the slide, which is
+        ; what we want because the T1 counter is 1MHz, but the CPU runs at 2MHz.
+        nop:nop:nop:nop
+        nop:nop:cmp &93
+		.stable
+	}
+
     txa:pha:tya:pha
 
-    \\ Then update music - could be on a mid-frame timer.
+    \\ Call FX draw function.
+    jsr fx_draw_function
+
+    \\ NOTE: Assuming this returns after 256 scanlines then we have
+    \\ just 56 scanlines left to do everything else in the system!
+
+    \\ NOTE: Music can take up to 45 scanlines to return!!
+    \\ This was leaving 11 scanlines to do the update.
+
+    \\ Then update music.
     MUSIC_JUMP_VGM_UPDATE
+
+    \\ NOTE: Update was taking 13 scanlines to calulate start v.
+    \\ So the next Timer1 interupt was arriving 2 scanlines late. Doh!
+
+    \\ Call FX update function.
+    jsr fx_update_function
+
+    \\ We also need to find some time to do decompression etc. in the
+    \\ 'main thread'.
 
     pla:tay:pla:tax
 
-    .return2
+    dec lock
+
+    .return
 	pla
 	sta &FC
 	rti
@@ -430,6 +490,32 @@ GUARD screen_addr + RELOC_SPACE
 .do_nothing
     rts
 
+\ ******************************************************************
+\ *	HELPER FUNCTIONS
+\ ******************************************************************
+
+.cycles_wait_128		; JSR to get here takes 6c
+{
+	WAIT_CYCLES 128-6-6
+	RTS					; 6c
+}						; = 128c
+
+.cycles_wait_scanlines	; 6c
+{
+	WAIT_CYCLES 128-6-2-3-6
+
+	.loop
+	DEX					; 2c
+	BEQ done			; 2/3c
+
+	WAIT_CYCLES 121
+
+	JMP loop			; 3c
+
+	.done
+	RTS					; 6c
+}
+
 .main_end
 
 \ ******************************************************************
@@ -437,6 +523,252 @@ GUARD screen_addr + RELOC_SPACE
 \ ******************************************************************
 
 .fx_start
+
+\ ******************************************************************
+\ Update FX
+\
+\ The update function is used to update / tick any variables used
+\ in the FX. It may also prepare part of the screen buffer before
+\ drawing commenses but note the strict timing constraints!
+\
+\ This function will be called during vblank, after any system
+\ modules have been polled.
+\
+\ The function MUST COMPLETE BEFORE TIMER 1 REACHES 0, i.e. before
+\ raster line 0 begins. If you are late then the draw function will
+\ be late and your raster timings will be wrong!
+\ ******************************************************************
+
+.fx_update_function
+{
+	ldx zoom
+	lda dv_table_LO, X
+	sta dv
+	lda dv_table_HI, X
+	sta dv+1
+
+	\\ Set v
+	lda #0:sta v:sta v+1
+
+IF 0
+	\\ Want centre of screen to be centre of sprite.
+	lda #0:sta v
+	lda #128:sta v+1
+
+	\\ Subtract dv 128 times to set starting v.
+	ldy #64
+	.sub_loop
+	sec
+	lda v
+	sbc dv
+	sta v
+	lda v+1
+	sbc dv+1
+	sta v+1
+
+	dey
+	bne sub_loop
+ENDIF
+
+	\\ Set CRTC start address of row 0.
+	lsr a:tax
+	lda #13:sta &fe00
+	lda vram_table_LO, X
+	sta &fe01
+	lda #12:sta &fe00
+	lda vram_table_HI, X
+	sta &fe01
+
+	\\ Scanline of row 0 is always 0.
+	lda #0
+	sta prev_scanline
+	rts
+}
+
+\ ******************************************************************
+\ Draw FX
+\
+\ The draw function is the main body of the FX.
+\
+\ This function will be exactly at the start* of raster line 0 with
+\ a stablised raster. VC=0 HC=0|1 SC=0
+\
+\ This means that a new CRTC cycle has just started! If you didn't
+\ specify the registers from the previous frame then they will be
+\ the default MODE 0,1,2 values as per initialisation.
+\
+\ If messing with CRTC registers, THIS FUNCTION MUST ALWAYS PRODUCE
+\ A FULL AND VALID 312 line PAL signal before exiting!
+\ ******************************************************************
+
+\\ Limited RVI
+\\ Display 0,2,4,6 scanline offset for 2 scanlines.
+\\ <--- 102c total w/ 80c visible and hsync at 98c ---> <2c> ..13x <2c> = 128c
+\\ Plus one extra for luck!
+\\ R9 = 13 + current - next
+
+PAGE_ALIGN
+.fx_draw_function
+{
+	\\ <=== HCC=0
+
+	\\ R4=0
+	lda #4:sta &fe00					; 8c
+	lda #0:sta &fe01					; 8c
+
+	\\ R7 vsync at row 35 = scanline 280.
+	lda #7:sta &fe00					; 8c
+	lda #3:sta &fe01					; 8c
+
+	\\ R6=1
+	lda #6:sta &fe00					; 8c
+	lda #1:sta &fe01					; 8c
+	\\ 48c
+
+	\\ Update v
+	clc:lda v:adc dv:sta v				; 11c
+	lda v+1:adc dv+1:sta v+1			; 9c
+	\\ 20c
+
+	\\ Row 1 screen start
+	lsr a:tax							; 4c
+	lda #13:sta &fe00					; 8c
+	lda vram_table_LO, X				; 4c
+	sta &fe01							; 6c
+	lda #12:sta &fe00					; 8c
+	lda vram_table_HI, X				; 4c
+	sta &fe01							; 6c
+	\\ 40c
+	
+	\\ Row 1 scanline
+	lda #9:sta &fe00					; 8c
+	lda v+1:and #6						; 5c
+	\\ 2-bits * 2
+	tax									; 2c
+	eor #&ff							; 2c
+	sec									; 2c
+	adc #13								; 2c
+		clc									; 2c
+		adc prev_scanline					; 3c
+		sta &fe01							; 6c
+		stx prev_scanline					; 3c
+		\\ 35c
+
+		lda #126:sta row_count				; 5c
+
+		\\ Set R0=101 (102c)
+		lda #0:sta &fe00					; 8c
+		lda #101:sta &fe01					; 8c
+
+		WAIT_CYCLES 58
+
+		\\ At HCC=102 set R0=1.
+		lda #1:sta &fe01					; 8c
+		\\ Burn 13 scanlines = 13x2c = 26c
+		WAIT_CYCLES 18
+
+	\\ Now 2x scanlines per loop.
+	.char_row_loop
+	{
+			\\ At HCC=0 set R0=127
+			lda #127:sta &fe01		; 8c
+		
+		\\ <=== HCC=0
+		\\ Update v
+		clc:lda v:adc dv:sta v				; 11c
+		lda v+1:adc dv+1:sta v+1			; 9c
+		\\ 20c
+
+		\\ Row N+1 screen start
+		lsr a:tax							; 4c
+		lda #13:sta &fe00					; 8c
+		lda vram_table_LO, X				; 4c
+		sta &fe01							; 6c
+		lda #12:sta &fe00					; 8c
+		lda vram_table_HI, X				; 4c
+		sta &fe01							; 6c
+		\\ 40c
+	
+		\\ NB. Must set R9 before final scanline of the row!
+		\\ Row N+1 scanline
+		lda #9:sta &fe00				; 8c
+		lda v+1:and #6					; 5c
+		\\ 2-bits * 2
+		tax								; 2c
+		eor #&ff						; 2c
+		sec								; 2c
+		adc #13							; 2c
+		clc								; 2c
+		adc prev_scanline				; 3c
+		sta &fe01						; 6c
+		stx prev_scanline				; 3c
+		\\ 35c
+
+		\\ 33c
+			WAIT_CYCLES 68		\\ <=== HCC=0
+			\\ 35c
+
+			\\ Set R0=101 (102c)
+			lda #0:sta &fe00				; 8c <= 7c
+			lda #101:sta &fe01				; 8c
+
+			WAIT_CYCLES 44
+
+			\\ At HCC=102 set R0=1.
+			lda #1:sta &fe01				; 8c
+			\\ Burn 13 scanlines = 13x2c = 26c
+			WAIT_CYCLES 10
+
+			dec row_count				; 5c
+			bne char_row_loop			; 3c
+	}
+	CHECK_SAME_PAGE_AS char_row_loop
+	.scanline_last
+
+		ldx #1						; 2c
+		\\ At HCC=0 set R0=127
+		lda #127:sta &fe01			; 8c <= 7c
+	
+	\\ <=== HCC=0
+	jsr cycles_wait_scanlines	
+
+		\\ <=== HCC=0
+		\\ Set next scanline back to 0.
+		lda #9:sta &fe00			; 8c
+		clc							; 2c
+		lda #13						; 2c
+		adc prev_scanline			; 3c
+		sta &fe01					; 6c
+
+		lda #6:sta &fe00			; 8c <= 7c
+		lda #0:sta &fe01			; 8c
+		\\ 36c
+
+		\\ Set R0=101 (102c)
+		lda #0:sta &fe00			; 8c
+		lda #101:sta &fe01			; 8c
+
+		WAIT_CYCLES 42
+
+		\\ At HCC=102 set R0=1.
+		lda #1:sta &fe01			; 8c
+		\\ Burn 13 scanlines = 13x2c = 26c
+		WAIT_CYCLES 18
+
+		lda #127:sta &fe01			; 8c
+	\\ <=== HCC=0
+
+	\\ R9=7
+	.scanline_end_of_screen
+	lda #9:sta &fe00
+	lda #7:sta &fe01
+
+	\\ Total 312 line - 256 = 56 scanlines
+	LDA #4: STA &FE00
+	LDA #6: STA &FE01
+    RTS
+}
+
 .fx_end
 
 \ ******************************************************************
@@ -501,6 +833,43 @@ ENDIF
 	EQUB HI(screen_addr/8)	; R12 screen start address, high
 	EQUB LO(screen_addr/8)	; R13 screen start address, low
 }
+
+\ ******************************************************************
+\ *	FX DATA
+\ ******************************************************************
+
+PAGE_ALIGN_FOR_SIZE 128
+.vram_table_LO
+FOR n,0,127,1
+EQUB LO((&3000 + (n DIV 4)*640)/8)
+NEXT
+
+PAGE_ALIGN_FOR_SIZE 128
+.vram_table_HI
+FOR n,0,127,1
+EQUB HI((&3000 + (n DIV 4)*640)/8)
+NEXT
+
+PAGE_ALIGN_FOR_SIZE 128
+.dv_table_LO
+FOR n,0,63,1
+height=128
+max_height=height*10
+h=128+n*(max_height-height)/63
+dv = 512 * height / h
+;PRINT h, height/h, dv
+EQUB LO(dv)
+NEXT
+
+PAGE_ALIGN_FOR_SIZE 128
+.dv_table_HI
+FOR n,0,63,1
+height=128
+max_height=1280
+h=128+n*(max_height-height)/63
+dv = 512 * height / h
+EQUB HI(dv)
+NEXT
 
 .exo_data
 INCBIN "build/logo-mode2.exo"
