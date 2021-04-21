@@ -1,6 +1,7 @@
 ;******************************************************************
 ; 6502 BBC Micro Compressed VGM (VGC) Music Player
 ; By Simon Morris
+; https://github.com/simondotm/vgm-player-bbc
 ; https://github.com/simondotm/vgm-packer
 ;******************************************************************
 
@@ -12,7 +13,9 @@
 ENABLE_HUFFMAN = FALSE
 
 ; Enable this to capture the SN chip register settings (for fx etc.)
-ENABLE_VGM_FX = TRUE
+ENABLE_VGM_FX = FALSE
+
+LZ_STORE_BUFFER_INLINE=TRUE
 
 ;-------------------------------
 ; workspace/zeropage vars
@@ -22,7 +25,11 @@ ENABLE_VGM_FX = TRUE
 ; VGM player uses:
 ;  8 zero page vars without huffman
 ; 19 zero page vars with huffman
+IF LZ_STORE_BUFFER_INLINE=TRUE
+.VGM_ZP SKIP 10 ; must be in zero page 
+ELSE
 .VGM_ZP SKIP 8 ; must be in zero page 
+ENDIF
 
 ; declare zero page registers used for each compressed stream (they are context switched)
 lz_zp = VGM_ZP + 0
@@ -32,8 +39,9 @@ zp_literal_cnt  = lz_zp + 2    ; literal count LO/HI, 7 references
 zp_match_cnt    = lz_zp + 4    ; match count LO/HI, 10 references
 ; temporary vars
 zp_temp = lz_zp + 6 ; 2 bytes ; used only by lz_decode_byte and lz_fetch_count, does not need to be zp apart from memory/speed reasons
-
-
+IF LZ_STORE_BUFFER_INLINE=TRUE
+zp_window_dst = lz_zp + 8     ; used by lz_store_buffer.
+ENDIF
 
 ; The following vars only apply if Huffman support is enabled
 IF ENABLE_HUFFMAN
@@ -64,23 +72,3 @@ ENDIF ; ENABLE_HUFFMAN
 ; they may need to be zero page due to indirect addressing
 zp_block_data = zp_stream_src ; re-uses zp_stream_src, must be zp ; zp_buffer+0 ; must be zp
 zp_block_size = zp_temp+0 ; does not need to be zp
-
-; Sound chip data from the vgm player
-IF ENABLE_VGM_FX
-.vgm_fx SKIP 12 ; was 11
-; first 8 bytes are:
-; tone0 LO, tone1 LO, tone2 LO, tone3, vol0, vol1, vol2, vol3 (all 4-bit values)
-; next 3 bytes are:
-; tone0 HI, tone1 HI, tone2 HI (all 6-bit values)
-VGM_FX_TONE0_LO = 0
-VGM_FX_TONE1_LO = 1
-VGM_FX_TONE2_LO = 2
-VGM_FX_TONE3_LO = 3 ; noise
-VGM_FX_VOL0     = 4
-VGM_FX_VOL1     = 5
-VGM_FX_VOL2     = 6
-VGM_FX_VOL3     = 7 ; noise
-VGM_FX_TONE0_HI = 8
-VGM_FX_TONE1_HI = 9
-VGM_FX_TONE2_HI = 10
-ENDIF

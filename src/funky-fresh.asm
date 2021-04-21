@@ -47,14 +47,14 @@ include "lib/macros.h.asm"
 
 MACRO RND
 {
-    LDA seed
-    ASL A
-    ASL A
-    CLC
-    ADC seed
-    CLC
-    ADC #&45
-    STA seed
+    lda seed
+    asl A
+    asl A
+    clc
+    adc seed
+    clc
+    adc #&45
+    sta seed
 }
 ENDMACRO
 
@@ -88,7 +88,9 @@ screen_addr = &3000
 ; Exact time for a 50Hz frame less latch load time
 FramePeriod = 312*64-2
 ; Exact time so that the FX draw function call starts at VCC=0,HCC=0.
-TimerValue = 32*64 - 2*64 - 54 -2
+TimerValue1 = 32*64 - 2*64 - 54 -2
+; Exact time so that everything else happens at scanline 256.
+TimerValue2 = 32*64 + 256*64 - 2*64 - 52 -2
 
 KEY_PAUSE_INKEY = -56           ; 'P'
 KEY_STEP_FRAME_INKEY = -68      ; 'F'
@@ -224,7 +226,7 @@ GUARD screen_addr + RELOC_SPACE
     IF 0
     {
         \\ Ensure HAZEL RAM is writeable.
-        LDA &FE34:ORA #&8:STA &FE34
+        lda &fe34:ORA #&8:sta &fe34
 
         ldx #LO(hazel_filename)
         ldy #HI(hazel_filename)
@@ -241,8 +243,8 @@ GUARD screen_addr + RELOC_SPACE
     lda #2:jsr oswrch
 
 	\\ Turn off cursor
-	LDA #10: STA &FE00
-	LDA #32: STA &FE01
+	lda #10: sta &fe00
+	lda #32: sta &fe01
 
 	\\ Turn off interlace
 	lda #8:sta &fe00
@@ -300,10 +302,10 @@ GUARD screen_addr + RELOC_SPACE
     \\ Late init.
    	lda #0:sta zoom
 
-	SEI
+	sei
     lda &fe4e:sta previous_ifr+1
-    LDA IRQ1V:STA old_irqv
-    LDA IRQ1V+1:STA old_irqv+1
+    lda IRQ1V:sta old_irqv
+    lda IRQ1V+1:sta old_irqv+1
 
 	\\ Ensure the CRTC column counter is incrementing starting from a
 	\\ known state with respect to the cycle stretching. Because the vsync
@@ -326,7 +328,7 @@ GUARD screen_addr + RELOC_SPACE
 		lda #2
         sta &fe4d
 		.vsync1
-		bit &FE4D
+		bit &fe4d
 		beq vsync1
 	}
 	; Roughly synced to VSync
@@ -336,17 +338,17 @@ GUARD screen_addr + RELOC_SPACE
     ; One frame = 312*128 = 39936 cycles
 	{
 		.syncloop
-		STA &FE4D       ; 6
-		LDX #209        ; 2
+		sta &fe4d       ; 6
+		ldx #209        ; 2
 		.outerloop
-		LDY #37         ; 2
+		ldy #37         ; 2
 		.innerloop
-		DEY             ; 2
-		BNE innerloop   ; 3/2 (innerloop = 5*37+2-1 = 186)
-		DEX             ; 2
-		BNE outerloop   ; 3/2 (outerloop = (186+2+3)*209+2-1 = 39920)
-		BIT &FE4D       ; 6
-		BNE syncloop    ; 3 (total = 39920+6+6+3 = 39935, one cycle less than a frame!)
+		dey             ; 2
+		bne innerloop   ; 3/2 (innerloop = 5*37+2-1 = 186)
+		dex             ; 2
+		bne outerloop   ; 3/2 (outerloop = (186+2+3)*209+2-1 = 39920)
+		bit &fe4D       ; 6
+		bne syncloop    ; 3 (total = 39920+6+6+3 = 39935, one cycle less than a frame!)
 		IF HI(syncloop) <> HI(P%)
 		ERROR "This loop must execute within the same page"
 		ENDIF
@@ -354,27 +356,32 @@ GUARD screen_addr + RELOC_SPACE
     ; We are synced precisely with VSync!
 
 	\\ Set up Timer1 to start at the first scanline
-    LDA #LO(TimerValue):STA &FE44		; 8c
-    LDA #HI(TimerValue):STA &FE45		; 8c
+    lda #LO(TimerValue1):sta &fe44		; 8c
+    lda #HI(TimerValue1):sta &fe45		; 8c
+
+    lda #LO(TimerValue2):sta &fe64		; 8c
+    lda #HI(TimerValue2):sta &fe65		; 8c
 
   	; Latch T1 to interupt exactly every 50Hz frame
-	LDA #LO(FramePeriod):STA &FE46		; 8c
-	LDA #HI(FramePeriod):STA &FE47		; 8c
+	lda #LO(FramePeriod):sta &fe46:sta &fe66		; 8c
+	lda #HI(FramePeriod):sta &fe47:sta &fe67		; 8c
 
-	LDA #&7F					; (disable all interrupts)
-	STA &FE4E					; R14=Interrupt Enable
-	STA &FE6E					; R14=Interrupt Enable
-	STA &FE43					; R3=Data Direction Register "A" (set keyboard data direction)
-	LDA #&C0					; 
-	STA &FE4E					; R14=Interrupt Enable
+	lda #&7F					; (disable all interrupts)
+	sta &fe4e:sta &fe6e			; R14=Interrupt Enable
+	sta &fe43					; R3=Data Direction Register "A" (set keyboard data direction)
+	lda #&C0					; 
+	sta &fe4e:sta &fe6e			; R14=Interrupt Enable
     lda #64
-    sta &fe4b                   ; T1 free-run mode
+    sta &fe4b:sta &fe6b         ; T1 free-run mode
 
-    LDA #LO(irq_handler):STA IRQ1V
-    LDA #HI(irq_handler):STA IRQ1V+1		; set interrupt handler
+    lda #LO(irq_handler):sta IRQ1V
+    lda #HI(irq_handler):sta IRQ1V+1		; set interrupt handler
+
+	\\ Prime first frame of the VGC player.
+;	MUSIC_JUMP_VGM_UPDATE
 
     \\ Go!
-    CLI
+    cli
 
     \\ Main loop!
     .loop
@@ -391,24 +398,51 @@ GUARD screen_addr + RELOC_SPACE
 
     \\ TODO: Can we ever finish?
     .finished
-    SEI
+    sei
     .previous_ifr
     lda #0:sta &fe4e            ; restore interrupts
-    LDA old_irqv:STA IRQ1V
-    LDA old_irqv+1:STA IRQ1V+1	; set interrupt handler
-    CLI
-    JMP MUSIC_JUMP_SN_RESET
+    lda old_irqv:sta IRQ1V
+    lda old_irqv+1:sta IRQ1V+1	; set interrupt handler
+    cli
+    jmp MUSIC_JUMP_SN_RESET
 }
 
 .irq_handler
 {
-	lda &FC
+	lda &fc
 	pha
 
     \\ Note that IFR will still be set with Vsync even if it didn't trigger an interrupt.
     lda &fe4d
     and #&40
-    beq return
+    bne is_timer1_sysvia
+
+	lda &fe6d
+	and #&40
+	beq return
+
+	.is_timer1_uservia
+	sta &fe6d
+    txa:pha:tya:pha
+
+    \\ NOTE: Assuming this returns after 256 scanlines then we have
+    \\ just 56 scanlines left to do everything else in the system!
+
+    \\ Update music.
+    MUSIC_JUMP_VGM_UPDATE
+
+	\\ Need to update 'script' here.
+	\\ Switch displayed FX before update fn.
+
+    \\ Call FX update function.
+    jsr fx_update_function
+
+    pla:tay:pla:tax
+
+    .return
+	pla
+	sta &fc
+	rti
 
     .is_timer1_sysvia
     sta &fe4d
@@ -417,7 +451,7 @@ GUARD screen_addr + RELOC_SPACE
     \\ Stabilise the raster.
     {
 		\\ Reading the T1 low order counter also resets the T1 interrupt flag in IFR
-		LDA &FE44
+		lda &fe44
 
 		\\ New stable raster NOP slide thanks to VectorEyes 8)
         ; Extract lowest 3 bits, use result to control a NOP slide. This corrects for timer jitter and provides stable raster.
@@ -439,31 +473,12 @@ GUARD screen_addr + RELOC_SPACE
     \\ Call FX draw function.
     jsr fx_draw_function
 
-    \\ NOTE: Assuming this returns after 256 scanlines then we have
-    \\ just 56 scanlines left to do everything else in the system!
-
-    \\ NOTE: Music can take up to 45 scanlines to return!!
-    \\ This was leaving 11 scanlines to do the update.
-
-    \\ Then update music.
-    MUSIC_JUMP_VGM_UPDATE
-
-    \\ NOTE: Update was taking 13 scanlines to calulate start v.
-    \\ So the next Timer1 interupt was arriving 2 scanlines late. Doh!
-
-    \\ Call FX update function.
-    jsr fx_update_function
-
-    \\ We also need to find some time to do decompression etc. in the
-    \\ 'main thread'.
-
     pla:tay:pla:tax
-
     dec lock
 
-    .return
+	; return
 	pla
-	sta &FC
+	sta &fc
 	rti
 }
 
@@ -505,12 +520,12 @@ GUARD screen_addr + RELOC_SPACE
 	WAIT_CYCLES 128-6-2-3-6
 
 	.loop
-	DEX					; 2c
-	BEQ done			; 2/3c
+	dex					; 2c
+	beq done			; 2/3c
 
 	WAIT_CYCLES 121
 
-	JMP loop			; 3c
+	jmp loop			; 3c
 
 	.done
 	RTS					; 6c
@@ -523,6 +538,26 @@ GUARD screen_addr + RELOC_SPACE
 \ ******************************************************************
 
 .fx_start
+
+\ Arrive at VCC=0,HCC=0.
+\ Assume horizontal registers are default but vertical registers
+\ might be left in a ruptured state. Reset these to defaults.
+.fx_draw_default_crtc
+{
+	lda #9:sta &fe00		; R9=7
+	lda #7:sta &fe01
+
+	lda #4:sta &fe00		; R4=38
+	lda #38:sta &fe01
+
+	lda #7:sta &fe00		; R7=35
+	lda #35:sta &fe01
+
+	lda #6:sta &fe00		; R6=32
+	lda #32:sta &fe01
+
+	rts
+}
 
 \ ******************************************************************
 \ Update FX
@@ -764,8 +799,8 @@ PAGE_ALIGN
 	lda #7:sta &fe01
 
 	\\ Total 312 line - 256 = 56 scanlines
-	LDA #4: STA &FE00
-	LDA #6: STA &FE01
+	lda #4: sta &fe00
+	lda #6: sta &fe01
     RTS
 }
 
