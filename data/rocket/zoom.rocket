@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rootElement>
+<tracks rows="10000" startRow="0" endRow="10000" rowsPerBeat="8"
+beatsPerMin="125">
+	<track name="zoom" folded="0" muteKeyCount="0" color="ffb27474">
+		<key row="0" value="0.000000" interpolation="1" />
+		<key row="8" value="10.000000" interpolation="1" />
+		<key row="16" value="0.000000" interpolation="1" />
+		<key row="24" value="20.000000" interpolation="1" />
+		<key row="32" value="0.000000" interpolation="1" />
+		<key row="40" value="10.000000" interpolation="1" />
+		<key row="48" value="0.000000" interpolation="1" />
+		<key row="56" value="20.000000" interpolation="1" />
+		<key row="64" value="0.000000" interpolation="1" />
+		<key row="72" value="10.000000" interpolation="1" />
+		<key row="80" value="0.000000" interpolation="1" />
+		<key row="88" value="20.000000" interpolation="1" />
+		<key row="96" value="0.000000" interpolation="1" />
+		<key row="104" value="10.000000" interpolation="1" />
+		<key row="112" value="0.000000" interpolation="1" />
+		<key row="120" value="20.000000" interpolation="1" />
+		<key row="152" value="0.000000" interpolation="1" />
+		<key row="192" value="10.000000" interpolation="1" />
+		<key row="232" value="0.000000" interpolation="1" />
+		<key row="264" value="20.000000" interpolation="1" />
+		<key row="304" value="0.000000" interpolation="0" />
+		<key row="320" value="10.000000" interpolation="1" />
+		<key row="321" value="0.000000" interpolation="0" />
+		<key row="328" value="10.000000" interpolation="1" />
+		<key row="329" value="0.000000" interpolation="0" />
+		<key row="336" value="10.000000" interpolation="1" />
+		<key row="337" value="0.000000" interpolation="0" />
+		<key row="344" value="10.000000" interpolation="1" />
+		<key row="345" value="0.000000" interpolation="0" />
+		<key row="392" value="10.000000" interpolation="1" />
+	</track>
+</tracks>
+	</rootElement>

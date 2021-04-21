@@ -113,8 +113,6 @@ INCLUDE "lib/exo.h.asm"
 .readptr                skip 2
 .writeptr               skip 2
 .row_count				skip 1
-.temp					skip 1
-.lock                   skip 1
 
 .music_enabled          skip 1
 .task_request           skip 1
@@ -126,9 +124,14 @@ INCLUDE "lib/vgcplayer.h.asm"
 .dv						skip 2
 .prev_scanline			skip 1
 
-ORG &70
-GUARD &9F
+CLEAR &90, &9F
+ORG &90
+GUARD &9C
 .zoom					skip 1
+
+rocket_vsync_count = &9c
+rocket_audio_flag = &9e
+rocket_fast_mode = &9f
 
 .zp_end
 
@@ -391,6 +394,7 @@ GUARD screen_addr + RELOC_SPACE
         beq wait_for_task
 
         \\ Do our background task.
+		jsr do_task
 
         dec task_request
     }
@@ -409,8 +413,7 @@ GUARD screen_addr + RELOC_SPACE
 
 .irq_handler
 {
-	lda &fc
-	pha
+	lda &fc:pha
 
     \\ Note that IFR will still be set with Vsync even if it didn't trigger an interrupt.
     lda &fe4d
@@ -427,9 +430,24 @@ GUARD screen_addr + RELOC_SPACE
 
     \\ NOTE: Assuming this returns after 256 scanlines then we have
     \\ just 56 scanlines left to do everything else in the system!
+	IF _DEBUG
+	jsr rocket_update_music
+
+	lda music_enabled
+	beq music_paused
+	ENDIF
 
     \\ Update music.
     MUSIC_JUMP_VGM_UPDATE
+
+    \\ Update vsync count.
+    {
+        inc rocket_vsync_count
+        bne no_carry
+        inc rocket_vsync_count+1
+        .no_carry
+    }
+	.music_paused
 
 	\\ Need to update 'script' here.
 	\\ Switch displayed FX before update fn.
@@ -440,13 +458,11 @@ GUARD screen_addr + RELOC_SPACE
     pla:tay:pla:tax
 
     .return
-	pla
-	sta &fc
+	pla:sta &fc
 	rti
 
     .is_timer1_sysvia
     sta &fe4d
-    inc lock
 
     \\ Stabilise the raster.
     {
@@ -474,11 +490,8 @@ GUARD screen_addr + RELOC_SPACE
     jsr fx_draw_function
 
     pla:tay:pla:tax
-    dec lock
-
-	; return
-	pla
-	sta &fc
+	\ return
+	pla:sta &fc
 	rti
 }
 
@@ -805,6 +818,56 @@ PAGE_ALIGN
 }
 
 .fx_end
+
+\ ******************************************************************
+\ *	ROCKET MODULES
+\ ******************************************************************
+
+.rocket_update_music
+{
+	lda rocket_audio_flag
+	cmp music_enabled
+	beq return
+
+	sta music_enabled
+	cmp #0
+	beq pause
+
+	lda task_request
+	bne task_running
+
+	\\ Play from new position.
+	;lda #&ff:sta rocket_fast_mode	; turbo mode on!
+	ldx rocket_vsync_count:stx do_task_load_X+1
+	ldy rocket_vsync_count+1:sty do_task_load_Y+1
+	lda #LO(rocket_set_pos):sta do_task_jmp+1
+	lda #HI(rocket_set_pos):sta do_task_jmp+2
+	inc task_request
+
+	.task_running
+	lda #0:sta music_enabled
+	\\ This takes a long time so can't be done in IRQ.
+	\\ Options:
+	\\ - run this as a background task?
+	\\ - restart the demo and play from the beginning?!
+	;jsr vgm_seek					; sloooow.
+	;lda #0:sta rocket_fast_mode		; turbo mode off!
+	.return
+	rts
+
+	.pause
+	\\ Kill sound.
+	jmp MUSIC_JUMP_SN_RESET
+}
+
+.rocket_set_pos
+{
+	lda #&ff:sta rocket_fast_mode	; turbo mode on!
+	jsr vgm_seek					; sloooow.
+	lda #0:sta rocket_fast_mode		; turbo mode off!
+	lda #1:sta music_enabled
+	rts
+}
 
 \ ******************************************************************
 \ *	LIBRARY MODULES
