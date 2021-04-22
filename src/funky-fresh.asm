@@ -88,7 +88,7 @@ screen_addr = &3000
 ; Exact time for a 50Hz frame less latch load time
 FramePeriod = 312*64-2
 ; Exact time so that the FX draw function call starts at VCC=0,HCC=0.
-Timer1InitialValue = 32*64 - 2*64 - 68 -2
+Timer1InitialValue = 32*64 - 2*64 - 60 -2
 ; Exact time of the visible portion of the display.
 VisibleDisplayPeriod = 256*64 -4
 ; Exact time of the vblank portion of the display.
@@ -118,7 +118,6 @@ INCLUDE "lib/exo.h.asm"
 .writeptr               skip 2
 .row_count				skip 1
 
-.irq_portion			skip 1
 .music_enabled          skip 1
 .task_request           skip 1
 .seed                   skip 2
@@ -420,19 +419,19 @@ GUARD screen_addr + RELOC_SPACE
     \\ Note that IFR will still be set with Vsync even if it didn't trigger an interrupt.
     lda &fe4d
     and #&40
-    beq return
+    bne visible_display_portion		; **SELF MOD**
+	.irq_handler_dest
 
-	\\ SysVIA T1.
-	sta &fe4d	; ack				; 6c
-
-	lda irq_portion					; 3c
-	beq visible_display_portion		; 3c
+	\ return
+	pla:sta &fc
+	rti
 
 	.vblank_display_portion
 	; T1 has already latched to its new value for the next interupt (visible potion)
 	; Latch T1 for the next-plus_one interupt => at the end of the visible display.
 	lda #LO(VisibleDisplayPeriod):sta &fe46
 	lda #HI(VisibleDisplayPeriod):sta &fe47
+	\\ Writing T1 high order latch also resets the T1 interrupt flag in IFR.
 	
     txa:pha:tya:pha
 
@@ -465,7 +464,8 @@ GUARD screen_addr + RELOC_SPACE
     pla:tay:pla:tax
 
 	\\ Next IRQ will be the visible portion of the display.
-	lda #0:sta irq_portion
+	lda #(visible_display_portion-irq_handler_dest)
+	sta irq_handler_dest-1
 
     .return
 	pla:sta &fc
@@ -474,7 +474,7 @@ GUARD screen_addr + RELOC_SPACE
 	.visible_display_portion
     \\ Stabilise the raster.
     {
-		\\ Reading the T1 low order counter also resets the T1 interrupt flag in IFR
+		\\ Reading the T1 low order counter also resets the T1 interrupt flag in IFR.
 		lda &fe44
 
 		\\ New stable raster NOP slide thanks to VectorEyes 8)
@@ -505,7 +505,8 @@ GUARD screen_addr + RELOC_SPACE
     pla:tay:pla:tax
 
 	\\ Next IRQ will be the vblank portion of the display.
-	lda #1:sta irq_portion
+	lda #(vblank_display_portion-irq_handler_dest)
+	sta irq_handler_dest-1
 
 	\ return
 	pla:sta &fc
