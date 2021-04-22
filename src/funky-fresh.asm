@@ -417,12 +417,11 @@ GUARD screen_addr + RELOC_SPACE
 	lda &fc:pha
 
     \\ Note that IFR will still be set with Vsync even if it didn't trigger an interrupt.
-    lda &fe4d
-    and #&40
-    bne visible_display_portion		; **SELF MOD**
+    bit &fe4d
+    bvs visible_display_portion		; V=&40	**SELF MOD**
 	.irq_handler_dest
 
-	\ return
+	\\ Not SysVIA Timer 1 so return.
 	pla:sta &fc
 	rti
 
