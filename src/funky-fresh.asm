@@ -122,6 +122,10 @@ INCLUDE "lib/exo.h.asm"
 .task_request           skip 1
 .seed                   skip 2
 
+.event_code				skip 1
+.event_data				skip 1
+.display_fx				skip 1
+
 INCLUDE "lib/vgcplayer.h.asm"
 
 .v						skip 2
@@ -131,7 +135,10 @@ INCLUDE "lib/vgcplayer.h.asm"
 CLEAR &90, &9F
 ORG &90
 GUARD &9C
-.zoom					skip 1
+.track_zoom				skip 1
+.track_event_code		skip 1
+.track_event_data		skip 1
+.track_display_fx		skip 1
 
 rocket_vsync_count = &9c
 rocket_audio_flag = &9e
@@ -233,7 +240,7 @@ GUARD screen_addr + RELOC_SPACE
     IF 0
     {
         \\ Ensure HAZEL RAM is writeable.
-        lda &fe34:ORA #&8:sta &fe34
+        lda &fe34:ora #&8:sta &fe34
 
         ldx #LO(hazel_filename)
         ldy #HI(hazel_filename)
@@ -307,7 +314,6 @@ GUARD screen_addr + RELOC_SPACE
     \\ Init debug system here.
 
     \\ Late init.
-   	lda #0:sta zoom
 
 	sei
     lda &fe4e:sta previous_ifr+1
@@ -381,8 +387,7 @@ GUARD screen_addr + RELOC_SPACE
     lda #LO(irq_handler):sta IRQ1V
     lda #HI(irq_handler):sta IRQ1V+1		; set interrupt handler
 
-	\\ Prime first frame of the VGC player.
-;	MUSIC_JUMP_VGM_UPDATE
+	\\ Prime first frame of the VGC player?
 
     \\ Go!
     cli
@@ -455,9 +460,13 @@ GUARD screen_addr + RELOC_SPACE
 	.music_paused
 
 	\\ Need to update 'script' here.
+	jsr events_update
+
 	\\ Switch displayed FX before update fn.
+	jsr display_fx_update
 
     \\ Call FX update function.
+	.^call_fx_update_fn
     jsr fx_update_function
 
     pla:tay:pla:tax
@@ -499,6 +508,7 @@ GUARD screen_addr + RELOC_SPACE
     txa:pha:tya:pha
 
     \\ Call FX draw function.
+	.^call_fx_draw_fn
     jsr fx_draw_function
 
     pla:tay:pla:tax
@@ -606,7 +616,7 @@ GUARD screen_addr + RELOC_SPACE
 
 .fx_update_function
 {
-	ldx zoom
+	ldx track_zoom
 	lda dv_table_LO, X
 	sta dv
 	lda dv_table_HI, X
@@ -883,6 +893,103 @@ PAGE_ALIGN
 	jsr vgm_seek					; sloooow.
 	lda #0:sta rocket_fast_mode		; turbo mode off!
 	lda #1:sta music_enabled
+	rts
+}
+
+\ ******************************************************************
+\ *	EVENTS SYSTEM
+\ ******************************************************************
+
+.events_update
+{
+	ldx track_event_code
+	ldy track_event_data
+	cpx event_code
+	bne do_event
+	cpy event_data
+	beq return
+
+	.do_event
+	stx event_code
+	sty event_data
+
+	txa:asl a:tax
+	lda events_fn_table+0, X
+	sta jmp_to_handler+1
+	lda events_fn_table+1, X
+	sta jmp_to_handler+2
+
+	tya
+	.jmp_to_handler
+	jmp &ffff
+
+	.return
+	rts
+}
+
+.events_fn_table
+{
+	equw do_nothing						; &00
+	equw do_nothing		;event_load_asset_to_main		; &01
+	equw do_nothing		;event_load_asset_to_shadow		; &02
+}
+
+\ ******************************************************************
+\ *	DISPLAY FX
+\ ******************************************************************
+
+.display_fx_update
+{
+	lda track_display_fx
+	cmp display_fx
+	beq return
+
+	sta display_fx
+	asl a:asl a:tax
+
+	lda display_fx_table+0, X
+	sta call_fx_update_fn+1
+	lda display_fx_table+1, X
+	sta call_fx_update_fn+2
+
+	lda display_fx_table+2, X
+	sta call_fx_draw_fn+1
+	lda display_fx_table+3, X
+	sta call_fx_draw_fn+2
+
+	.return
+	rts
+}
+
+.display_fx_table
+{
+	equw do_nothing,			fx_draw_default_crtc	; &00
+	equw fx_update_function,	fx_draw_function		; &01
+	equw fx_display_main,		fx_draw_default_crtc	; &02
+	equw fx_display_shadow,		fx_draw_default_crtc	; &03
+}
+
+.fx_display_main
+{
+	; clear bit 0 to display MAIN.
+	lda &fe34:and #&fe:sta &fe34
+	; Set R12/R13 for full screen.
+	lda #12:sta &fe00
+	lda #HI(screen_addr/8):sta &fe01
+	lda #13:sta &fe00
+	lda #LO(screen_addr):sta &fe01
+	rts
+}
+
+.fx_display_shadow
+{
+	; set bit 1 to display SHADOW.
+	lda &fe34:ora #1:sta &fe34
+	; Set R12/R13 for full screen.
+	lda #12:sta &fe00
+	lda #HI(screen_addr/8):sta &fe01
+	lda #13:sta &fe00
+	lda #LO(screen_addr):sta &fe01
 	rts
 }
 
