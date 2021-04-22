@@ -24,15 +24,28 @@ beatsPerMin="125">
 		<key row="232" value="0.000000" interpolation="1" />
 		<key row="264" value="20.000000" interpolation="1" />
 		<key row="304" value="0.000000" interpolation="0" />
-		<key row="320" value="10.000000" interpolation="1" />
-		<key row="321" value="0.000000" interpolation="0" />
-		<key row="328" value="10.000000" interpolation="1" />
-		<key row="329" value="0.000000" interpolation="0" />
-		<key row="336" value="10.000000" interpolation="1" />
-		<key row="337" value="0.000000" interpolation="0" />
-		<key row="344" value="10.000000" interpolation="1" />
-		<key row="345" value="0.000000" interpolation="0" />
+		<key row="320" value="1.000000" interpolation="1" />
+		<key row="322" value="0.000000" interpolation="0" />
+		<key row="328" value="2.000000" interpolation="1" />
+		<key row="330" value="0.000000" interpolation="0" />
+		<key row="336" value="3.000000" interpolation="1" />
+		<key row="338" value="0.000000" interpolation="0" />
+		<key row="344" value="4.000000" interpolation="1" />
+		<key row="346" value="0.000000" interpolation="0" />
+		<key row="352" value="5.000000" interpolation="1" />
+		<key row="354" value="0.000000" interpolation="0" />
+		<key row="360" value="6.000000" interpolation="1" />
+		<key row="362" value="0.000000" interpolation="0" />
+		<key row="368" value="7.000000" interpolation="1" />
+		<key row="370" value="0.000000" interpolation="0" />
+		<key row="376" value="8.000000" interpolation="1" />
+		<key row="378" value="0.000000" interpolation="0" />
+		<key row="384" value="9.000000" interpolation="1" />
+		<key row="386" value="0.000000" interpolation="0" />
 		<key row="392" value="10.000000" interpolation="1" />
+		<key row="394" value="0.000000" interpolation="1" />
+		<key row="496" value="63.000000" interpolation="1" />
+		<key row="504" value="0.000000" interpolation="0" />
 	</track>
 </tracks>
 	</rootElement>

@@ -88,9 +88,13 @@ screen_addr = &3000
 ; Exact time for a 50Hz frame less latch load time
 FramePeriod = 312*64-2
 ; Exact time so that the FX draw function call starts at VCC=0,HCC=0.
-TimerValue1 = 32*64 - 2*64 - 54 -2
-; Exact time so that everything else happens at scanline 256.
-TimerValue2 = 32*64 + 256*64 - 2*64 - 52 -2
+Timer1InitialValue = 32*64 - 2*64 - 68 -2
+; Exact time of the visible portion of the display.
+VisibleDisplayPeriod = 256*64 -4
+; Exact time of the vblank portion of the display.
+VBlankDisplayPeriod =  56*64	; -2
+\ Need to fudge the two periods otherwise stabler raster NOP slide
+\ requires more than the bottom 3 bits of the Timer 1 low counter.
 
 KEY_PAUSE_INKEY = -56           ; 'P'
 KEY_STEP_FRAME_INKEY = -68      ; 'F'
@@ -114,6 +118,7 @@ INCLUDE "lib/exo.h.asm"
 .writeptr               skip 2
 .row_count				skip 1
 
+.irq_portion			skip 1
 .music_enabled          skip 1
 .task_request           skip 1
 .seed                   skip 2
@@ -359,23 +364,20 @@ GUARD screen_addr + RELOC_SPACE
     ; We are synced precisely with VSync!
 
 	\\ Set up Timer1 to start at the first scanline
-    lda #LO(TimerValue1):sta &fe44		; 8c
-    lda #HI(TimerValue1):sta &fe45		; 8c
+    lda #LO(Timer1InitialValue):sta &fe44		; 8c
+    lda #HI(Timer1InitialValue):sta &fe45		; 8c
 
-    lda #LO(TimerValue2):sta &fe64		; 8c
-    lda #HI(TimerValue2):sta &fe65		; 8c
-
-  	; Latch T1 to interupt exactly every 50Hz frame
-	lda #LO(FramePeriod):sta &fe46:sta &fe66		; 8c
-	lda #HI(FramePeriod):sta &fe47:sta &fe67		; 8c
+  	; Latch T1 to interupt at the end of the visible display.
+	lda #LO(VisibleDisplayPeriod):sta &fe46
+	lda #HI(VisibleDisplayPeriod):sta &fe47
 
 	lda #&7F					; (disable all interrupts)
 	sta &fe4e:sta &fe6e			; R14=Interrupt Enable
 	sta &fe43					; R3=Data Direction Register "A" (set keyboard data direction)
 	lda #&C0					; 
-	sta &fe4e:sta &fe6e			; R14=Interrupt Enable
+	sta &fe4e					; R14=Interrupt Enable
     lda #64
-    sta &fe4b:sta &fe6b         ; T1 free-run mode
+    sta &fe4b			        ; T1 free-run mode
 
     lda #LO(irq_handler):sta IRQ1V
     lda #HI(irq_handler):sta IRQ1V+1		; set interrupt handler
@@ -418,18 +420,23 @@ GUARD screen_addr + RELOC_SPACE
     \\ Note that IFR will still be set with Vsync even if it didn't trigger an interrupt.
     lda &fe4d
     and #&40
-    bne is_timer1_sysvia
+    beq return
 
-	lda &fe6d
-	and #&40
-	beq return
+	\\ SysVIA T1.
+	sta &fe4d	; ack				; 6c
 
-	.is_timer1_uservia
-	sta &fe6d
+	lda irq_portion					; 3c
+	beq visible_display_portion		; 3c
+
+	.vblank_display_portion
+	; T1 has already latched to its new value for the next interupt (visible potion)
+	; Latch T1 for the next-plus_one interupt => at the end of the visible display.
+	lda #LO(VisibleDisplayPeriod):sta &fe46
+	lda #HI(VisibleDisplayPeriod):sta &fe47
+	
     txa:pha:tya:pha
 
-    \\ NOTE: Assuming this returns after 256 scanlines then we have
-    \\ just 56 scanlines left to do everything else in the system!
+    \\ NOTE: We have max 56 scanlines to do everything else in the system!
 	IF _DEBUG
 	jsr rocket_update_music
 
@@ -457,13 +464,14 @@ GUARD screen_addr + RELOC_SPACE
 
     pla:tay:pla:tax
 
+	\\ Next IRQ will be the visible portion of the display.
+	lda #0:sta irq_portion
+
     .return
 	pla:sta &fc
 	rti
 
-    .is_timer1_sysvia
-    sta &fe4d
-
+	.visible_display_portion
     \\ Stabilise the raster.
     {
 		\\ Reading the T1 low order counter also resets the T1 interrupt flag in IFR
@@ -484,12 +492,21 @@ GUARD screen_addr + RELOC_SPACE
 		.stable
 	}
 
+	; T1 has already latched to its new value for the next interupt (vblank potion)
+	; Latch T1 for the next-plus_one interupt => at the start of the visible display.
+	lda #LO(VBlankDisplayPeriod):sta &fe46	; 8c
+	lda #HI(VBlankDisplayPeriod):sta &fe47	; 8c
+
     txa:pha:tya:pha
 
     \\ Call FX draw function.
     jsr fx_draw_function
 
     pla:tay:pla:tax
+
+	\\ Next IRQ will be the vblank portion of the display.
+	lda #1:sta irq_portion
+
 	\ return
 	pla:sta &fc
 	rti
@@ -598,7 +615,7 @@ GUARD screen_addr + RELOC_SPACE
 	\\ Set v
 	lda #0:sta v:sta v+1
 
-IF 0
+IF 1
 	\\ Want centre of screen to be centre of sprite.
 	lda #0:sta v
 	lda #128:sta v+1
