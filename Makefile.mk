@@ -37,7 +37,8 @@ code: music assets
 music: ./build/beeb-demo.bbc.vgc
 
 .PHONY:assets
-assets: ./build/logo-mode2.bin ./build/logo-mode2.exo
+assets: ./build/logo-mode2.bin ./build/logo-mode2.exo \
+		./build/doom-screen.exo ./build/scr-screen.exo
 
 ##########################################################################
 ##########################################################################
@@ -54,6 +55,19 @@ clean:
 ./build/beeb-demo.bbc.vgm: ./data/music/beeb-demo.vgm
 	$(MKDIR_P) "./build"
 	$(PYTHON2) $(VGM_CONVERTER) data/music/beeb-demo.vgm -t bbc -o build/beeb-demo.bbc.vgm
+
+##########################################################################
+##########################################################################
+
+./build/doom-screen.exo: ./build/doom-screen.bin
+./build/doom-screen.bin: ./data/gfx/Doom.png
+	$(MKDIR_P) "./build"
+	$(PYTHON2) $(PNG2BBC) -q -o $@ $< --160 2
+
+./build/scr-screen.exo: ./build/scr-screen.bin
+./build/scr-screen.bin: ./data/gfx/TitleScreen_BBC.png
+	$(MKDIR_P) "./build"
+	$(PYTHON2) $(PNG2BBC) -q -o $@ $< --160 2
 
 ##########################################################################
 ##########################################################################

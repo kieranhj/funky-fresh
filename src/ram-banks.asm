@@ -6,6 +6,13 @@ CLEAR &8000, &C000
 ORG &8000
 GUARD &C000
 .bank0_start
+
+.exo_asset_doom_mode2
+INCBIN "build/doom-screen.exo"
+
+.exo_asset_scr_mode2
+INCBIN "build/scr-screen.exo"
+
 .bank0_end
 
 SAVE "build/BANK0", bank0_start, bank0_end, bank0_start
@@ -69,6 +76,7 @@ GUARD &C000
 .music_start
 include "src/music.asm"
 .music_end
+
 .bank3_end
 
 \ ******************************************************************

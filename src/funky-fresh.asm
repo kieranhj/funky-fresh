@@ -122,8 +122,8 @@ INCLUDE "lib/exo.h.asm"
 .task_request           skip 1
 .seed                   skip 2
 
-.event_code				skip 1
-.event_data				skip 1
+.last_task_id			skip 1
+.last_task_data			skip 1
 .display_fx				skip 1
 
 INCLUDE "lib/vgcplayer.h.asm"
@@ -136,8 +136,8 @@ CLEAR &90, &9F
 ORG &90
 GUARD &9C
 .track_zoom				skip 1
-.track_event_code		skip 1
-.track_event_data		skip 1
+.track_task_id			skip 1
+.track_task_data		skip 1
 .track_display_fx		skip 1
 
 rocket_vsync_count = &9c
@@ -202,7 +202,6 @@ GUARD screen_addr + RELOC_SPACE
     }
 
     \\ Load Banks
-    IF 0
     {
         SWRAM_SELECT SLOT_BANK0
         ldx #LO(bank0_filename)
@@ -210,6 +209,7 @@ GUARD screen_addr + RELOC_SPACE
         lda #HI(&8000)
         jsr disksys_load_file
 
+    IF 0
         SWRAM_SELECT SLOT_BANK1
         ldx #LO(bank1_filename)
         ldy #HI(bank1_filename)
@@ -221,8 +221,8 @@ GUARD screen_addr + RELOC_SPACE
         ldy #HI(bank2_filename)
         lda #HI(&8000)
         jsr disksys_load_file
-    }
     ENDIF
+    }
 
     \\ Init stack
     ldx #&ff:txs
@@ -233,7 +233,7 @@ GUARD screen_addr + RELOC_SPACE
     .zp_loop
     sta &00, x
     inx
-    cpx #zp_top
+    cpx #zp_end	; TODO: Check if we need to keep SWRAM slots in ZP.
     bne zp_loop
 
     \\ Load HAZEL last as it trashes the FS workspace.
@@ -306,10 +306,7 @@ GUARD screen_addr + RELOC_SPACE
     jsr vgm_init
 
     \\ Complete any initial preload.
-    ldx #LO(exo_data)
-    ldy #HI(exo_data)
-    lda #HI(screen_addr)
-    jsr decrunch_to_page_A
+	\\ TODO: Initialise screens before sequence starts.
 
     \\ Init debug system here.
 
@@ -460,7 +457,7 @@ GUARD screen_addr + RELOC_SPACE
 	.music_paused
 
 	\\ Need to update 'script' here.
-	jsr events_update
+	jsr tasks_update
 
 	\\ Switch displayed FX before update fn.
 	jsr display_fx_update
@@ -657,6 +654,11 @@ ENDIF
 	\\ Scanline of row 0 is always 0.
 	lda #0
 	sta prev_scanline
+
+	\\ This FX always uses screen in MAIN RAM.
+	; clear bit 0 to display MAIN.
+	lda &fe34:and #&fe:sta &fe34
+
 	rts
 }
 
@@ -856,15 +858,15 @@ PAGE_ALIGN
 	cmp music_enabled
 	beq return
 
-	sta music_enabled
-	cmp #0
-	beq pause
+	cmp #0:beq pause
 
 	lda task_request
 	bne task_running
 
-	\\ Play from new position.
-	;lda #&ff:sta rocket_fast_mode	; turbo mode on!
+	\\ This takes a long time so can't be done in IRQ.
+	\\ Options:
+	\\ - run this as a background task?
+	\\ - restart the demo and play from the beginning?!
 	ldx rocket_vsync_count:stx do_task_load_X+1
 	ldy rocket_vsync_count+1:sty do_task_load_Y+1
 	lda #LO(rocket_set_pos):sta do_task_jmp+1
@@ -872,66 +874,24 @@ PAGE_ALIGN
 	inc task_request
 
 	.task_running
-	lda #0:sta music_enabled
-	\\ This takes a long time so can't be done in IRQ.
-	\\ Options:
-	\\ - run this as a background task?
-	\\ - restart the demo and play from the beginning?!
-	;jsr vgm_seek					; sloooow.
-	;lda #0:sta rocket_fast_mode		; turbo mode off!
+
 	.return
 	rts
 
 	.pause
+	sta music_enabled
 	\\ Kill sound.
 	jmp MUSIC_JUMP_SN_RESET
 }
 
 .rocket_set_pos
 {
+	\\ Play from new position.
 	lda #&ff:sta rocket_fast_mode	; turbo mode on!
-	jsr vgm_seek					; sloooow.
+	MUSIC_JUMP_VGM_SEEK				; sloooow.
 	lda #0:sta rocket_fast_mode		; turbo mode off!
 	lda #1:sta music_enabled
 	rts
-}
-
-\ ******************************************************************
-\ *	EVENTS SYSTEM
-\ ******************************************************************
-
-.events_update
-{
-	ldx track_event_code
-	ldy track_event_data
-	cpx event_code
-	bne do_event
-	cpy event_data
-	beq return
-
-	.do_event
-	stx event_code
-	sty event_data
-
-	txa:asl a:tax
-	lda events_fn_table+0, X
-	sta jmp_to_handler+1
-	lda events_fn_table+1, X
-	sta jmp_to_handler+2
-
-	tya
-	.jmp_to_handler
-	jmp &ffff
-
-	.return
-	rts
-}
-
-.events_fn_table
-{
-	equw do_nothing						; &00
-	equw do_nothing		;event_load_asset_to_main		; &01
-	equw do_nothing		;event_load_asset_to_shadow		; &02
 }
 
 \ ******************************************************************
@@ -992,6 +952,8 @@ PAGE_ALIGN
 	lda #LO(screen_addr):sta &fe01
 	rts
 }
+
+include "src/tasks.asm"
 
 \ ******************************************************************
 \ *	LIBRARY MODULES
@@ -1093,7 +1055,7 @@ dv = 512 * height / h
 EQUB HI(dv)
 NEXT
 
-.exo_data
+.exo_asset_logo_mode2
 INCBIN "build/logo-mode2.exo"
 
 .data_end
