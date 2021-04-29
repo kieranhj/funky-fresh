@@ -7,7 +7,7 @@ TODO:
     - Add asset loading from SWRAM. - DONE
 - Add a FX display track and a second simple effect (probably display Main/Shadow). - DONE
     - Add FX display from SWRAM?
-- Much tidying up and code rearrangement needed.
+- Much tidying up and code rearrangement needed. - DONE
     - Assets.
     - Display FX.
     - Separate out FX.
@@ -28,5 +28,5 @@ Ponder.
     - Perhaps if the task on the first line were a (debug) screen wipe?
 
 BUGS:
-> DEBUG (UNUSUAL): Indirect access to register $FCC3 at $153D
-> Doom screen doesn't get loaded if Rocket starts at or after that row?
+> DEBUG (UNUSUAL): Indirect access to register $FCC3 at $153D - FIXED
+> Doom screen doesn't get loaded if Rocket starts at or after that row? - DUPE

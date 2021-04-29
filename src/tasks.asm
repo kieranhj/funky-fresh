@@ -48,12 +48,13 @@
     \\ Ensure MAIN RAM writeable.
     lda &fe34:and #&fb:sta &fe34
     
+    .^task_decrunch_asset_X
+
     \\ Select SWRAM slot.
     lda assets_table+2, X
     sta &f4:sta &fe30
 
     \\ Decrunch asset to screen.
-    .^task_decrunch_asset_X
     ldy assets_table+1, X
     lda assets_table+0, X
     tax

@@ -25,6 +25,7 @@
 	inc task_request
 
 	.task_running
+	lda #&ff:sta rocket_fast_mode	; turbo mode on!
 
 	.return
 	rts
@@ -39,7 +40,6 @@ IF _DEBUG
 .rocket_set_pos
 {
 	\\ Play from new position.
-	lda #&ff:sta rocket_fast_mode	; turbo mode on!
 	MUSIC_JUMP_VGM_SEEK				; sloooow.
 	lda #0:sta rocket_fast_mode		; turbo mode off!
 	lda #1:sta music_enabled
