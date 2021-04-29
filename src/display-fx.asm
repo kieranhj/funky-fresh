@@ -3,12 +3,29 @@
 \ *	DISPLAY FX
 \ ******************************************************************
 
+\\ TODO: Support Display FX code in SWRAM banks.
+.display_fx_table
+{
+	equw do_nothing,			            fx_default_crtc_draw	    ; &00
+	equw fx_vertical_stretch_update,	    fx_vertical_stretch_draw	; &01
+	equw fx_static_image_display_main,		fx_default_crtc_draw	    ; &02
+	equw fx_static_image_display_shadow,	fx_default_crtc_draw	    ; &03
+	equw fx_chunky_twister_update,			fx_chunky_twister_draw		; &04
+}
+DISPLAY_FX_MAX = 5
+
 .display_fx_update
 {
 	lda track_display_fx
 	cmp display_fx
 	beq return
 
+	IF _DEBUG
+	cmp #DISPLAY_FX_MAX		; protect against live editing errors!
+	bcs return
+	ENDIF
+
+	\\ Set Display FX callbacks in IRQ.
 	sta display_fx
 	asl a:asl a:tax
 
@@ -43,13 +60,4 @@
 	lda #6:sta &fe00		; R6=32
 	lda #32:sta &fe01
 	rts
-}
-
-\\ TODO: Support Display FX code in SWRAM banks?
-.display_fx_table
-{
-	equw do_nothing,			            fx_default_crtc_draw	    ; &00
-	equw fx_vertical_stretch_update,	    fx_vertical_stretch_draw	; &01
-	equw fx_static_image_display_main,		fx_default_crtc_draw	    ; &02
-	equw fx_static_image_display_shadow,	fx_default_crtc_draw	    ; &03
 }

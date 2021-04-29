@@ -33,6 +33,16 @@ CLEAR &8000, &c000
 ORG &8000
 GUARD &C000
 .bank1_start
+
+.exo_asset_logo_mode2
+INCBIN "build/logo-mode2.exo"
+
+.exo_asset_twister_1
+INCBIN "build/twister1-mode2.exo"
+
+.exo_asset_twister_2
+INCBIN "build/twister2-mode2.exo"
+
 .bank1_end
 
 SAVE "build/BANK1", bank1_start, bank1_end, bank1_start

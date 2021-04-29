@@ -61,27 +61,35 @@ GUARD rocket_zp_start
 
 .zp_start
 
+\\ Library ZP vars.
 INCLUDE "lib/exo.h.asm"
+INCLUDE "lib/vgcplayer.h.asm"
 
 \\ System ZP vars.
-.readptr                skip 2
-.writeptr               skip 2
-.row_count				skip 1
+;.readptr                skip 2
+;.writeptr               skip 2
+;.seed                   skip 2
 
 .music_enabled          skip 1
 .task_request           skip 1
-.seed                   skip 2
-
 .last_task_id			skip 1
 .last_task_data			skip 1
 .display_fx				skip 1
 
-INCLUDE "lib/vgcplayer.h.asm"
+\\ FX general ZP vars.
+.row_count				skip 1
+.prev_scanline			skip 1
+.temp					skip 1
 
-\\ FX ZP vars.
+\\ FX vertical stretch.
 .v						skip 2
 .dv						skip 2
-.prev_scanline			skip 1
+
+\\ FX chunky twister.
+.ta						skip 2
+.yb						skip 2
+.xi						skip 1
+.xy						skip 1
 
 \\ TODO: Local ZP vars?
 
@@ -105,10 +113,10 @@ GUARD zp_max
 .rocket_fast_mode		skip 1	; &9F
 
 \ ******************************************************************
-\ *	BSS DATA IN LOWER RAM
+\ *	BSS/DATA IN LOWER RAM
 \ ******************************************************************
 
-RELOC_SPACE = &300
+RELOC_SPACE = 0
 ORG &D00 - RELOC_SPACE
 GUARD &D00
 .reloc_to_start
@@ -130,7 +138,19 @@ GUARD screen_addr + RELOC_SPACE
 
 .main
 {
-    \\ TODO: Load banks and relocate data in a boot loader at &1900.
+    \\ Init stack
+    ldx #&ff:txs
+
+    \\ Init ZP
+    inx
+    lda #0
+    .zp_loop
+    sta &00, x
+    inx
+    cpx #zp_max	; TODO: Check if we need to keep SWRAM slots in ZP from Loader.
+    bne zp_loop
+
+    \\ TODO: Load banks and relocate data in a boot loader at &1900?
 	\\ Relocate data to lower RAM
     IF 0
 	lda #HI(reloc_from_start)
@@ -150,6 +170,9 @@ GUARD screen_addr + RELOC_SPACE
     }
     ENDIF
 
+	\\ TODO: Put up loading screen here?
+	\\ TODO: Progress bar?
+
     \\ Load music into SWRAM (if available)
     {
         SWRAM_SELECT SLOT_MUSIC
@@ -159,7 +182,7 @@ GUARD screen_addr + RELOC_SPACE
         jsr disksys_load_file
     }
 
-    \\ Load Banks
+    \\ Load SWRAM Banks
     {
         SWRAM_SELECT SLOT_BANK0
         ldx #LO(bank0_filename)
@@ -167,13 +190,13 @@ GUARD screen_addr + RELOC_SPACE
         lda #HI(&8000)
         jsr disksys_load_file
 
-    IF 0
         SWRAM_SELECT SLOT_BANK1
         ldx #LO(bank1_filename)
         ldy #HI(bank1_filename)
         lda #HI(&8000)
         jsr disksys_load_file
 
+    IF 0
         SWRAM_SELECT SLOT_BANK2
         ldx #LO(bank2_filename)
         ldy #HI(bank2_filename)
@@ -181,18 +204,6 @@ GUARD screen_addr + RELOC_SPACE
         jsr disksys_load_file
     ENDIF
     }
-
-    \\ Init stack
-    ldx #&ff:txs
-
-    \\ Init ZP
-    lda #0
-    ldx #0
-    .zp_loop
-    sta &00, x
-    inx
-    cpx #zp_max	; TODO: Check if we need to keep SWRAM slots in ZP from Loader.
-    bne zp_loop
 
     \\ Load HAZEL last as it trashes the FS workspace.
     IF 0
@@ -209,7 +220,7 @@ GUARD screen_addr + RELOC_SPACE
 
     \\ Set MODE w/out using MOS.
     \\ NB: This was done to avoid the flicker & garbage associated with MOS MODE change.
-    \\ TODO: Move to boot loader.
+    \\ TODO: Move to boot loader?
     IF 1
     lda #22:jsr oswrch
     lda #2:jsr oswrch
@@ -251,8 +262,8 @@ GUARD screen_addr + RELOC_SPACE
     ENDIF
 
     \\ Init system
-    lda &fe44:sta seed
-    lda &fe45:sta seed+1
+    ;lda &fe44:sta seed
+    ;lda &fe45:sta seed+1
     jsr exo_init
 
     \\ Init music - has to be here for reload.
@@ -269,7 +280,6 @@ GUARD screen_addr + RELOC_SPACE
     \\ Init debug system here.
 
     \\ Late init.
-
 	sei
     lda &fe4e:sta previous_ifr+1
     lda IRQ1V:sta old_irqv
@@ -334,7 +344,7 @@ GUARD screen_addr + RELOC_SPACE
 	lda #&7F					; (disable all interrupts)
 	sta &fe4e:sta &fe6e			; R14=Interrupt Enable
 	sta &fe43					; R3=Data Direction Register "A" (set keyboard data direction)
-	lda #&C0					; 
+	lda #&C0					; T1 Interrupt only.
 	sta &fe4e					; R14=Interrupt Enable
     lda #64
     sta &fe4b			        ; T1 free-run mode
@@ -342,7 +352,7 @@ GUARD screen_addr + RELOC_SPACE
     lda #LO(irq_handler):sta IRQ1V
     lda #HI(irq_handler):sta IRQ1V+1		; set interrupt handler
 
-	\\ Prime first frame of the VGC player?
+	\\ TODO: Prime first frame of the VGC player to avoid spike?
 
     \\ Go!
     cli
@@ -500,6 +510,10 @@ GUARD screen_addr + RELOC_SPACE
 .do_nothing
     rts
 
+\ ******************************************************************
+\ *	SYSTEM MODULES
+\ ******************************************************************
+
 include "src/display-fx.asm"
 include "src/rocket.asm"
 include "src/tasks.asm"
@@ -514,6 +528,7 @@ include "src/tasks.asm"
 
 include "src/fx-vertical-stretch.asm"
 include "src/fx-static-image.asm"
+include "src/fx-chunky-twister.asm"
 
 .fx_end
 
@@ -584,9 +599,6 @@ IF 0
 ENDIF
 
 include "src/assets-table.asm"
-
-.exo_asset_logo_mode2
-INCBIN "build/logo-mode2.exo"
 
 .data_end
 

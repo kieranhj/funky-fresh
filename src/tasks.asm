@@ -3,6 +3,14 @@
 \ *	TASKS MODULE
 \ ******************************************************************
 
+.tasks_fn_table
+{
+	equw do_nothing						    ; &00
+	equw task_decrunch_asset_to_main	    ; &01
+	equw task_decrunch_asset_to_shadow  	; &02
+}
+TASK_ID_MAX = 3
+
 .tasks_update
 {
     \\ If there is already a task running we cannot start this frame.
@@ -18,6 +26,12 @@
 	beq return
 
 	.start_new_task
+    IF _DEBUG
+    cmp #TASK_ID_MAX            ; protect against live editing errors!
+    bcs return
+    ENDIF
+
+    \\ Setup the task in the main thread.
 	sta last_task_id
 	stx last_task_data
     stx do_task_load_A+1
@@ -32,13 +46,6 @@
 
 	.return
 	rts
-}
-
-.tasks_fn_table
-{
-	equw do_nothing						    ; &00
-	equw task_decrunch_asset_to_main	    ; &01
-	equw task_decrunch_asset_to_shadow  	; &02
 }
 
 .task_decrunch_asset_to_main
