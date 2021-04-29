@@ -6,71 +6,19 @@
 _DEBUG = TRUE
 _DEBUG_RASTERS = TRUE
 
-INCLUDE "src/zp.h.asm"
+include "src/zp.h.asm"
 
 \ ******************************************************************
 \ *	OS defines
 \ ******************************************************************
 
-\\ TODO: Move OS defines to bbc.h.asm.
-
-osfile = &FFDD
-oswrch = &FFEE
-osasci = &FFE3
-osbyte = &FFF4
-osword = &FFF1
-osfind = &FFCE
-osgbpb = &FFD1
-oscli  = &FFF7
-osargs = &FFDA
-
-IRQ1V = &204
-
-\\ Palette values for ULA
-PAL_black	= (0 EOR 7)
-PAL_blue	= (4 EOR 7)
-PAL_red		= (1 EOR 7)
-PAL_magenta = (5 EOR 7)
-PAL_green	= (2 EOR 7)
-PAL_cyan	= (6 EOR 7)
-PAL_yellow	= (3 EOR 7)
-PAL_white	= (7 EOR 7)
-
-ULA_Mode4   = &88
-ULA_Mode8   = &E0
+include "lib/bbc.h.asm"
 
 \ ******************************************************************
 \ *	MACROS
 \ ******************************************************************
 
 include "lib/macros.h.asm"
-
-MACRO RND
-{
-    lda seed
-    asl A
-    asl A
-    clc
-    adc seed
-    clc
-    adc #&45
-    sta seed
-}
-ENDMACRO
-
-MACRO RND16
-{
-    lda seed+1
-    lsr a
-    rol seed
-    bcc no_eor
-    eor #&b4
-    .no_eor
-    sta seed+1
-    eor seed
-}
-ENDMACRO
-
 include "src/music_macros.asm"
 
 \ ******************************************************************
@@ -78,10 +26,10 @@ include "src/music_macros.asm"
 \ ******************************************************************
 
 ; SCREEN constants
-SCREEN_WIDTH_PIXELS = 320
-SCREEN_HEIGHT_PIXELS = 256
-SCREEN_ROW_BYTES = SCREEN_WIDTH_PIXELS * 8 / 8
-SCREEN_SIZE_BYTES = (SCREEN_WIDTH_PIXELS * SCREEN_HEIGHT_PIXELS) / 8
+\SCREEN_WIDTH_PIXELS = 320
+\SCREEN_HEIGHT_PIXELS = 256
+\SCREEN_ROW_BYTES = SCREEN_WIDTH_PIXELS * 8 / 8
+\SCREEN_SIZE_BYTES = (SCREEN_WIDTH_PIXELS * SCREEN_HEIGHT_PIXELS) / 8
 
 screen_addr = &3000
 
@@ -96,24 +44,26 @@ VBlankDisplayPeriod =  56*64	; -2
 \ Need to fudge the two periods otherwise stabler raster NOP slide
 \ requires more than the bottom 3 bits of the Timer 1 low counter.
 
-KEY_PAUSE_INKEY = -56           ; 'P'
-KEY_STEP_FRAME_INKEY = -68      ; 'F'
-KEY_STEP_LINE_INKEY = -87       ; 'L'
-KEY_NEXT_PATTERN_INKEY = -86    ; 'N'
-KEY_RESTART_INKEY = -52         ; 'R'
-KEY_DISPLAY_INKEY = -51         ; 'D'
+\ UNUSED.
+\KEY_PAUSE_INKEY = -56           ; 'P'
+\KEY_STEP_FRAME_INKEY = -68      ; 'F'
+\KEY_STEP_LINE_INKEY = -87       ; 'L'
+\KEY_NEXT_PATTERN_INKEY = -86    ; 'N'
+\KEY_RESTART_INKEY = -52         ; 'R'
+\KEY_DISPLAY_INKEY = -51         ; 'D'
 
 \ ******************************************************************
 \ *	ZERO PAGE
 \ ******************************************************************
 
 ORG &00
-GUARD zp_top
+GUARD rocket_zp_start
 
 .zp_start
 
 INCLUDE "lib/exo.h.asm"
 
+\\ System ZP vars.
 .readptr                skip 2
 .writeptr               skip 2
 .row_count				skip 1
@@ -128,23 +78,31 @@ INCLUDE "lib/exo.h.asm"
 
 INCLUDE "lib/vgcplayer.h.asm"
 
+\\ FX ZP vars.
 .v						skip 2
 .dv						skip 2
 .prev_scanline			skip 1
 
-CLEAR &90, &9F
-ORG &90
-GUARD &9C
+\\ TODO: Local ZP vars?
+
+.zp_end
+
+CLEAR rocket_zp_start, zp_max
+ORG rocket_zp_start
+GUARD rocket_zp_reserved
 .track_zoom				skip 1
 .track_task_id			skip 1
 .track_task_data		skip 1
 .track_display_fx		skip 1
 
-rocket_vsync_count = &9c
-rocket_audio_flag = &9e
-rocket_fast_mode = &9f
+.rocket_zp_end
 
-.zp_end
+CLEAR rocket_zp_reserved, zp_max
+ORG rocket_zp_reserved
+GUARD zp_max
+.rocket_vsync_count		skip 2	; &9C
+.rocket_audio_flag 		skip 1	; &9E
+.rocket_fast_mode		skip 1	; &9F
 
 \ ******************************************************************
 \ *	BSS DATA IN LOWER RAM
@@ -233,7 +191,7 @@ GUARD screen_addr + RELOC_SPACE
     .zp_loop
     sta &00, x
     inx
-    cpx #zp_end	; TODO: Check if we need to keep SWRAM slots in ZP.
+    cpx #zp_max	; TODO: Check if we need to keep SWRAM slots in ZP from Loader.
     bne zp_loop
 
     \\ Load HAZEL last as it trashes the FS workspace.
@@ -464,7 +422,7 @@ GUARD screen_addr + RELOC_SPACE
 
     \\ Call FX update function.
 	.^call_fx_update_fn
-    jsr fx_update_function
+    jsr do_nothing
 
     pla:tay:pla:tax
 
@@ -506,7 +464,7 @@ GUARD screen_addr + RELOC_SPACE
 
     \\ Call FX draw function.
 	.^call_fx_draw_fn
-    jsr fx_draw_function
+    jsr fx_default_crtc_draw		; restores CRTC regs to defaults.
 
     pla:tay:pla:tax
 
@@ -542,418 +500,22 @@ GUARD screen_addr + RELOC_SPACE
 .do_nothing
     rts
 
-\ ******************************************************************
-\ *	HELPER FUNCTIONS
-\ ******************************************************************
-
-.cycles_wait_128		; JSR to get here takes 6c
-{
-	WAIT_CYCLES 128-6-6
-	RTS					; 6c
-}						; = 128c
-
-.cycles_wait_scanlines	; 6c
-{
-	WAIT_CYCLES 128-6-2-3-6
-
-	.loop
-	dex					; 2c
-	beq done			; 2/3c
-
-	WAIT_CYCLES 121
-
-	jmp loop			; 3c
-
-	.done
-	RTS					; 6c
-}
+include "src/display-fx.asm"
+include "src/rocket.asm"
+include "src/tasks.asm"
 
 .main_end
 
 \ ******************************************************************
-\ *	FX MODULES
+\ *	DEMO MODULES
 \ ******************************************************************
 
 .fx_start
 
-\ Arrive at VCC=0,HCC=0.
-\ Assume horizontal registers are default but vertical registers
-\ might be left in a ruptured state. Reset these to defaults.
-.fx_draw_default_crtc
-{
-	lda #9:sta &fe00		; R9=7
-	lda #7:sta &fe01
-
-	lda #4:sta &fe00		; R4=38
-	lda #38:sta &fe01
-
-	lda #7:sta &fe00		; R7=35
-	lda #35:sta &fe01
-
-	lda #6:sta &fe00		; R6=32
-	lda #32:sta &fe01
-
-	rts
-}
-
-\ ******************************************************************
-\ Update FX
-\
-\ The update function is used to update / tick any variables used
-\ in the FX. It may also prepare part of the screen buffer before
-\ drawing commenses but note the strict timing constraints!
-\
-\ This function will be called during vblank, after any system
-\ modules have been polled.
-\
-\ The function MUST COMPLETE BEFORE TIMER 1 REACHES 0, i.e. before
-\ raster line 0 begins. If you are late then the draw function will
-\ be late and your raster timings will be wrong!
-\ ******************************************************************
-
-.fx_update_function
-{
-	ldx track_zoom
-	lda dv_table_LO, X
-	sta dv
-	lda dv_table_HI, X
-	sta dv+1
-
-	\\ Set v
-	lda #0:sta v:sta v+1
-
-IF 1
-	\\ Want centre of screen to be centre of sprite.
-	lda #0:sta v
-	lda #128:sta v+1
-
-	\\ Subtract dv 128 times to set starting v.
-	ldy #64
-	.sub_loop
-	sec
-	lda v
-	sbc dv
-	sta v
-	lda v+1
-	sbc dv+1
-	sta v+1
-
-	dey
-	bne sub_loop
-ENDIF
-
-	\\ Set CRTC start address of row 0.
-	lsr a:tax
-	lda #13:sta &fe00
-	lda vram_table_LO, X
-	sta &fe01
-	lda #12:sta &fe00
-	lda vram_table_HI, X
-	sta &fe01
-
-	\\ Scanline of row 0 is always 0.
-	lda #0
-	sta prev_scanline
-
-	\\ This FX always uses screen in MAIN RAM.
-	; clear bit 0 to display MAIN.
-	lda &fe34:and #&fe:sta &fe34
-
-	rts
-}
-
-\ ******************************************************************
-\ Draw FX
-\
-\ The draw function is the main body of the FX.
-\
-\ This function will be exactly at the start* of raster line 0 with
-\ a stablised raster. VC=0 HC=0|1 SC=0
-\
-\ This means that a new CRTC cycle has just started! If you didn't
-\ specify the registers from the previous frame then they will be
-\ the default MODE 0,1,2 values as per initialisation.
-\
-\ If messing with CRTC registers, THIS FUNCTION MUST ALWAYS PRODUCE
-\ A FULL AND VALID 312 line PAL signal before exiting!
-\ ******************************************************************
-
-\\ Limited RVI
-\\ Display 0,2,4,6 scanline offset for 2 scanlines.
-\\ <--- 102c total w/ 80c visible and hsync at 98c ---> <2c> ..13x <2c> = 128c
-\\ Plus one extra for luck!
-\\ R9 = 13 + current - next
-
-PAGE_ALIGN
-.fx_draw_function
-{
-	\\ <=== HCC=0
-
-	\\ R4=0
-	lda #4:sta &fe00					; 8c
-	lda #0:sta &fe01					; 8c
-
-	\\ R7 vsync at row 35 = scanline 280.
-	lda #7:sta &fe00					; 8c
-	lda #3:sta &fe01					; 8c
-
-	\\ R6=1
-	lda #6:sta &fe00					; 8c
-	lda #1:sta &fe01					; 8c
-	\\ 48c
-
-	\\ Update v
-	clc:lda v:adc dv:sta v				; 11c
-	lda v+1:adc dv+1:sta v+1			; 9c
-	\\ 20c
-
-	\\ Row 1 screen start
-	lsr a:tax							; 4c
-	lda #13:sta &fe00					; 8c
-	lda vram_table_LO, X				; 4c
-	sta &fe01							; 6c
-	lda #12:sta &fe00					; 8c
-	lda vram_table_HI, X				; 4c
-	sta &fe01							; 6c
-	\\ 40c
-	
-	\\ Row 1 scanline
-	lda #9:sta &fe00					; 8c
-	lda v+1:and #6						; 5c
-	\\ 2-bits * 2
-	tax									; 2c
-	eor #&ff							; 2c
-	sec									; 2c
-	adc #13								; 2c
-		clc									; 2c
-		adc prev_scanline					; 3c
-		sta &fe01							; 6c
-		stx prev_scanline					; 3c
-		\\ 35c
-
-		lda #126:sta row_count				; 5c
-
-		\\ Set R0=101 (102c)
-		lda #0:sta &fe00					; 8c
-		lda #101:sta &fe01					; 8c
-
-		WAIT_CYCLES 58
-
-		\\ At HCC=102 set R0=1.
-		lda #1:sta &fe01					; 8c
-		\\ Burn 13 scanlines = 13x2c = 26c
-		WAIT_CYCLES 18
-
-	\\ Now 2x scanlines per loop.
-	.char_row_loop
-	{
-			\\ At HCC=0 set R0=127
-			lda #127:sta &fe01		; 8c
-		
-		\\ <=== HCC=0
-		\\ Update v
-		clc:lda v:adc dv:sta v				; 11c
-		lda v+1:adc dv+1:sta v+1			; 9c
-		\\ 20c
-
-		\\ Row N+1 screen start
-		lsr a:tax							; 4c
-		lda #13:sta &fe00					; 8c
-		lda vram_table_LO, X				; 4c
-		sta &fe01							; 6c
-		lda #12:sta &fe00					; 8c
-		lda vram_table_HI, X				; 4c
-		sta &fe01							; 6c
-		\\ 40c
-	
-		\\ NB. Must set R9 before final scanline of the row!
-		\\ Row N+1 scanline
-		lda #9:sta &fe00				; 8c
-		lda v+1:and #6					; 5c
-		\\ 2-bits * 2
-		tax								; 2c
-		eor #&ff						; 2c
-		sec								; 2c
-		adc #13							; 2c
-		clc								; 2c
-		adc prev_scanline				; 3c
-		sta &fe01						; 6c
-		stx prev_scanline				; 3c
-		\\ 35c
-
-		\\ 33c
-			WAIT_CYCLES 68		\\ <=== HCC=0
-			\\ 35c
-
-			\\ Set R0=101 (102c)
-			lda #0:sta &fe00				; 8c <= 7c
-			lda #101:sta &fe01				; 8c
-
-			WAIT_CYCLES 44
-
-			\\ At HCC=102 set R0=1.
-			lda #1:sta &fe01				; 8c
-			\\ Burn 13 scanlines = 13x2c = 26c
-			WAIT_CYCLES 10
-
-			dec row_count				; 5c
-			bne char_row_loop			; 3c
-	}
-	CHECK_SAME_PAGE_AS char_row_loop
-	.scanline_last
-
-		ldx #1						; 2c
-		\\ At HCC=0 set R0=127
-		lda #127:sta &fe01			; 8c <= 7c
-	
-	\\ <=== HCC=0
-	jsr cycles_wait_scanlines	
-
-		\\ <=== HCC=0
-		\\ Set next scanline back to 0.
-		lda #9:sta &fe00			; 8c
-		clc							; 2c
-		lda #13						; 2c
-		adc prev_scanline			; 3c
-		sta &fe01					; 6c
-
-		lda #6:sta &fe00			; 8c <= 7c
-		lda #0:sta &fe01			; 8c
-		\\ 36c
-
-		\\ Set R0=101 (102c)
-		lda #0:sta &fe00			; 8c
-		lda #101:sta &fe01			; 8c
-
-		WAIT_CYCLES 42
-
-		\\ At HCC=102 set R0=1.
-		lda #1:sta &fe01			; 8c
-		\\ Burn 13 scanlines = 13x2c = 26c
-		WAIT_CYCLES 18
-
-		lda #127:sta &fe01			; 8c
-	\\ <=== HCC=0
-
-	\\ R9=7
-	.scanline_end_of_screen
-	lda #9:sta &fe00
-	lda #7:sta &fe01
-
-	\\ Total 312 line - 256 = 56 scanlines
-	lda #4: sta &fe00
-	lda #6: sta &fe01
-    RTS
-}
+include "src/fx-vertical-stretch.asm"
+include "src/fx-static-image.asm"
 
 .fx_end
-
-\ ******************************************************************
-\ *	ROCKET MODULES
-\ ******************************************************************
-
-.rocket_update_music
-{
-	lda rocket_audio_flag
-	cmp music_enabled
-	beq return
-
-	cmp #0:beq pause
-
-	lda task_request
-	bne task_running
-
-	\\ This takes a long time so can't be done in IRQ.
-	\\ Options:
-	\\ - run this as a background task?
-	\\ - restart the demo and play from the beginning?!
-	ldx rocket_vsync_count:stx do_task_load_X+1
-	ldy rocket_vsync_count+1:sty do_task_load_Y+1
-	lda #LO(rocket_set_pos):sta do_task_jmp+1
-	lda #HI(rocket_set_pos):sta do_task_jmp+2
-	inc task_request
-
-	.task_running
-
-	.return
-	rts
-
-	.pause
-	sta music_enabled
-	\\ Kill sound.
-	jmp MUSIC_JUMP_SN_RESET
-}
-
-.rocket_set_pos
-{
-	\\ Play from new position.
-	lda #&ff:sta rocket_fast_mode	; turbo mode on!
-	MUSIC_JUMP_VGM_SEEK				; sloooow.
-	lda #0:sta rocket_fast_mode		; turbo mode off!
-	lda #1:sta music_enabled
-	rts
-}
-
-\ ******************************************************************
-\ *	DISPLAY FX
-\ ******************************************************************
-
-.display_fx_update
-{
-	lda track_display_fx
-	cmp display_fx
-	beq return
-
-	sta display_fx
-	asl a:asl a:tax
-
-	lda display_fx_table+0, X
-	sta call_fx_update_fn+1
-	lda display_fx_table+1, X
-	sta call_fx_update_fn+2
-
-	lda display_fx_table+2, X
-	sta call_fx_draw_fn+1
-	lda display_fx_table+3, X
-	sta call_fx_draw_fn+2
-
-	.return
-	rts
-}
-
-.display_fx_table
-{
-	equw do_nothing,			fx_draw_default_crtc	; &00
-	equw fx_update_function,	fx_draw_function		; &01
-	equw fx_display_main,		fx_draw_default_crtc	; &02
-	equw fx_display_shadow,		fx_draw_default_crtc	; &03
-}
-
-.fx_display_main
-{
-	; clear bit 0 to display MAIN.
-	lda &fe34:and #&fe:sta &fe34
-	; Set R12/R13 for full screen.
-	lda #12:sta &fe00
-	lda #HI(screen_addr/8):sta &fe01
-	lda #13:sta &fe00
-	lda #LO(screen_addr):sta &fe01
-	rts
-}
-
-.fx_display_shadow
-{
-	; set bit 1 to display SHADOW.
-	lda &fe34:ora #1:sta &fe34
-	; Set R12/R13 for full screen.
-	lda #12:sta &fe00
-	lda #HI(screen_addr/8):sta &fe01
-	lda #13:sta &fe00
-	lda #LO(screen_addr):sta &fe01
-	rts
-}
-
-include "src/tasks.asm"
 
 \ ******************************************************************
 \ *	LIBRARY MODULES
@@ -961,8 +523,9 @@ include "src/tasks.asm"
 
 .library_start
 include "lib/disksys.asm"
-include "lib/screen.asm"
+;include "lib/screen.asm"	; from Nova Invite.
 include "lib/exo.asm"
+include "lib/cycles.asm"
 .library_end
 
 \ ******************************************************************
@@ -980,6 +543,7 @@ IF _DEBUG
 .debug_filename     EQUS "DEBUG", 13
 ENDIF
 
+IF 0
 .mode4_default_palette
 {
 	EQUB &00 + PAL_black
@@ -1017,43 +581,9 @@ ENDIF
 	EQUB HI(screen_addr/8)	; R12 screen start address, high
 	EQUB LO(screen_addr/8)	; R13 screen start address, low
 }
+ENDIF
 
-\ ******************************************************************
-\ *	FX DATA
-\ ******************************************************************
-
-PAGE_ALIGN_FOR_SIZE 128
-.vram_table_LO
-FOR n,0,127,1
-EQUB LO((&3000 + (n DIV 4)*640)/8)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 128
-.vram_table_HI
-FOR n,0,127,1
-EQUB HI((&3000 + (n DIV 4)*640)/8)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 128
-.dv_table_LO
-FOR n,0,63,1
-height=128
-max_height=height*10
-h=128+n*(max_height-height)/63
-dv = 512 * height / h
-;PRINT h, height/h, dv
-EQUB LO(dv)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 128
-.dv_table_HI
-FOR n,0,63,1
-height=128
-max_height=1280
-h=128+n*(max_height-height)/63
-dv = 512 * height / h
-EQUB HI(dv)
-NEXT
+include "src/assets-table.asm"
 
 .exo_asset_logo_mode2
 INCBIN "build/logo-mode2.exo"
@@ -1097,8 +627,10 @@ GUARD screen_addr
 PRINT "------"
 PRINT "FUNKY-FRESH!"
 PRINT "------"
-PRINT "ZP size =", ~zp_end-zp_start, "(",~zp_top-zp_end,"free)"
+PRINT "ZP size =", ~zp_end-zp_start, "(",~rocket_zp_start-zp_end,"free)"
+PRINT "ROCKET ZP size =", ~rocket_zp_end-rocket_zp_start, "(",~rocket_zp_reserved-rocket_zp_end,"free)"
 PRINT "MAIN size =", ~main_end-main_start
+PRINT "FX size =", ~fx_end-fx_start
 PRINT "LIBRARY size =",~library_end-library_start
 PRINT "DATA size =",~data_end-data_start
 PRINT "RELOC size =",~reloc_from_end-reloc_from_start

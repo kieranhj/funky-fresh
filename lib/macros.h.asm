@@ -67,3 +67,29 @@ MACRO SWRAM_SELECT slot
     LDA #slot:STA &F4:STA &FE30      ; "swram_slots_base + slot" for dynamic SWRAM.
 }
 ENDMACRO
+
+MACRO RND
+{
+    lda seed
+    asl A
+    asl A
+    clc
+    adc seed
+    clc
+    adc #&45
+    sta seed
+}
+ENDMACRO
+
+MACRO RND16
+{
+    lda seed+1
+    lsr a
+    rol seed
+    bcc no_eor
+    eor #&b4
+    .no_eor
+    sta seed+1
+    eor seed
+}
+ENDMACRO

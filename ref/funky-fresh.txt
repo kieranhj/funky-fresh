@@ -1,0 +1,32 @@
+Funky Fresh Framework
+~~~
+
+TODO:
+- Add an Event track to the sequence for loading assets etc. - STARTED
+    - Replace events with tasks. - DONE
+    - Add asset loading from SWRAM. - DONE
+- Add a FX display track and a second simple effect (probably display Main/Shadow). - DONE
+    - Add FX display from SWRAM?
+- Much tidying up and code rearrangement needed.
+    - Assets.
+    - Display FX.
+    - Separate out FX.
+    - Rocket.
+
+- Add another RVI effect that can be switched between.
+- Figure out the run-time, no editor, track data interpolation.
+- Move screen to 224 lines => 32 more scanlines.
+    - R6=28, R7=33.
+- Create separate loader.
+
+Ponder.
+- Loading full 20K screens during RVI takes a loooooong time.
+    - Takes 104 tracker rows = 416 vsyncs = 8.32s
+    - Perhaps just need to temper the pace of the demo?
+- Scrubbing plus task loading ends up with the start of the demo not being realistic from a load-time POV.
+    - Once MAIN & SHADOW RAM are initialised, you can't uninitialise them.
+    - Perhaps if the task on the first line were a (debug) screen wipe?
+
+BUGS:
+> DEBUG (UNUSUAL): Indirect access to register $FCC3 at $153D
+> Doom screen doesn't get loaded if Rocket starts at or after that row?
