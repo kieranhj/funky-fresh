@@ -43,7 +43,7 @@ beatsPerMin="125">
 		<key row="384" value="9.000000" interpolation="1" />
 		<key row="386" value="0.000000" interpolation="0" />
 		<key row="392" value="10.000000" interpolation="1" />
-		<key row="394" value="0.020000" interpolation="1" />
+		<key row="394" value="0.000000" interpolation="1" />
 		<key row="496" value="63.000000" interpolation="1" />
 		<key row="504" value="0.000000" interpolation="0" />
 	</track>

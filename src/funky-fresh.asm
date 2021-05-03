@@ -102,6 +102,7 @@ GUARD rocket_zp_reserved
 .track_task_id			skip 1
 .track_task_data		skip 1
 .track_display_fx		skip 1
+ROCKET_MAX_TRACKS = 4
 
 .rocket_zp_end
 

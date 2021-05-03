@@ -46,3 +46,33 @@ IF _DEBUG
 	rts
 }
 ENDIF
+
+.rocket_update_keys
+{
+	\\ Check vsync count against next key frame.
+	\\ If vsync count >= key frame.
+	\\   Read track#.
+	\\   Read track value.
+	\\   Read track delta (or 0).
+	\\   Until no more tracks.
+	rts
+}
+
+.rocket_update_tracks
+{
+	ldx #ROCKET_MAX_TRACKS*2-2
+	.loop
+	clc								; 2c
+	lda rocket_zp_start+0, X		; 4c
+	adc rocket_track_deltas+0, X	; 4c
+	sta rocket_zp_start+0, X		; 4c
+	lda rocket_zp_start+1, X		; 4c
+	adc rocket_track_deltas+1, X	; 4c
+	sta rocket_zp_start+1, X		; 4c
+	dex:dex							; 4c
+	bpl loop						; 3c
+	\\ 33c per track
+	\\ Assume 8x tracks = 264c ~= 2 scanlines.
+	\\ Could be unrolled to 26c per track.
+	rts
+}
