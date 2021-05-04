@@ -3,7 +3,7 @@
 \ *	FUNKY FRESH DEMO FRAMEWORK
 \ ******************************************************************
 
-_DEBUG = FALSE
+_DEBUG = TRUE
 
 include "src/zp.h.asm"
 
@@ -421,7 +421,7 @@ GUARD screen_addr + RELOC_SPACE
 	IF _DEBUG
 	jsr rocket_update_music
 
-	lda music_enabled
+	lda music_enabled:pha
 	beq music_paused
 	ENDIF
 
@@ -444,12 +444,16 @@ GUARD screen_addr + RELOC_SPACE
 	jsr display_fx_update
 
     \\ Update vsync count.
+    IF _DEBUG
+    pla:beq external_vsync
+    ENDIF
     {
         inc rocket_vsync_count
         bne no_carry
         inc rocket_vsync_count+1
         .no_carry
     }
+    .external_vsync
     \\ New frame effectively starts here!
 
     \\ Call FX update function.
