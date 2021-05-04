@@ -165,6 +165,8 @@ ENDMACRO
 	rts
 }
 
+.rocket_next_key        skip 2
+
 .rocket_track_deltas
 skip ROCKET_MAX_TRACKS*2
 

@@ -2,6 +2,27 @@
 <rootElement>
 <tracks rows="10000" startRow="0" endRow="10000" rowsPerBeat="8"
 beatsPerMin="125">
+	<track name="task_id" folded="0" muteKeyCount="0"
+color="ffb28050">
+		<key row="0" value="3.000000" interpolation="0" />
+		<key row="1" value="1.000000" interpolation="0" />
+		<key row="24" value="2.000000" interpolation="0" />
+		<key row="64" value="2.000000" interpolation="0" />
+	</track>
+	<track name="task_data" folded="0" muteKeyCount="0"
+color="ffa9b250">
+		<key row="1" value="0.000000" interpolation="0" />
+		<key row="24" value="1.000000" interpolation="0" />
+		<key row="64" value="2.000000" interpolation="0" />
+	</track>
+	<track name="display_fx" folded="0" muteKeyCount="0"
+color="ff60b250">
+		<key row="1" value="1.000000" interpolation="0" />
+		<key row="24" value="3.000000" interpolation="0" />
+		<key row="64" value="1.000000" interpolation="0" />
+		<key row="168" value="3.000000" interpolation="0" />
+		<key row="304" value="1.000000" interpolation="0" />
+	</track>
 	<track name="zoom" folded="0" muteKeyCount="0" color="ffb27474">
 		<key row="0" value="0.000000" interpolation="1" />
 		<key row="8" value="10.000000" interpolation="1" />
@@ -24,48 +45,28 @@ beatsPerMin="125">
 		<key row="232" value="0.000000" interpolation="1" />
 		<key row="264" value="20.000000" interpolation="1" />
 		<key row="304" value="0.000000" interpolation="0" />
-		<key row="320" value="1.000000" interpolation="1" />
+		<key row="320" value="1.990000" interpolation="1" />
 		<key row="322" value="0.000000" interpolation="0" />
-		<key row="328" value="2.000000" interpolation="1" />
+		<key row="328" value="2.990000" interpolation="1" />
 		<key row="330" value="0.000000" interpolation="0" />
-		<key row="336" value="3.000000" interpolation="1" />
+		<key row="336" value="3.990000" interpolation="1" />
 		<key row="338" value="0.000000" interpolation="0" />
-		<key row="344" value="4.000000" interpolation="1" />
+		<key row="344" value="4.990000" interpolation="1" />
 		<key row="346" value="0.000000" interpolation="0" />
-		<key row="352" value="5.000000" interpolation="1" />
+		<key row="352" value="5.990000" interpolation="1" />
 		<key row="354" value="0.000000" interpolation="0" />
-		<key row="360" value="6.000000" interpolation="1" />
+		<key row="360" value="6.990000" interpolation="1" />
 		<key row="362" value="0.000000" interpolation="0" />
-		<key row="368" value="7.000000" interpolation="1" />
+		<key row="368" value="7.990000" interpolation="1" />
 		<key row="370" value="0.000000" interpolation="0" />
-		<key row="376" value="8.000000" interpolation="1" />
+		<key row="376" value="8.990000" interpolation="1" />
 		<key row="378" value="0.000000" interpolation="0" />
-		<key row="384" value="9.000000" interpolation="1" />
+		<key row="384" value="9.990000" interpolation="1" />
 		<key row="386" value="0.000000" interpolation="0" />
-		<key row="392" value="10.000000" interpolation="1" />
+		<key row="392" value="10.990000" interpolation="1" />
 		<key row="394" value="0.000000" interpolation="1" />
 		<key row="496" value="63.000000" interpolation="1" />
 		<key row="504" value="0.000000" interpolation="0" />
-	</track>
-	<track name="event_code" folded="0" muteKeyCount="0"
-color="ffb28050">
-		<key row="0" value="1.000000" interpolation="0" />
-		<key row="24" value="2.000000" interpolation="0" />
-		<key row="64" value="2.000000" interpolation="0" />
-	</track>
-	<track name="event_data" folded="0" muteKeyCount="0"
-color="ffa9b250">
-		<key row="0" value="0.000000" interpolation="0" />
-		<key row="24" value="1.000000" interpolation="0" />
-		<key row="64" value="2.000000" interpolation="0" />
-	</track>
-	<track name="display_fx" folded="0" muteKeyCount="0"
-color="ff60b250">
-		<key row="0" value="1.000000" interpolation="0" />
-		<key row="24" value="3.000000" interpolation="0" />
-		<key row="64" value="1.000000" interpolation="0" />
-		<key row="168" value="3.000000" interpolation="0" />
-		<key row="304" value="1.000000" interpolation="0" />
 	</track>
 </tracks>
 	</rootElement>

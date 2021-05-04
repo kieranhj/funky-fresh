@@ -8,8 +8,9 @@
 	equw do_nothing						    ; &00
 	equw task_decrunch_asset_to_main	    ; &01
 	equw task_decrunch_asset_to_shadow  	; &02
+    equw task_wipe_screens                  ; &03
 }
-TASK_ID_MAX = 3
+TASK_ID_MAX = 4
 
 .tasks_update
 {
@@ -79,4 +80,34 @@ TASK_ID_MAX = 3
     lda &fe34:ora #&4:sta &fe34
 
     jmp task_decrunch_asset_X
+}
+
+.task_wipe_screens
+{
+    \\ Ensure MAIN RAM writeable.
+    lda &fe34:and #&fb:sta &fe34
+    ldy #HI(screen_addr):ldx #HI(SCREEN_SIZE_BYTES)
+    jsr clear_pages
+
+    \\ Ensure SHADOW RAM is writeable.
+    lda &fe34:ora #&4:sta &fe34
+    ldy #HI(screen_addr):ldx #HI(SCREEN_SIZE_BYTES)
+}
+\\ Fall through!
+; Y=to page, X=number of pages
+.clear_pages
+{
+	sty write_to+2
+
+	ldy #0
+	lda #0
+	.page_loop
+	.write_to
+	sta &ff00, Y
+	iny
+	bne page_loop
+	inc write_to+2
+	dex
+	bne page_loop
+	rts
 }

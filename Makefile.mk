@@ -76,7 +76,7 @@ clean:
 
 ./build/funky-sequence.bin: ./data/rocket/track_list.txt \
 							./data/rocket/funky_zoom.track ./data/rocket/funky_display_fx.track \
-							./data/rocket/funky_event_code.track ./data/rocket/funky_event_data.track
+							./data/rocket/funky_task_id.track ./data/rocket/funky_task_data.track
 	$(MKDIR_P) "./build"
 	$(PYTHON3) bin/rocket2bbc.py funky data/rocket/track_list.txt data/rocket -o ./build/funky-sequence.bin
 

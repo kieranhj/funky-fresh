@@ -25,10 +25,10 @@ include "src/music_macros.asm"
 \ ******************************************************************
 
 ; SCREEN constants
-\SCREEN_WIDTH_PIXELS = 320
-\SCREEN_HEIGHT_PIXELS = 256
-\SCREEN_ROW_BYTES = SCREEN_WIDTH_PIXELS * 8 / 8
-\SCREEN_SIZE_BYTES = (SCREEN_WIDTH_PIXELS * SCREEN_HEIGHT_PIXELS) / 8
+SCREEN_WIDTH_COLS = 80
+SCREEN_HEIGHT_ROWS = 32
+SCREEN_ROW_BYTES = SCREEN_WIDTH_COLS * 8
+SCREEN_SIZE_BYTES = SCREEN_HEIGHT_ROWS * SCREEN_ROW_BYTES
 
 screen_addr = &3000
 
@@ -91,32 +91,9 @@ INCLUDE "lib/vgcplayer.h.asm"
 .xy						skip 1
 
 \\ TODO: Local ZP vars?
-IF _DEBUG=FALSE
-\\ TODO: Do these live after rocket_zp_reserved?
-.rocket_next_key        skip 2
-.rocket_data_ptr        skip 2
-ENDIF
-
 .zp_end
 
-\\ TODO: Move these into zp.h.asm? Or rocket.h.asm?
-CLEAR rocket_zp_start, zp_max
-ORG rocket_zp_start
-GUARD rocket_zp_reserved
-.rocket_track_zoom			skip 2
-.rocket_track_task_id		skip 2
-.rocket_track_task_data		skip 2
-.rocket_track_display_fx	skip 2
-ROCKET_MAX_TRACKS = 4
-
-.rocket_zp_end
-
-CLEAR rocket_zp_reserved, zp_max
-ORG rocket_zp_reserved
-GUARD zp_max
-.rocket_vsync_count		skip 2	; &9C
-.rocket_audio_flag 		skip 1	; &9E
-.rocket_fast_mode		skip 1	; &9F
+include "src/rocket.h.asm"
 
 \ ******************************************************************
 \ *	BSS/DATA IN LOWER RAM

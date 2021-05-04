@@ -16,9 +16,11 @@ TODO:
 
 - Add another RVI effect that can be switched between. - DONE
     - Chunky Twister.
-- Figure out the run-time, no editor, track data interpolation. <= TODO!
+- Figure out the run-time, no editor, track data interpolation. <= DONE!
 - Move screen to 224 lines => 32 more scanlines.
     - R6=28, R7=33.
+- Chunky Twister just runs automatically - how to drive from Rocket?
+- Make a sequence!
 
 Ponder.
 ~~~
@@ -33,8 +35,6 @@ Ponder.
     - Or the sequence author just has to be aware of this limitation?
         => restart sequence higher up? or will this become an issue later in the demo?
 
-- Chunky Twister just runs automatically - how to drive from Rocket?
-
 - Having an automatic way of packing assets into SWRAM banks would be great!
 - Create separate loader for SWRAM banks etc. so can dump the code and reclaim the RAM?
 
@@ -45,3 +45,5 @@ BUGS:
 Rocket Run time
 ~~~
 - Always do 16-bit add for each track.
+- Perhaps step keys should just be single byte?
+- Or find some way of encoding two bytes values in a float. BCD-ish? 99.99
