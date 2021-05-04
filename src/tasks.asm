@@ -18,8 +18,8 @@ TASK_ID_MAX = 3
     bne return
 
     \\ Check if this is a new task.
-	lda track_task_id
-	ldx track_task_data
+	lda rocket_track_task_id+1
+	ldx rocket_track_task_data+1
 	cmp last_task_id
 	bne start_new_task
 	cpx last_task_data

@@ -39,7 +39,8 @@ music: ./build/beeb-demo.bbc.vgc
 .PHONY:assets
 assets: ./build/logo-mode2.exo \
 		./build/doom-screen.exo ./build/scr-screen.exo \
-		./build/twister1-mode2.exo ./build/twister2-mode2.exo
+		./build/twister1-mode2.exo ./build/twister2-mode2.exo \
+		./build/funky-sequence.bin
 
 ##########################################################################
 ##########################################################################
@@ -69,6 +70,15 @@ clean:
 ./build/scr-screen.bin: ./data/gfx/TitleScreen_BBC.png
 	$(MKDIR_P) "./build"
 	$(PYTHON2) $(PNG2BBC) -q -o $@ $< --160 2
+
+##########################################################################
+##########################################################################
+
+./build/funky-sequence.bin: ./data/rocket/track_list.txt \
+							./data/rocket/funky_zoom.track ./data/rocket/funky_display_fx.track \
+							./data/rocket/funky_event_code.track ./data/rocket/funky_event_data.track
+	$(MKDIR_P) "./build"
+	$(PYTHON3) bin/rocket2bbc.py funky data/rocket/track_list.txt data/rocket -o ./build/funky-sequence.bin
 
 ##########################################################################
 ##########################################################################

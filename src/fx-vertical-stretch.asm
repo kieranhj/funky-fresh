@@ -22,7 +22,7 @@
 
 .fx_vertical_stretch_update
 {
-	ldx track_zoom
+	ldx rocket_track_zoom+1
 	lda dv_table_LO, X
 	sta dv
 	lda dv_table_HI, X

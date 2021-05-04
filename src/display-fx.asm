@@ -16,7 +16,7 @@ DISPLAY_FX_MAX = 5
 
 .display_fx_update
 {
-	lda track_display_fx
+	lda rocket_track_display_fx+1
 	cmp display_fx
 	beq return
 

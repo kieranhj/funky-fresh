@@ -2,7 +2,7 @@
 
 ; Stuff that has to stick around across intro, demo and outro.
 
-rocket_zp_start=&90
+rocket_zp_start=&80
 rocket_zp_reserved=&9C
 
 zp_max=$A0      ; stay "cooperative" with the OS for now.

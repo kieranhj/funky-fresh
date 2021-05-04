@@ -41,3 +41,7 @@ Ponder.
 BUGS:
 > DEBUG (UNUSUAL): Indirect access to register $FCC3 at $153D - FIXED
 > Doom screen doesn't get loaded if Rocket starts at or after that row? - DUPE
+
+Rocket Run time
+~~~
+- Always do 16-bit add for each track.

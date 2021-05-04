@@ -92,7 +92,9 @@ def write_tracks_to_bbc_data(tracks, data):
         # Write BBC data.
         key.write_bbc(data)
 
-    # Write end of sequence marker.
+    # End of keys.
+    data.extend(struct.pack('B', 255))
+    # End of sequence marker.
     data.extend(struct.pack('H', 0xffff))
 
 

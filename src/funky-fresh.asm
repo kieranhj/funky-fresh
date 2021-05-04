@@ -3,8 +3,7 @@
 \ *	FUNKY FRESH DEMO FRAMEWORK
 \ ******************************************************************
 
-_DEBUG = TRUE
-_DEBUG_RASTERS = TRUE
+_DEBUG = FALSE
 
 include "src/zp.h.asm"
 
@@ -92,16 +91,22 @@ INCLUDE "lib/vgcplayer.h.asm"
 .xy						skip 1
 
 \\ TODO: Local ZP vars?
+IF _DEBUG=FALSE
+\\ TODO: Do these live after rocket_zp_reserved?
+.rocket_next_key        skip 2
+.rocket_data_ptr        skip 2
+ENDIF
 
 .zp_end
 
+\\ TODO: Move these into zp.h.asm? Or rocket.h.asm?
 CLEAR rocket_zp_start, zp_max
 ORG rocket_zp_start
 GUARD rocket_zp_reserved
-.track_zoom				skip 1
-.track_task_id			skip 1
-.track_task_data		skip 1
-.track_display_fx		skip 1
+.rocket_track_zoom			skip 2
+.rocket_track_task_id		skip 2
+.rocket_track_task_data		skip 2
+.rocket_track_display_fx	skip 2
 ROCKET_MAX_TRACKS = 4
 
 .rocket_zp_end
@@ -275,6 +280,13 @@ GUARD screen_addr + RELOC_SPACE
     sec ; loop
     jsr vgm_init
 
+    \\ Init sequence.
+    IF _DEBUG=FALSE
+    ldx #LO(rocket_data)
+    ldy #HI(rocket_data)
+    jsr rocket_init
+    ENDIF
+
     \\ Complete any initial preload.
 	\\ TODO: Initialise screens before sequence starts.
 
@@ -415,6 +427,21 @@ GUARD screen_addr + RELOC_SPACE
 
     \\ Update music.
     MUSIC_JUMP_VGM_UPDATE
+	.music_paused
+
+    \\ Interpolate Rocket track values.
+    jsr rocket_update_tracks
+
+    \\ Process new Rocket track keys.
+    IF _DEBUG=FALSE
+    jsr rocket_update_keys
+    ENDIF
+
+	\\ Set up any new tasks.
+	jsr tasks_update
+
+	\\ Switch displayed FX before update fn.
+	jsr display_fx_update
 
     \\ Update vsync count.
     {
@@ -423,13 +450,7 @@ GUARD screen_addr + RELOC_SPACE
         inc rocket_vsync_count+1
         .no_carry
     }
-	.music_paused
-
-	\\ Need to update 'script' here.
-	jsr tasks_update
-
-	\\ Switch displayed FX before update fn.
-	jsr display_fx_update
+    \\ New frame effectively starts here!
 
     \\ Call FX update function.
 	.^call_fx_update_fn
@@ -600,6 +621,11 @@ IF 0
 ENDIF
 
 include "src/assets-table.asm"
+
+IF _DEBUG=FALSE
+.rocket_data
+incbin "build/funky-sequence.bin"
+ENDIF
 
 .data_end
 
