@@ -3,7 +3,7 @@
 \ *	FUNKY FRESH DEMO FRAMEWORK
 \ ******************************************************************
 
-_DEBUG = TRUE
+_DEBUG = FALSE
 
 include "src/zp.h.asm"
 
