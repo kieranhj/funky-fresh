@@ -11,6 +11,8 @@ color="ffb28050">
 		<key row="152" value="2.000000" interpolation="0" />
 		<key row="168" value="1.000000" interpolation="0" />
 		<key row="280" value="1.000000" interpolation="0" />
+		<key row="632" value="1.000000" interpolation="0" />
+		<key row="636" value="2.000000" interpolation="0" />
 	</track>
 	<track name="task_data" folded="0" muteKeyCount="0"
 color="ffa9b250">
@@ -20,6 +22,8 @@ color="ffa9b250">
 		<key row="152" value="4.000000" interpolation="0" />
 		<key row="168" value="3.000000" interpolation="0" />
 		<key row="280" value="0.000000" interpolation="0" />
+		<key row="632" value="3.000000" interpolation="0" />
+		<key row="636" value="4.000000" interpolation="0" />
 	</track>
 	<track name="display_fx" folded="0" muteKeyCount="0"
 color="ff60b250">
@@ -31,6 +35,9 @@ color="ff60b250">
 		<key row="192" value="4.000000" interpolation="0" />
 		<key row="280" value="3.000000" interpolation="0" />
 		<key row="304" value="1.000000" interpolation="0" />
+		<key row="632" value="2.000000" interpolation="0" />
+		<key row="636" value="3.000000" interpolation="0" />
+		<key row="640" value="4.000000" interpolation="0" />
 	</track>
 	<track name="zoom" folded="0" muteKeyCount="0" color="ffb27474">
 		<key row="16" value="0.000000" interpolation="1" />
@@ -38,6 +45,8 @@ color="ff60b250">
 		<key row="80" value="0.000000" interpolation="1" />
 		<key row="96" value="31.000000" interpolation="1" />
 		<key row="112" value="0.000000" interpolation="0" />
+		<key row="192" value="1.000000" interpolation="0" />
+		<key row="280" value="10.000000" interpolation="0" />
 		<key row="304" value="0.000000" interpolation="0" />
 		<key row="320" value="1.990000" interpolation="1" />
 		<key row="322" value="0.000000" interpolation="0" />
@@ -77,6 +86,13 @@ color="ff60b250">
 		<key row="562" value="0.000000" interpolation="0" />
 		<key row="568" value="6.000000" interpolation="1" />
 		<key row="570" value="0.000000" interpolation="0" />
+		<key row="640" value="2.000000" interpolation="0" />
+	</track>
+	<track name="x_pos" folded="0" muteKeyCount="0" color="ff4fb292" />
+	<track name="y_pos" folded="0" muteKeyCount="0" color="ff4f71b2">
+		<key row="192" value="6.000000" interpolation="0" />
+		<key row="640" value="6.000000" interpolation="0" />
+		<key row="710" value="-8.000000" interpolation="0" />
 	</track>
 </tracks>
 	</rootElement>

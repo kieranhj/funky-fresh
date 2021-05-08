@@ -20,12 +20,35 @@ TODO:
 - Make a sequence! - DONE TEST
 - Move screen to 224 lines => 32 more scanlines.
     - R6=28, R7=33.
-- Chunky Twister just runs automatically - how to drive from Rocket?
+- Chunky Twister just runs automatically - how to drive from Rocket? - DONE
 - Transitions! Top & bottom bars?
 - Add more FX.
     - Frak Zoomer
     - Psuedo-3D?
-    - ???
+    - Tech-tech?
+- "Demo reset" task at the top to ensure all FX vars are zero'd when playing from the beginning.
+
+
+Track controls.
+~~~
+=> Up to individual FX if they can respect these.
+=> Probably need a table ultimately?
+=> Encourage more generic tracks?
+=> Try to drive variables directly in update rather than "delta values".
+=> Can use "delta values" safely in draw.
+
+zoom = scale factor for Vertical Stretch (0 = normal, 63 = max)
+bg_colour = general background colour?
+top_bar = position of top bar (0-127)
+top_colour = colour of top bar
+bottom_bar = position of bottom bar (0-127)
+bottom_colour = colour of bottom bar
+x_pos = generic x position?
+y_pos = generic y position?
+pulse = generic value used to pulse to the beat?
+speed = generic twiddlable?
+direction = generic direction?
+
 
 Ponder.
 ~~~
@@ -37,11 +60,21 @@ Ponder.
 - Scrubbing plus task loading ends up with the start of the demo not being realistic from a load-time POV.
     - Once MAIN & SHADOW RAM are initialised, you can't uninitialise them.
     - Perhaps if the task on the first line were a (debug) screen wipe? DONE.
+    - Could run the entire demo from frame 0 on restart? -> this doesn't help with scrubbing?
+    => Need to reset all vars to 0 at start of the sequence. So first line should be a "demo reset" task.
+
+- Staring in the middle of the sequence means it's likely to have missed a task to initalise one of the screens.
     - Or the sequence author just has to be aware of this limitation?
         => restart sequence higher up? or will this become an issue later in the demo?
     => Could have two separate task tracks one for MAIN and one for SHADOW?
-    => Could run the entire demo from frame 0 on restart? - this doesn't help with scrubbing?
 
+- Might need a way of initialising FX (vars) so that editing is the same as playback.
+    - E.g. currently the twister just carries on from wherever it last was.
+    - Can't do this in a task as has to be guaranteed before the first update!
+
+
+Nice to haves.
+~~~
 - Having an automatic way of packing assets into SWRAM banks would be great!
 - Create separate loader for SWRAM banks etc. so can dump the code and reclaim the RAM?
 

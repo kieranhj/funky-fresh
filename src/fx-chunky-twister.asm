@@ -4,6 +4,11 @@
 \ ******************************************************************
 
 \\ TODO: Describe the FX and requirements.
+\\ Describe the track values used:
+\\   rocket_track_speed => x offset of top row (sin table) <- makes it move
+\\   rocket_track_y_pos => rotation of top row (cos table) <- makes it spin
+\\   rocket_track_x_pos => x offset per row (sin table)    <- makes it curve
+\\   rocket_track_zoom  => rotation per row (cos table)    <- makes it twist
 
 \ ******************************************************************
 \ Update FX
@@ -22,18 +27,36 @@
 
 .fx_chunky_twister_update
 {
-	dec xi:dec xi
-	lda xi:sta xy
+	\\ Extend sign of track values.
+	{
+		ldx #0
+		lda rocket_track_zoom+1
+		bpl positive2
+		dex
+		.positive2
+		stx twister_calc_rot_sign+1
+	}
 
-	clc
-	lda ta:adc #6:sta ta					\ a=4096/600~=6
-	lda ta+1:adc #0:and #15:sta ta+1		\ 4096 byte table
-	lda ta:sta yb:lda ta+1:sta yb+1
+	\\ TOOD: Use different tracks? (Or specific FX track names?)
+	lda rocket_track_speed:sta xy
+	lda rocket_track_speed+1:sta xy+1
 
+	lda #0:sta yb+2	; actually LSB
+	lda rocket_track_y_pos:sta yb
+	lda rocket_track_y_pos+1:sta yb+1
+
+	; use top 12 bits for 4096 byte table
+	lsr yb+1:ror yb:ror yb+2
+	lsr yb+1:ror yb:ror yb+2
+	lsr yb+1:ror yb:ror yb+2
+	lsr yb+1:ror yb:ror yb+2
+
+	\\ Set up first row of the display.
 	jsr fx_chunky_twister_calc_rot
 	jsr fx_chunky_twister_set_rot
 	sty &fe34
 
+	\\ Prep for second row.
 	lda #0:sta prev_scanline
 	jsr fx_chunky_twister_calc_rot
 	sta temp
@@ -96,14 +119,14 @@
 	eor #&ff							; 2c
 	clc									; 2c
 	adc #13								; 2c
-	adc prev_scanline						; 3c
+	adc prev_scanline					; 3c
 	sta &fe01							; 6c
-	stx prev_scanline						; 3c
+	stx prev_scanline					; 3c
 	\\ 24c
 
 	\\ Sets R12,R13 + SHADOW
 	lda temp							; 3c
-	jsr fx_chunky_twister_set_rot							; 79c
+	jsr fx_chunky_twister_set_rot			; 79c
 	; sets Y to shadow bit.
 
 		\\ Set R0=101 (102c)
@@ -127,7 +150,7 @@
 		sta &fe01							; 6c
 		\\ <== start of new scanline here
 		stx &fe21							; 4c
-		WAIT_CYCLES 10
+		WAIT_CYCLES 8
 
 	\\ Want to get to:
 	\\ a = SIN(t * a + y * b)
@@ -138,7 +161,7 @@
 	{
 		lda #9:sta &fe00					; 8c
 
-		jsr fx_chunky_twister_calc_rot						; 52c
+		jsr fx_chunky_twister_calc_rot		; 77c
 		sta temp							; 3c
 
 		\\ 2-bits * 2
@@ -147,21 +170,21 @@
 		eor #&ff							; 2c
 		clc									; 2c
 		adc #13								; 2c
-		adc prev_scanline						; 3c
-		sta &fe01							; 6c
-		sty prev_scanline						; 3c
+		adc prev_scanline					; 3c
+		sta &fe01							; 6c <= 5c
+		sty prev_scanline					; 3c
 		\\ 24c
 
 		\\ Sets R12,R13 + SHADOW
 		lda temp							; 3c
-		jsr fx_chunky_twister_set_rot							; 79c
+		jsr fx_chunky_twister_set_rot		; 79c
 		; sets Y to shadow bit.
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c <= 7c
 		lda #101:sta &fe01					; 8c
 
-		WAIT_CYCLES 24
+		WAIT_CYCLES 2
 
 		\\ At HCC=102 set R0=1.
 		.here
@@ -180,9 +203,7 @@
 		stx &fe21							; 4c
 
 		DEC row_count						; 5c
-		BEQ done							; 2c
-		JMP char_row_loop					; 3c
-		.done
+		BNE char_row_loop					; 3c
 	}
     CHECK_SAME_PAGE_AS char_row_loop
 
@@ -212,29 +233,36 @@
     RTS
 }
 
-.fx_chunky_twister_calc_rot							; 6c
+.fx_chunky_twister_calc_rot			; 6c
 {
-	inc xy							; 5c
+	clc								; 2c
+	lda xy:adc rocket_track_x_pos:sta xy		; 9c
+	lda xy+1:adc rocket_track_x_pos+1:sta xy+1	; 9c
 
 	\ 4096/4000~=1
-	clc:lda yb:adc #1:sta yb		; 10c
-	lda yb+1:adc #0:and #15:sta yb+1	; 10c
+	\\ TODO: Use a different track?
+	clc								; 2c
+	lda yb+2:adc rocket_track_zoom+0:sta yb+2	; 9c actually LSB!
+	lda yb:adc rocket_track_zoom+1:sta yb		; 9c
+	lda yb+1
+	.^twister_calc_rot_sign	adc #0
+	and #15:sta yb+1				; 10c
 	clc:adc #HI(cos):sta load+2		; 8c
 	ldy yb							; 3c
 	.load
 	lda cos,Y						; 4c
 	rts								; 6c
 }
-\\ 52c
+\\ 77c
 
-.fx_chunky_twister_set_rot							; 6c
+.fx_chunky_twister_set_rot			; 6c
 {
 	; 0-127
 	AND #&7F						; 2c
 	lsr a:lsr a:tay					; 6c
 
 	LDA #13: STA &FE00				; 8c
-	ldx xy							; 3c
+	ldx xy+1						; 3c
 	lda x_wibble, X					; 4c
 	sta temp						; 3c
 	lsr a							; 2c

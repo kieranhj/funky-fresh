@@ -74,11 +74,15 @@ INCLUDE "lib/vgcplayer.h.asm"
 .last_task_id			skip 1
 .last_task_data			skip 1
 .display_fx				skip 1
+.prev_vsync             skip 2
+.delta_vsync            skip 1
 
 \\ FX general ZP vars.
 .row_count				skip 1
 .prev_scanline			skip 1
 .temp					skip 1
+
+\\ TODO: Move FX ZP vars?
 
 \\ FX vertical stretch.
 .v						skip 2
@@ -86,9 +90,9 @@ INCLUDE "lib/vgcplayer.h.asm"
 
 \\ FX chunky twister.
 .ta						skip 2
-.yb						skip 2
-.xi						skip 1
-.xy						skip 1
+.yb						skip 3
+.xi						skip 2
+.xy						skip 2
 
 \\ TODO: Local ZP vars?
 .zp_end
@@ -134,7 +138,7 @@ GUARD screen_addr + RELOC_SPACE
     \\ Init stack
     ldx #&ff:txs
 
-    \\ Init ZP
+    \\ Init ZP/
     inx
     lda #0
     .zp_loop
@@ -440,7 +444,21 @@ GUARD screen_addr + RELOC_SPACE
         inc rocket_vsync_count+1
         .no_carry
     }
+    IF _DEBUG
     .external_vsync
+    {
+        sec
+        lda rocket_vsync_count+1:tay
+        sbc prev_vsync+1
+        lda rocket_vsync_count:tax
+        sbc prev_vsync
+        sta delta_vsync
+        stx prev_vsync
+        sty prev_vsync+1
+    }
+    ELSE
+    lda #1:sta delta_vsync
+    ENDIF
     \\ New frame effectively starts here!
 
     \\ Call FX update function.

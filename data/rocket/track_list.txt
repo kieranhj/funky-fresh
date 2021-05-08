@@ -2,3 +2,6 @@ task_id
 task_data
 display_fx
 zoom
+x_pos
+y_pos
+speed
