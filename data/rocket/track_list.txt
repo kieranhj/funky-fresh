@@ -4,4 +4,4 @@ display_fx
 zoom
 x_pos
 y_pos
-speed
+time

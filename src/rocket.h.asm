@@ -11,7 +11,7 @@ GUARD rocket_zp_reserved
 .rocket_track_zoom			skip 2
 .rocket_track_x_pos			skip 2
 .rocket_track_y_pos			skip 2
-.rocket_track_speed			skip 2
+.rocket_track_time			skip 2
 ROCKET_MAX_TRACKS = 7
 
 .rocket_zp_end

@@ -5,17 +5,18 @@
 
 \\ TODO: Describe the FX and requirements.
 \\ Describe the track values used:
-\\   rocket_track_speed => x offset of top row (sin table) <- makes it move
-\\   rocket_track_y_pos => rotation of top row (cos table) <- makes it spin
-\\   rocket_track_x_pos => x offset per row (sin table)    <- makes it curve
-\\   rocket_track_zoom  => rotation per row (cos table)    <- makes it twist
+\\   rocket_track_x_pos => x offset of top row (sin table) [0-255] <- makes it move side-to-side
+\\   rocket_track_y_pos => x offset per row (sin table)    [0-10]  <- makes it curve
+
+\\   rocket_track_time  => rotation of top row (cos table) [0-255] <- makes it spin
+\\   rocket_track_zoom  => rotation per row (cos table)    [0-10]  <- makes it twist
 
 \ ******************************************************************
 \ Update FX
 \
 \ The update function is used to update / tick any variables used
 \ in the FX. It may also prepare part of the screen buffer before
-\ drawing commenses but note the strict timing constraints!
+\ drawing commences but note the strict timing constraints!
 \
 \ This function will be called during vblank, after any system
 \ modules have been polled.
@@ -37,13 +38,14 @@
 		stx twister_calc_rot_sign+1
 	}
 
-	\\ TOOD: Use different tracks? (Or specific FX track names?)
-	lda rocket_track_speed:sta xy
-	lda rocket_track_speed+1:sta xy+1
+	\\   rocket_track_x_pos => x offset of top row (sin table) [0-255] <- makes it move side-to-side
+	lda rocket_track_x_pos:sta xy
+	lda rocket_track_x_pos+1:sta xy+1
 
+	\\   rocket_track_time  => rotation of top row (cos table) [0-255] <- makes it spin
 	lda #0:sta yb+2	; actually LSB
-	lda rocket_track_y_pos:sta yb
-	lda rocket_track_y_pos+1:sta yb+1
+	lda rocket_track_time:sta yb
+	lda rocket_track_time+1:sta yb+1
 
 	; use top 12 bits for 4096 byte table
 	lsr yb+1:ror yb:ror yb+2
@@ -236,12 +238,13 @@
 .fx_chunky_twister_calc_rot			; 6c
 {
 	clc								; 2c
-	lda xy:adc rocket_track_x_pos:sta xy		; 9c
-	lda xy+1:adc rocket_track_x_pos+1:sta xy+1	; 9c
+	\\   rocket_track_y_pos => x offset per row (sin table)    [0-10]  <- makes it curve
+	lda xy:adc rocket_track_y_pos:sta xy		; 9c
+	lda xy+1:adc rocket_track_y_pos+1:sta xy+1	; 9c
 
 	\ 4096/4000~=1
-	\\ TODO: Use a different track?
 	clc								; 2c
+	\\   rocket_track_zoom  => rotation per row (cos table)    [0-10]  <- makes it twist
 	lda yb+2:adc rocket_track_zoom+0:sta yb+2	; 9c actually LSB!
 	lda yb:adc rocket_track_zoom+1:sta yb		; 9c
 	lda yb+1

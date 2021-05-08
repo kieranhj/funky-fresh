@@ -4,13 +4,15 @@
 \ ******************************************************************
 
 \\ TODO: Describe the FX and requirements.
+\\ Describe the track values used:
+\\   rocket_track_zoom  => zoom factor [0-63] <- 1x to 10x height
 
 \ ******************************************************************
 \ Update FX
 \
 \ The update function is used to update / tick any variables used
 \ in the FX. It may also prepare part of the screen buffer before
-\ drawing commenses but note the strict timing constraints!
+\ drawing commences but note the strict timing constraints!
 \
 \ This function will be called during vblank, after any system
 \ modules have been polled.
