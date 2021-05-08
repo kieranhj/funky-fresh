@@ -21,5 +21,5 @@ IF _DEBUG
 .rocket_audio_flag 		skip 1	; &9E
 .rocket_fast_mode		skip 1	; &9F
 ELSE
-.rocket_data_ptr        skip 2
+.rocket_data_ptr        skip 2  ; &9E
 ENDIF

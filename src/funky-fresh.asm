@@ -3,7 +3,7 @@
 \ *	FUNKY FRESH DEMO FRAMEWORK
 \ ******************************************************************
 
-_DEBUG = FALSE
+_DEBUG = TRUE
 
 include "src/zp.h.asm"
 
@@ -121,6 +121,16 @@ GUARD screen_addr + RELOC_SPACE
 
 .main
 {
+    IF _DEBUG
+    {
+        \\ Print 'DEBUG' so we know which build it is!
+        ldx #0
+        .loop
+        lda debug_filename, X
+        jsr &ffee:inx:cpx #6:bcc loop
+    }
+    ENDIF
+
     \\ Init stack
     ldx #&ff:txs
 

@@ -68,6 +68,8 @@
 {
     WAIT_CYCLES 14      ; Original raster-fx code started 14c into the frame.
 
+	\\ <=== HCC=0
+
 	\\ R4=0, R7=&ff, R6=1, R9=3
 	lda #4:sta &fe00
 	lda #0:sta &fe01
@@ -78,7 +80,8 @@
 
 	lda #6:sta &fe00
 	lda #1:sta &fe01
-
+	
+	\\ R9 must be set before final scanline of the row.
 	lda #9:sta &fe00
 	lda #1:sta &fe01
 

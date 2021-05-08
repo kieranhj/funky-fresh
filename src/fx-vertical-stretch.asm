@@ -102,10 +102,6 @@ CODE_ALIGN &100
 	lda #4:sta &fe00					; 8c
 	lda #0:sta &fe01					; 8c
 
-	\\ R7 vsync at row 35 = scanline 280.
-	lda #7:sta &fe00					; 8c
-	lda #3:sta &fe01					; 8c
-
 	\\ R6=1
 	lda #6:sta &fe00					; 8c
 	lda #1:sta &fe01					; 8c
@@ -134,13 +130,19 @@ CODE_ALIGN &100
 	eor #&ff							; 2c
 	sec									; 2c
 	adc #13								; 2c
-		clc									; 2c
-		adc prev_scanline					; 3c
-		sta &fe01							; 6c
-		stx prev_scanline					; 3c
-		\\ 35c
+	clc									; 2c
+	adc prev_scanline					; 3c
+	\\ R9 must be set before final scanline of the row.
+	sta &fe01							; 6c
+	stx prev_scanline					; 3c
+	\\ 35c
 
-		lda #126:sta row_count				; 5c
+	lda #126
+		sta row_count				; 5c
+
+		\\ R7 vsync at row 35 = scanline 280.
+		lda #7:sta &fe00					; 8c
+		lda #3:sta &fe01					; 8c
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c

@@ -17,10 +17,15 @@ TODO:
 - Add another RVI effect that can be switched between. - DONE
     - Chunky Twister.
 - Figure out the run-time, no editor, track data interpolation. <= DONE!
+- Make a sequence! - DONE TEST
 - Move screen to 224 lines => 32 more scanlines.
     - R6=28, R7=33.
 - Chunky Twister just runs automatically - how to drive from Rocket?
-- Make a sequence!
+- Transitions! Top & bottom bars?
+- Add more FX.
+    - Frak Zoomer
+    - Psuedo-3D?
+    - ???
 
 Ponder.
 ~~~
@@ -31,14 +36,17 @@ Ponder.
 
 - Scrubbing plus task loading ends up with the start of the demo not being realistic from a load-time POV.
     - Once MAIN & SHADOW RAM are initialised, you can't uninitialise them.
-    - Perhaps if the task on the first line were a (debug) screen wipe?
+    - Perhaps if the task on the first line were a (debug) screen wipe? DONE.
     - Or the sequence author just has to be aware of this limitation?
         => restart sequence higher up? or will this become an issue later in the demo?
+    => Could have two separate task tracks one for MAIN and one for SHADOW?
+    => Could run the entire demo from frame 0 on restart? - this doesn't help with scrubbing?
 
 - Having an automatic way of packing assets into SWRAM banks would be great!
 - Create separate loader for SWRAM banks etc. so can dump the code and reclaim the RAM?
 
 BUGS:
+> Can't safely switch from Chunky Twister to Vertical Stretch. - FIXED R9 set on last scanline!
 > DEBUG (UNUSUAL): Indirect access to register $FCC3 at $153D - FIXED
 > Doom screen doesn't get loaded if Rocket starts at or after that row? - DUPE
 
