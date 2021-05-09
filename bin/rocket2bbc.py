@@ -23,27 +23,49 @@ class Key:
         self._delta_value = 0
     
     def __str__(self):
-        return f"[{self._track} {self._type} {self._time} {self._value}]"
+        if self._type == KeyType.KEY_LINEAR:
+            return f"[{self._track} {self._type} time={self._time} value={self._value} delta_time={self._delta_time} delta_value={self._delta_value}]"
+        else:
+            return f"[{self._track} {self._type} time={self._time} value={self._value}]"
 
     def calc_delta(self, next_key):
-        self._delta_time = next_key._time - self._time
-        self._delta_value = next_key._value - self._value
+        if self._type == KeyType.KEY_LINEAR:
+            self._delta_time = next_key._time - self._time
+            self._delta_value = next_key._value - self._value
+        else:
+            self._delta_time = 0
+            self._delta_value = 0
 
     def write_bbc(self, data):
+        if g_verbose:
+            print(self)
+
         if self._type == KeyType.KEY_STEP:
             # Use top bit to indicate a stepped key type.
             data.extend(struct.pack('B', self._track | 0x80))
         else:
             data.extend(struct.pack('B', self._track))
 
-        bbc_value = int(self._value * 256)
-        data.extend(struct.pack('h', bbc_value)) # signed short
+        bbc_value = int(abs(self._value) * 256)
+        if self._value < 0:
+            bbc_value *= -1
+        data.extend(struct.pack('H', bbc_value & 0xffff)) # unsigned short
 
         if self._type == KeyType.KEY_LINEAR:
             assert(self._delta_time != 0)
             float_delta = 256 * self._delta_value / self._delta_time
-            # TODO: WARNING when not enough accuracy.
             bbc_delta = int(float_delta)
+
+            bbc_error = self._delta_value - bbc_delta * self._delta_time / 256
+            err_percent = bbc_error / self._delta_value
+
+            if bbc_error > 1 or err_percent > 0.1:
+                print(f"WARNING: Error of {bbc_error} ({100*err_percent}%) for key: {self}")
+
+            if bbc_delta == 0:
+                print(f"ERROR: Not enough accuracy for key: {self}")
+                sys.exit(1)
+                
             data.extend(struct.pack('h', bbc_delta)) # signed short
         elif self._type != KeyType.KEY_STEP:
             print(f"ERROR: Key type '{self._type}' not supported!")
@@ -52,8 +74,6 @@ class Key:
 def make_track_from_file(file, track_no):
     num_keys = struct.unpack('i', file.read(4))[0]
     track = []
-
-    print(track_no, num_keys)
 
     for i in range(num_keys):
         key_time = struct.unpack('L', file.read(4))[0]
@@ -104,13 +124,17 @@ if __name__ == '__main__':
     parser.add_argument("input", help="Rocket track list file [input]")
     parser.add_argument("path", help="Path to Rocket track files [path]")
     parser.add_argument("-o", "--output", metavar="<output>", help="Write BBC data stream <output> (default is '[prefix].bin')")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Print key data")
     args = parser.parse_args()
+
+    global g_verbose
+    g_verbose=args.verbose
 
     src = args.input
     # check for missing files
     if not os.path.isfile(src):
         print(f"ERROR: File '{src}' not found")
-        sys.exit()
+        sys.exit(1)
 
     dst = args.output
     if dst == None:
@@ -120,8 +144,6 @@ if __name__ == '__main__':
     track_list = open(src, 'r')
     track_names = track_list.read().splitlines()
     track_list.close()
-
-    print(track_names)
 
     tracks = []
     track_no = 0
@@ -134,14 +156,20 @@ if __name__ == '__main__':
             sys.exit()
 
         track_file = open(track_file_name, 'rb')
-        tracks.append(make_track_from_file(track_file, track_no))
+        track = make_track_from_file(track_file, track_no)
+
+        print(f"Loaded track {track_no} '{track_name}' with {len(track)} keys.")
+
+        tracks.append(track)
         track_file.close()
         track_no+=1
 
     # Convert to BBC data format.
     bbc_data = []
     write_tracks_to_bbc_data(tracks, bbc_data)
-    print(bbc_data)
+
+    if g_verbose:
+        print(bbc_data)
 
     # Output BBC format file.
     bbc_file = open(dst, 'wb')

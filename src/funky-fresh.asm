@@ -74,6 +74,7 @@ INCLUDE "lib/vgcplayer.h.asm"
 .last_task_id			skip 1
 .last_task_data			skip 1
 .display_fx				skip 1
+\\ TODO: Is delta_vsync actually needed?
 .prev_vsync             skip 2
 .delta_vsync            skip 1
 
@@ -83,6 +84,7 @@ INCLUDE "lib/vgcplayer.h.asm"
 .temp					skip 1
 
 \\ TODO: Move FX ZP vars?
+\\ TODO: Give FX vars proper names!
 
 \\ FX vertical stretch.
 .v						skip 2
@@ -131,7 +133,7 @@ GUARD screen_addr + RELOC_SPACE
         ldx #0
         .loop
         lda debug_filename, X
-        jsr &ffee:inx:cpx #6:bcc loop
+        jsr &ffee:inx:cpx #7:bcc loop
     }
     ENDIF
 
@@ -471,6 +473,19 @@ GUARD screen_addr + RELOC_SPACE
 	lda #(visible_display_portion-irq_handler_dest)
 	sta irq_handler_dest-1
 
+    IF _DEBUG
+    {
+        bit &fe4d
+        bvc timer1_not_hit
+
+        BRK ; we overran the frame!
+
+        .timer1_not_hit
+        lda &fe45
+        .frame_time_remaining
+    }
+    ENDIF
+
     .return
 	pla:sta &fc
 	rti
@@ -586,7 +601,7 @@ include "lib/cycles.asm"
 .bank2_filename     EQUS "BANK2", 13
 .hazel_filename     EQUS "HAZEL", 13
 IF _DEBUG
-.debug_filename     EQUS "DEBUG", 13
+.debug_filename     EQUS "DEBUG", 13,10
 ENDIF
 
 IF 0

@@ -5,7 +5,8 @@
 
 \\ TODO: Describe the FX and requirements.
 \\ Describe the track values used:
-\\   rocket_track_zoom  => zoom factor [0-63] <- 1x to 10x height
+\\   rocket_track_zoom  => zoom factor               [0-63]  <- 1x to 10x height
+\\   rocket_track_y_pos => y position of middle line [0-127] <- middle of screen is 63
 
 \ ******************************************************************
 \ Update FX
@@ -30,16 +31,12 @@
 	lda dv_table_HI, X
 	sta dv+1
 
-	\\ Set v
-	lda #0:sta v:sta v+1
-
-IF 1
-	\\ Want centre of screen to be centre of sprite.
+	\\ Set v to centre of the image.
 	lda #0:sta v
 	lda #128:sta v+1
 
-	\\ Subtract dv 128 times to set starting v.
-	ldy #64
+	\\ Subtract dv y_pos times to set starting v.
+	ldy rocket_track_y_pos+1
 	.sub_loop
 	sec
 	lda v
@@ -51,7 +48,6 @@ IF 1
 
 	dey
 	bne sub_loop
-ENDIF
 
 	\\ Set CRTC start address of row 0.
 	lsr a:tax

@@ -26,7 +26,6 @@ TODO:
     - Frak Zoomer
     - Psuedo-3D?
     - Tech-tech?
-- "Demo reset" task at the top to ensure all FX vars are zero'd when playing from the beginning.
 
 
 Track controls.
@@ -34,21 +33,23 @@ Track controls.
 => Up to individual FX if they can respect these.
 => Probably need a table ultimately?
 => Encourage more generic tracks?
-=> Try to drive variables directly in update rather than "delta values".
-=> Can use "delta values" safely in draw.
+=> Best practice: Try to drive variables directly in update rather than "delta values".
+=> Best practice: Can use "delta values" safely in draw.
+=> Best practice: Use as many bits of the track values as possible to aid interpolation, shift down at runtime if needed.
 
-zoom = scale factor for Vertical Stretch (0 = normal, 63 = max)
+zoom = scale factor (e.g. vertical stretch)
+x_pos = generic x value
+y_pos = generic y value
+time = generic 'time' value that drives the animation
+
 bg_colour = general background colour?
 top_bar = position of top bar (0-127)
 top_colour = colour of top bar
 bottom_bar = position of bottom bar (0-127)
 bottom_colour = colour of bottom bar
-x_pos = generic x position?
-y_pos = generic y position?
-pulse = generic value used to pulse to the beat?
-speed = generic twiddlable?
-direction = generic direction?
 
+pulse = generic value used to pulse to the beat? (interpreted by each FX?)
+speed/direction = generic twiddlable?
 
 Ponder.
 ~~~
@@ -72,6 +73,13 @@ Ponder.
     - E.g. currently the twister just carries on from wherever it last was.
     - Can't do this in a task as has to be guaranteed before the first update!
 
+- "Demo reset" task at the top to ensure all FX vars are zero'd when playing from the beginning?
+    -> Shouldn't need to do this if update values are driven from Rocket!
+
+- Might need more than 8.8 bits for interpolation?
+    - Add another byte? Don't want to have to do 24 bit addition for every value!
+    - Can gain extra bits by shifting up in the editor and down at run-time.
+        E.g. if sane range is [0-10] then << 4 in the editor and >> 4 at runtime. If there's time!
 
 Nice to haves.
 ~~~
