@@ -80,8 +80,8 @@
 	\\ Prep for second row.
 	lda #0:sta prev_scanline
 	jsr fx_chunky_twister_calc_rot
-	sta temp
-	RTS
+	sta angle
+	rts
 }
 
 \ ******************************************************************
@@ -129,11 +129,11 @@
 	lda #9:sta &fe00
 	lda #1:sta &fe01
 
-	lda #126:sta row_count
+	lda #126:sta row_count				; <= this could be done in update!
 	\\ 52c
 
 	\\ Row 0
-	lda temp							; 3c
+	lda angle							; 3c
 	\\ 2-bits * 2
 	and #3:asl a						; 4c
 	tax									; 2c
@@ -146,7 +146,7 @@
 	\\ 24c
 
 	\\ Sets R12,R13 + SHADOW
-	lda temp							; 3c
+	lda angle							; 3c
 	jsr fx_chunky_twister_set_rot			; 79c
 	; sets Y to shadow bit.
 
@@ -169,7 +169,7 @@
 		WAIT_CYCLES 6
 		\\ At HCC=0 set R0=127
 		sta &fe01							; 6c
-		\\ <== start of new scanline here
+		\\ <=== HCC=0
 		stx &fe21							; 4c
 		WAIT_CYCLES 8
 
@@ -183,7 +183,7 @@
 		lda #9:sta &fe00					; 8c
 
 		jsr fx_chunky_twister_calc_rot		; 73c
-		sta temp							; 3c
+		sta angle							; 3c
 
 		\\ 2-bits * 2
 		and #3:asl a						; 4c
@@ -197,7 +197,7 @@
 		\\ 24c
 
 		\\ Sets R12,R13 + SHADOW
-		lda temp							; 3c
+		lda angle							; 3c
 		jsr fx_chunky_twister_set_rot		; 79c
 		; sets Y to shadow bit.
 
@@ -220,17 +220,17 @@
 		WAIT_CYCLES 6
 		\\ At HCC=0 set R0=127
 		sta &fe01							; 6c
-		\\ <== start of new scanline here
+		\\ <=== HCC=0
 		stx &fe21							; 4c
 
-		DEC row_count						; 5c
-		BNE char_row_loop					; 3c
+		dec row_count						; 5c
+		bne char_row_loop					; 3c
 	}
     CHECK_SAME_PAGE_AS char_row_loop
 
 	\\ Total 312 line - 256 = 56 scanlines
-	LDA #4: STA &FE00
-	LDA #28: STA &FE01
+	lda #4: sta &FE00
+	lda #28: sta &FE01
 
 	\\ If prev_scanline=6 then R9=7
 	\\ If prev_scanline=4 then R9=5
@@ -250,8 +250,7 @@
 	\\ R9=3
 	lda #9:sta &fe00
 	lda #1:sta &fe01
-
-    RTS
+    rts
 }
 
 .fx_chunky_twister_calc_rot			; 6c
@@ -295,7 +294,7 @@
 	LDA #13: STA &FE00				; 8c
 	ldx xy+1						; 3c
 	lda x_wibble, X					; 4c
-	sta temp						; 3c
+	sta angle						; 3c
 	lsr a							; 2c
 	clc								; 2c
 	adc twister_vram_table_LO, Y	; 4c
@@ -306,7 +305,7 @@
 	adc #0							; 2c
 	STA &FE01						; 6c
 
-	lda temp						; 3c
+	lda angle						; 3c
 	and #1							; 2c
 	tay								; 2c
 	rts								; 6c

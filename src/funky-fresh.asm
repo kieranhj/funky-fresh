@@ -81,7 +81,6 @@ INCLUDE "lib/vgcplayer.h.asm"
 \\ FX general ZP vars.
 .row_count				skip 1
 .prev_scanline			skip 1
-.temp					skip 1
 
 \\ TODO: Move FX ZP vars?
 \\ TODO: Give FX vars proper names!
@@ -91,6 +90,7 @@ INCLUDE "lib/vgcplayer.h.asm"
 .dv						skip 2
 
 \\ FX chunky twister.
+.angle					skip 1
 .ta						skip 2
 .yb						skip 3
 .xi						skip 2

@@ -136,11 +136,11 @@ CODE_ALIGN &100
 	\\ 35c
 
 	lda #126
-		sta row_count				; 5c
+		sta row_count				; 5c	; <= this could be done in update!
 
-		\\ R7 vsync at row 35 = scanline 280.
+		\\ R7 vsync at scanline 280 = 254 + 2*1 + 3*8.
 		lda #7:sta &fe00					; 8c
-		lda #3:sta &fe01					; 8c
+		lda #4:sta &fe01					; 8c
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c
@@ -216,22 +216,25 @@ CODE_ALIGN &100
 		lda #127:sta &fe01			; 8c <= 7c
 	
 	\\ <=== HCC=0
-	jsr cycles_wait_scanlines	
+	\\ At scanline 254.
+	\\ Remaining scanlines = 58 = 1*2 + 7*8 = 8 rows
+	lda #4: sta &fe00			; 8c
+	lda #7: sta &fe01			; 8c
 
-		\\ <=== HCC=0
-		\\ Set next scanline back to 0.
-		lda #9:sta &fe00			; 8c
-		clc							; 2c
-		lda #13						; 2c
-		adc prev_scanline			; 3c
-		sta &fe01					; 6c
+	\\ Set next scanline back to 0.
+	lda #9:sta &fe00			; 8c
+	clc							; 2c
+	\\ No dummy scanline as not the end of the CRTC cycle!
+	lda #13+1					; 2c
+	adc prev_scanline			; 3c
+	sta &fe01					; 6c
+	\\ 21c
 
-		lda #6:sta &fe00			; 8c <= 7c
-		lda #0:sta &fe01			; 8c
-		\\ 36c
+		jsr cycles_wait_scanlines	
 
+		\\ <=== HCC=43
 		\\ Set R0=101 (102c)
-		lda #0:sta &fe00			; 8c
+		lda #0:sta &fe00			; 8c <= 7c
 		lda #101:sta &fe01			; 8c
 
 		WAIT_CYCLES 42
@@ -248,11 +251,7 @@ CODE_ALIGN &100
 	.scanline_end_of_screen
 	lda #9:sta &fe00
 	lda #7:sta &fe01
-
-	\\ Total 312 line - 256 = 56 scanlines
-	lda #4: sta &fe00
-	lda #6: sta &fe01
-    RTS
+    rts
 }
 
 \ ******************************************************************
