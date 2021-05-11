@@ -135,12 +135,12 @@ CODE_ALIGN &100
 	stx prev_scanline					; 3c
 	\\ 35c
 
-	lda #126
+	lda #118
 		sta row_count				; 5c	; <= this could be done in update!
 
-		\\ R7 vsync at scanline 280 = 254 + 2*1 + 3*8.
+		\\ R7 vsync at scanline 272 = 238 + 2*1 + 4*8
 		lda #7:sta &fe00					; 8c
-		lda #4:sta &fe01					; 8c
+		lda #5:sta &fe01					; 8c
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c
@@ -216,10 +216,10 @@ CODE_ALIGN &100
 		lda #127:sta &fe01			; 8c <= 7c
 	
 	\\ <=== HCC=0
-	\\ At scanline 254.
-	\\ Remaining scanlines = 58 = 1*2 + 7*8 = 8 rows
+	\\ Currently at scanline 2+118*2=238, need 312 lines total.
+	\\ Remaining scanlines = 74 = 1*2 + 9*8 = 10 rows
 	lda #4: sta &fe00			; 8c
-	lda #7: sta &fe01			; 8c
+	lda #9: sta &fe01			; 8c
 
 	\\ Set next scanline back to 0.
 	lda #9:sta &fe00			; 8c

@@ -26,7 +26,7 @@ include "src/music_macros.asm"
 
 ; SCREEN constants
 SCREEN_WIDTH_COLS = 80
-SCREEN_HEIGHT_ROWS = 32
+SCREEN_HEIGHT_ROWS = 32 ; technically we're only displaying 30.
 SCREEN_ROW_BYTES = SCREEN_WIDTH_COLS * 8
 SCREEN_SIZE_BYTES = SCREEN_HEIGHT_ROWS * SCREEN_ROW_BYTES
 
@@ -35,7 +35,8 @@ screen_addr = &3000
 ; Exact time for a 50Hz frame less latch load time
 FramePeriod = 312*64-2
 ; Exact time so that the FX draw function call starts at VCC=0,HCC=0.
-Timer1InitialValue = 32*64 - 2*64 - 60 -2
+; NB. Assumes vsync at scanline 272 (row 34) for 240 lines (30 rows) of visible display.
+Timer1InitialValue = 40*64 - 2*64 - 60 -2
 ; Exact time of the visible portion of the display.
 VisibleDisplayPeriod = 256*64 -4
 ; Exact time of the vblank portion of the display.
@@ -231,6 +232,14 @@ GUARD screen_addr + RELOC_SPACE
 	\\ Turn off interlace
 	lda #8:sta &fe00
 	lda #0:sta &fe01
+
+    \\ Reduce screen to 240 lines.
+    lda #6:sta &fe00
+    lda #30:sta &fe01
+
+    \\ Adjust vsync pos for 240 lines.
+    lda #7:sta &fe00
+    lda #34:sta &fe01
     ELSE
 	\\ Set CRTC registers
 	ldx #0

@@ -54,10 +54,10 @@ DISPLAY_FX_MAX = 5
 	lda #4:sta &fe00		; R4=38
 	lda #38:sta &fe01
 
-	lda #7:sta &fe00		; R7=35
-	lda #35:sta &fe01
+	lda #7:sta &fe00		; 240 visible lines.
+	lda #34:sta &fe01
 
-	lda #6:sta &fe00		; R6=32
-	lda #32:sta &fe01
+	lda #6:sta &fe00		; vsync at line 272.
+	lda #30:sta &fe01
 	rts
 }

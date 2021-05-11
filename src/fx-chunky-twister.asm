@@ -118,9 +118,10 @@
 	lda #4:sta &fe00
 	lda #0:sta &fe01
 
-	\\ vsync at row 35 = scanline 280.
+	\\ R7 vsync at scanline 280 = 254 + 13*2
+	\\ R7 vsync at scanline 272 = 238 + 17*2
 	lda #7:sta &fe00
-	lda #13:sta &fe01
+	lda #17:sta &fe01
 
 	lda #6:sta &fe00
 	lda #1:sta &fe01
@@ -129,7 +130,7 @@
 	lda #9:sta &fe00
 	lda #1:sta &fe01
 
-	lda #126:sta row_count				; <= this could be done in update!
+	lda #118:sta row_count				; <= this could be done in update!
 	\\ 52c
 
 	\\ Row 0
@@ -228,9 +229,10 @@
 	}
     CHECK_SAME_PAGE_AS char_row_loop
 
-	\\ Total 312 line - 256 = 56 scanlines
+	\\ Currently at scanline 2+118*2=238, need 312 lines total.
+	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
 	lda #4: sta &FE00
-	lda #28: sta &FE01
+	lda #36: sta &FE01
 
 	\\ If prev_scanline=6 then R9=7
 	\\ If prev_scanline=4 then R9=5
@@ -247,7 +249,7 @@
 	\\ Row 31
 	ldx #2:jsr cycles_wait_scanlines
 
-	\\ R9=3
+	\\ R9=1
 	lda #9:sta &fe00
 	lda #1:sta &fe01
     rts

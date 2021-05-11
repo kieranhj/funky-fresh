@@ -16,16 +16,18 @@ TODO:
 
 - Add another RVI effect that can be switched between. - DONE
     - Chunky Twister.
-- Figure out the run-time, no editor, track data interpolation. <= DONE!
+- Figure out the run-time, no editor, track data interpolation. - DONE
 - Make a sequence! - DONE TEST
-- Move screen to 224 lines => 32 more scanlines.
-    - R6=28, R7=33.
+- Move screen to 240 lines => 16 more scanlines. - DONE
+    - R6=30, R7=34.
 - Chunky Twister just runs automatically - how to drive from Rocket? - DONE
-- Transitions! Top & bottom bars?
+- Transitions! Top & bottom bars? <= NEXT!
+- Need a solution for the top row so not always fixed to scanline 0.
 - Add more FX.
     - Frak Zoomer
     - Psuedo-3D?
     - Tech-tech?
+    - EI style wibble appear?
 
 
 Track controls.
@@ -81,12 +83,22 @@ Ponder.
     - Can gain extra bits by shifting up in the editor and down at run-time.
         E.g. if sane range is [0-10] then << 4 in the editor and >> 4 at runtime. If there's time!
 
+- What to do about the first row of the screen currently fixed to scanline 0?
+    - Maybe start draw at scanline -2 so can do RVI on first row?
+    - We're effectively treating row 0 as special anyway or does this double that up?
+    - VectorEyes had some cunning approach for EI?
+
+- what do about the feather edge of the Chunky Twister?
+    - Is there a general-ish solution to this?
+    - Force screen off during hblank?
+
 Nice to haves.
 ~~~
 - Having an automatic way of packing assets into SWRAM banks would be great!
 - Create separate loader for SWRAM banks etc. so can dump the code and reclaim the RAM?
 
 BUGS:
+> Glitch at the bottom of Vertical Stretch FX - FIXED
 > Can't safely switch from Chunky Twister to Vertical Stretch. - FIXED R9 set on last scanline!
 > DEBUG (UNUSUAL): Indirect access to register $FCC3 at $153D - FIXED
 > Doom screen doesn't get loaded if Rocket starts at or after that row? - DUPE
