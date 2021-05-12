@@ -39,6 +39,22 @@ ELSE
 ENDIF
 ENDMACRO
 
+MACRO WAIT_SCANLINES_PRESERVE_REGS no_scanlines
+{
+	pha:txa:pha			; 8c
+	ldx #no_scanlines	; 2c
+	jsr cycles_wait_scanlines_minus_20c
+	pla:tax:pla			; 10c
+}
+ENDMACRO
+
+MACRO WAIT_SCANLINES_TRASH_X no_scanlines
+{
+	ldx #no_scanlines	; 2c
+	jsr cycles_wait_scanlines_minus_2c
+}
+ENDMACRO
+
 MACRO PAGE_ALIGN
 H%=P%
 ALIGN &100

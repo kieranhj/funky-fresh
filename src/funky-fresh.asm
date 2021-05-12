@@ -313,7 +313,7 @@ GUARD screen_addr + RELOC_SPACE
 	\\ Note: when R0=0, DRAM refresh is off. Don't delay too long.
 	lda #0
 	sta $fe00:sta $fe01
-	ldx #2:jsr cycles_wait_scanlines
+	WAIT_SCANLINES_TRASH_X 2
 	sta $fe00:lda #127:sta $fe01
 
 	\\ Wait for vsync

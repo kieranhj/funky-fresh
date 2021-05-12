@@ -70,8 +70,7 @@
 	lda #6:sta &fe00					; 8c
 	lda #1:sta &fe01					; 8c
 
-	lda #118
-	sta row_count				; 5c
+	lda #118:sta row_count				; 5c
 	rts
 }
 
@@ -94,8 +93,26 @@
 \\ Limited RVI
 \\ Display 0,2,4,6 scanline offset for 2 scanlines.
 \\ <--- 102c total w/ 80c visible and hsync at 98c ---> <2c> ..13x <2c> = 128c
-\\ Plus one extra for luck!
+\\ Plus one extra for luck! (i.e. we wait for 13 but C9 counts 14 in total.)
 \\ R9 = 13 + current - next
+\\
+\\  Assumes R4=0, i.e. one row per CRTC cycle.
+\\  Scanline 0 has normal R0 width 128c.
+\\  Must set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 0 - 2 = 11
+\\  Set scanline 1 to have width 102c.
+\\  At 102c set R0 width to 2c and skip remaining 26c.
+\\  At 0c reset R0 width to 128c.
+\\
+\\ Select CRTC register 0, i.e. lda #0:sta &fe00
+\\
+\\ cycles -->  94  96  98  100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
+\\             lda.sta..........WAIT_CYCLES 18 ..............................lda..sta ...........|
+\\             #1  &fe01                                                     #127 &fe01
+\\ scanline 1                   2    3    4    5    6    7    8    9    10   11   xx   0    1    2
+\\                                                                                |
+\\                                            --> missed due to end of CRTC frame +
+\\
+\\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
 CODE_ALIGN &100
 .fx_vertical_stretch_draw
@@ -106,7 +123,7 @@ CODE_ALIGN &100
 	lda #4:sta &fe00					; 8c
 	lda #0:sta &fe01					; 8c
 
-	\\ Update v
+	\\ Update v 		<-- could be done in update.
 	clc:lda v:adc dv:sta v				; 11c
 	lda v+1:adc dv+1:sta v+1			; 9c
 	\\ 20c
@@ -210,47 +227,36 @@ CODE_ALIGN &100
 		ldx #1						; 2c
 		\\ At HCC=0 set R0=127
 		lda #127:sta &fe01			; 8c <= 7c
-	
-	\\ <=== HCC=0
+
+		\\ <=== HCC=0
+
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
-	\\ Remaining scanlines = 74 = 1*2 + 36*2 = 37 rows.
-	lda #4: sta &fe00			; 8c
-	lda #36: sta &fe01			; 8c
+	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
+	lda #4: sta &FE00
+	lda #36: sta &FE01
 
-	\\ Set next scanline back to 0.
-	lda #9:sta &fe00			; 8c
-	clc							; 2c
-	\\ No dummy scanline as not the end of the CRTC cycle!
-	lda #13+1					; 2c
-	adc prev_scanline			; 3c
-	sta &fe01					; 6c
-	\\ 21c
+	\\ R7 vsync at scanline 272 = 238 + 17*2
+	lda #7:sta &fe00
+	lda #17:sta &fe01
 
-		jsr cycles_wait_scanlines	
+	\\ If prev_scanline=6 then R9=7
+	\\ If prev_scanline=4 then R9=5
+	\\ If prev_scanline=2 then R9=3
+	\\ If prev_scanline=0 then R9=1
+	{
+		lda #9:sta &fe00
+		clc
+		lda #1
+		adc prev_scanline
+		sta &fe01
+	}
 
-		\\ <=== HCC=43
-		\\ Set R0=101 (102c)
-		lda #0:sta &fe00			; 8c <= 7c
-		lda #101:sta &fe01			; 8c
+	\\ Row 31
+	WAIT_SCANLINES_TRASH_X 2
 
-		WAIT_CYCLES 42
-
-		\\ At HCC=102 set R0=1.
-		lda #1:sta &fe01			; 8c
-		\\ Burn 13 scanlines = 13x2c = 26c
-		WAIT_CYCLES 18
-
-		lda #127:sta &fe01			; 8c
-	\\ <=== HCC=0
-
-	.scanline_end_of_screen
-	\\ R9=2 scanlines per row.
+	\\ R9=1
 	lda #9:sta &fe00
 	lda #1:sta &fe01
-
-	\\ R7 vsync at scanline 272 = 238 + 2*1 + 16*2 = 17 rows.
-	lda #7:sta &fe00					; 8c
-	lda #17:sta &fe01					; 8c
     rts
 }
 
