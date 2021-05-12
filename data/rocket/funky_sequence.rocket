@@ -95,38 +95,38 @@ color="ff60b250">
 		<key row="960" value="0.000000" interpolation="0" />
 	</track>
 	<track name="y_pos" folded="0" muteKeyCount="0" color="ff4f71b2">
-		<key row="16" value="64.000000" interpolation="0" />
-		<key row="112" value="64.000000" interpolation="1" />
-		<key row="116" value="48.000000" interpolation="1" />
-		<key row="120" value="64.000000" interpolation="1" />
-		<key row="124" value="80.000000" interpolation="1" />
-		<key row="128" value="64.000000" interpolation="0" />
+		<key row="16" value="60.000000" interpolation="0" />
+		<key row="112" value="60.000000" interpolation="1" />
+		<key row="116" value="44.000000" interpolation="1" />
+		<key row="120" value="60.000000" interpolation="1" />
+		<key row="124" value="76.000000" interpolation="1" />
+		<key row="128" value="60.000000" interpolation="0" />
 		<key row="192" value="1.000000" interpolation="0" />
-		<key row="304" value="64.000000" interpolation="0" />
-		<key row="512" value="60.000000" interpolation="1" />
-		<key row="513" value="68.000000" interpolation="1" />
-		<key row="514" value="64.000000" interpolation="0" />
-		<key row="520" value="56.000000" interpolation="1" />
-		<key row="521" value="72.000000" interpolation="1" />
-		<key row="522" value="64.000000" interpolation="0" />
-		<key row="528" value="52.000000" interpolation="1" />
-		<key row="529" value="76.000000" interpolation="1" />
-		<key row="530" value="64.000000" interpolation="0" />
-		<key row="536" value="48.000000" interpolation="1" />
-		<key row="537" value="80.000000" interpolation="1" />
-		<key row="538" value="64.000000" interpolation="0" />
-		<key row="544" value="56.000000" interpolation="1" />
-		<key row="545" value="72.000000" interpolation="1" />
-		<key row="546" value="64.000000" interpolation="0" />
-		<key row="552" value="52.000000" interpolation="1" />
-		<key row="553" value="76.000000" interpolation="1" />
-		<key row="554" value="64.000000" interpolation="0" />
-		<key row="560" value="56.000000" interpolation="1" />
-		<key row="561" value="72.000000" interpolation="1" />
-		<key row="562" value="64.000000" interpolation="0" />
-		<key row="568" value="52.000000" interpolation="1" />
-		<key row="569" value="76.000000" interpolation="1" />
-		<key row="570" value="64.000000" interpolation="0" />
+		<key row="304" value="60.000000" interpolation="0" />
+		<key row="512" value="56.000000" interpolation="1" />
+		<key row="513" value="64.000000" interpolation="1" />
+		<key row="514" value="60.000000" interpolation="0" />
+		<key row="520" value="52.000000" interpolation="1" />
+		<key row="521" value="68.000000" interpolation="1" />
+		<key row="522" value="60.000000" interpolation="0" />
+		<key row="528" value="48.000000" interpolation="1" />
+		<key row="529" value="72.000000" interpolation="1" />
+		<key row="530" value="60.000000" interpolation="0" />
+		<key row="536" value="44.000000" interpolation="1" />
+		<key row="537" value="76.000000" interpolation="1" />
+		<key row="538" value="60.000000" interpolation="0" />
+		<key row="544" value="52.000000" interpolation="1" />
+		<key row="545" value="68.000000" interpolation="1" />
+		<key row="546" value="60.000000" interpolation="0" />
+		<key row="552" value="48.000000" interpolation="1" />
+		<key row="553" value="72.000000" interpolation="1" />
+		<key row="554" value="60.000000" interpolation="0" />
+		<key row="560" value="52.000000" interpolation="1" />
+		<key row="561" value="68.000000" interpolation="1" />
+		<key row="562" value="60.000000" interpolation="0" />
+		<key row="568" value="48.000000" interpolation="1" />
+		<key row="569" value="72.000000" interpolation="1" />
+		<key row="570" value="60.000000" interpolation="0" />
 		<key row="640" value="0.000000" interpolation="0" />
 		<key row="800" value="0.000000" interpolation="1" />
 		<key row="896" value="16.000000" interpolation="1" />

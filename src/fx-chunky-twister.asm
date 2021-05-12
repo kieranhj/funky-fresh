@@ -81,6 +81,12 @@
 	lda #0:sta prev_scanline
 	jsr fx_chunky_twister_calc_rot
 	sta angle
+
+	\\ R6=display 1 row.
+	lda #6:sta &fe00
+	lda #1:sta &fe01
+
+	lda #118:sta row_count
 	rts
 }
 
@@ -110,28 +116,14 @@
 
 .fx_chunky_twister_draw
 {
-    WAIT_CYCLES 14      ; Original raster-fx code started 14c into the frame.
-
 	\\ <=== HCC=0
 
 	\\ R4=0, R7=&ff, R6=1, R9=3
-	lda #4:sta &fe00
-	lda #0:sta &fe01
+	lda #4:sta &fe00					; 8c
+	lda #0:sta &fe01					; 8c
 
-	\\ R7 vsync at scanline 280 = 254 + 13*2
-	\\ R7 vsync at scanline 272 = 238 + 17*2
-	lda #7:sta &fe00
-	lda #17:sta &fe01
-
-	lda #6:sta &fe00
-	lda #1:sta &fe01
-	
 	\\ R9 must be set before final scanline of the row.
-	lda #9:sta &fe00
-	lda #1:sta &fe01
-
-	lda #118:sta row_count				; <= this could be done in update!
-	\\ 52c
+	lda #9:sta &fe00					; 8c
 
 	\\ Row 0
 	lda angle							; 3c
@@ -146,9 +138,11 @@
 	stx prev_scanline					; 3c
 	\\ 24c
 
+    WAIT_CYCLES 59
+
 	\\ Sets R12,R13 + SHADOW
 	lda angle							; 3c
-	jsr fx_chunky_twister_set_rot			; 79c
+	jsr fx_chunky_twister_set_rot		; 79c
 	; sets Y to shadow bit.
 
 		\\ Set R0=101 (102c)
@@ -183,7 +177,7 @@
 	{
 		lda #9:sta &fe00					; 8c
 
-		jsr fx_chunky_twister_calc_rot		; 73c
+		jsr fx_chunky_twister_calc_rot		; 72c
 		sta angle							; 3c
 
 		\\ 2-bits * 2
@@ -193,7 +187,7 @@
 		clc									; 2c
 		adc #13								; 2c
 		adc prev_scanline					; 3c
-		sta &fe01							; 6c <= 5c
+		sta &fe01							; 6c
 		sty prev_scanline					; 3c
 		\\ 24c
 
@@ -233,6 +227,10 @@
 	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
 	lda #4: sta &FE00
 	lda #36: sta &FE01
+
+	\\ R7 vsync at scanline 272 = 238 + 17*2
+	lda #7:sta &fe00
+	lda #17:sta &fe01
 
 	\\ If prev_scanline=6 then R9=7
 	\\ If prev_scanline=4 then R9=5
@@ -276,36 +274,37 @@
 	lda yb
 	.^twister_calc_rot_zoom_hi
 	adc #0:sta yb		; 8c
+	tay					; 2c
 	lda yb+1
 	.^twister_calc_rot_sign	adc #0
 	and #15:sta yb+1				; 10c
 	clc:adc #HI(cos):sta load+2		; 8c
-	ldy yb							; 3c
+
 	.load
 	lda cos,Y						; 4c
 	rts								; 6c
 }
-\\ 73c
+\\ 72c
 
 .fx_chunky_twister_set_rot			; 6c
 {
 	; 0-127
-	AND #&7F						; 2c
+	and #&7F						; 2c
 	lsr a:lsr a:tay					; 6c
 
-	LDA #13: STA &FE00				; 8c
+	lda #13: sta &FE00				; 8c
 	ldx xy+1						; 3c
 	lda x_wibble, X					; 4c
 	sta angle						; 3c
 	lsr a							; 2c
 	clc								; 2c
 	adc twister_vram_table_LO, Y	; 4c
-	STA &FE01						; 6c <= 5c
+	sta &FE01						; 6c <= 5c
 
-	LDA #12: STA &FE00				; 8c
-	LDA twister_vram_table_HI, Y	; 4c
+	lda #12: sta &FE00				; 8c
+	lda twister_vram_table_HI, Y	; 4c
 	adc #0							; 2c
-	STA &FE01						; 6c
+	sta &FE01						; 6c
 
 	lda angle						; 3c
 	and #1							; 2c

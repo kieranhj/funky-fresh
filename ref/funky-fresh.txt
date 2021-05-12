@@ -108,3 +108,10 @@ Rocket Run time
 - Always do 16-bit add for each track.
 - Perhaps step keys should just be single byte?
 - Or find some way of encoding two bytes values in a float. BCD-ish? 99.99
+
+Borders
+~~~
+- Add this explicitly to each FX or possible to layer somehow?
+- Ways of doing this:
+  - Set 16x palette entries to same colour = 16x6c = 96c (can't do this in hblank.)
+  - Display N blank lines and just set bg colour.

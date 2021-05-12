@@ -8,8 +8,8 @@
 {
 	equw do_nothing,			            fx_default_crtc_draw	    ; &00
 	equw fx_vertical_stretch_update,	    fx_vertical_stretch_draw	; &01
-	equw fx_static_image_display_main,		fx_default_crtc_draw	    ; &02
-	equw fx_static_image_display_shadow,	fx_default_crtc_draw	    ; &03
+	equw fx_static_image_main_update,		fx_default_crtc_draw	    ; &02
+	equw fx_static_image_shadow_update,		fx_default_crtc_draw	    ; &03
 	equw fx_chunky_twister_update,			fx_chunky_twister_draw		; &04
 }
 DISPLAY_FX_MAX = 5
@@ -48,16 +48,16 @@ DISPLAY_FX_MAX = 5
 \ might be left in a ruptured state. Reset these to defaults.
 .fx_default_crtc_draw
 {
-	lda #9:sta &fe00		; R9=7
-	lda #7:sta &fe01
+	lda #9:sta &fe00
+	lda #7:sta &fe01		; R9=8 scanlines per row (default).
 
-	lda #4:sta &fe00		; R4=38
-	lda #38:sta &fe01
+	lda #4:sta &fe00
+	lda #38:sta &fe01		; R4=312 total lines.
 
-	lda #7:sta &fe00		; 240 visible lines.
-	lda #34:sta &fe01
+	lda #7:sta &fe00
+	lda #34:sta &fe01		; R7=vsync at line 272.
 
-	lda #6:sta &fe00		; vsync at line 272.
-	lda #30:sta &fe01
+	lda #6:sta &fe00
+	lda #30:sta &fe01		; R6=240 visible lines.
 	rts
 }

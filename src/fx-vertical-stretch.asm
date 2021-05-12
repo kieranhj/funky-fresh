@@ -33,7 +33,7 @@
 
 	\\ Set v to centre of the image.
 	lda #0:sta v
-	lda #128:sta v+1
+	lda #128:sta v+1	; Image Height / 2
 
 	\\ Subtract dv y_pos times to set starting v.
 	ldy rocket_track_y_pos+1
@@ -66,6 +66,12 @@
 	; clear bit 0 to display MAIN.
 	lda &fe34:and #&fe:sta &fe34
 
+	\\ R6=display 1 row.
+	lda #6:sta &fe00					; 8c
+	lda #1:sta &fe01					; 8c
+
+	lda #118
+	sta row_count				; 5c
 	rts
 }
 
@@ -100,11 +106,6 @@ CODE_ALIGN &100
 	lda #4:sta &fe00					; 8c
 	lda #0:sta &fe01					; 8c
 
-	\\ R6=1
-	lda #6:sta &fe00					; 8c
-	lda #1:sta &fe01					; 8c
-	\\ 48c
-
 	\\ Update v
 	clc:lda v:adc dv:sta v				; 11c
 	lda v+1:adc dv+1:sta v+1			; 9c
@@ -135,18 +136,13 @@ CODE_ALIGN &100
 	stx prev_scanline					; 3c
 	\\ 35c
 
-	lda #118
-		sta row_count				; 5c	; <= this could be done in update!
-
-		\\ R7 vsync at scanline 272 = 238 + 2*1 + 4*8
-		lda #7:sta &fe00					; 8c
-		lda #5:sta &fe01					; 8c
+	WAIT_CYCLES 21
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c
 		lda #101:sta &fe01					; 8c
 
-		WAIT_CYCLES 58
+		WAIT_CYCLES 58+16
 
 		\\ At HCC=102 set R0=1.
 		lda #1:sta &fe01					; 8c
@@ -217,9 +213,9 @@ CODE_ALIGN &100
 	
 	\\ <=== HCC=0
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
-	\\ Remaining scanlines = 74 = 1*2 + 9*8 = 10 rows
+	\\ Remaining scanlines = 74 = 1*2 + 36*2 = 37 rows.
 	lda #4: sta &fe00			; 8c
-	lda #9: sta &fe01			; 8c
+	lda #36: sta &fe01			; 8c
 
 	\\ Set next scanline back to 0.
 	lda #9:sta &fe00			; 8c
@@ -247,10 +243,14 @@ CODE_ALIGN &100
 		lda #127:sta &fe01			; 8c
 	\\ <=== HCC=0
 
-	\\ R9=7
 	.scanline_end_of_screen
+	\\ R9=2 scanlines per row.
 	lda #9:sta &fe00
-	lda #7:sta &fe01
+	lda #1:sta &fe01
+
+	\\ R7 vsync at scanline 272 = 238 + 2*1 + 16*2 = 17 rows.
+	lda #7:sta &fe00					; 8c
+	lda #17:sta &fe01					; 8c
     rts
 }
 

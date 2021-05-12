@@ -3,7 +3,7 @@
 \ *	STATIC IMAGE FX
 \ ******************************************************************
 
-.fx_static_image_display_main
+.fx_static_image_main_update
 {
 	; clear bit 0 to display MAIN.
 	lda &fe34:and #&fe:sta &fe34
@@ -15,7 +15,7 @@
 	rts
 }
 
-.fx_static_image_display_shadow
+.fx_static_image_shadow_update
 {
 	; set bit 1 to display SHADOW.
 	lda &fe34:ora #1:sta &fe34
