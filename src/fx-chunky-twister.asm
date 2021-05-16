@@ -11,6 +11,30 @@
 \\   rocket_track_time  => rotation of top row (cos table)   [0-255]   <- makes it spin
 \\   rocket_track_zoom  => rotation per row * 16 (cos table) [0-10*16] <- makes it twist
 
+MACRO CHUNKY_TWISTER_SET_ROT_FROM_ANGLE		; 67e/68o
+{
+	; 0-127
+	lda angle:and #&7F				; 5c
+	lsr a:lsr a:tay					; 6c <= 5e
+
+	lda #13: sta &FE00				; 8c
+	ldx xy+1						; 3c
+	lda x_wibble, X					; 4c
+	lsr a							; 2c
+	clc								; 2c
+	adc twister_vram_table_LO, Y	; 4c
+	sta &FE01						; 6c <= 5c
+
+	lda #12: sta &FE00				; 8c
+	lda twister_vram_table_HI, Y	; 4c
+	adc #0							; 2c
+	sta &FE01						; 6c
+
+	lda x_wibble, X					; 4c
+	and #1:sta shadow_bit 			; 5c
+}
+ENDMACRO
+
 \ ******************************************************************
 \ Update FX
 \
@@ -74,19 +98,13 @@
 
 	\\ Set up first row of the display.
 	jsr fx_chunky_twister_calc_rot
-	jsr fx_chunky_twister_set_rot
-	sty &fe34
-
-	\\ Prep for second row.
-	lda #0:sta prev_scanline
-	jsr fx_chunky_twister_calc_rot
 	sta angle
 
 	\\ R6=display 1 row.
 	lda #6:sta &fe00
 	lda #1:sta &fe01
 
-	lda #118:sta row_count
+	lda #119:sta row_count
 	rts
 }
 
@@ -130,15 +148,12 @@
 \\
 \\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
-\\ xm = cos((t/80)-y+20*sin(t/20000+a/(120+20*sin(t/100+y/500))))*16
+CODE_ALIGN 128
 
 .fx_chunky_twister_draw
 {
-	\\ <=== HCC=0
-
-	\\ R4=0, R7=&ff, R6=1, R9=3
-	lda #4:sta &fe00					; 8c
-	lda #0:sta &fe01					; 8c
+	\\ <=== HCC=0 (scanline=-2)
+	WAIT_CYCLES 16
 
 	\\ R9 must be set before final scanline of the row.
 	lda #9:sta &fe00					; 8c
@@ -154,41 +169,38 @@
 	adc prev_scanline					; 3c
 	sta &fe01							; 6c
 	stx prev_scanline					; 3c
-	\\ 24c
-
-    WAIT_CYCLES 59
+	\\ 27c
 
 	\\ Row 1 screen start + SHADOW.
-	lda angle							; 3c
-	jsr fx_chunky_twister_set_rot		; 79c
-	; sets Y to shadow bit.
+	CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
+
+	    WAIT_CYCLES 62
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c <= 7c
 		lda #101:sta &fe01					; 8c
 
-		WAIT_CYCLES 16
+		WAIT_CYCLES 13
+
+		\\ Set SHADOW bit safely in hblank.
+		lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; 13c
 
 		\\ At HCC=102 set R0=1.
 		.blah
 		lda #1:sta &fe01					; 8c
+		\\ <=== HCC=102
 
 		\\ Burn 13 scanlines = 13x2c = 26c
 		lda #127							; 2c
-		sty &fe34							; 3c
-		ldx #&40 + PAL_black				; 2c
-		stx &fe21							; 4c
-		ldx #&40 + PAL_blue					; 2c
-		WAIT_CYCLES 6
+
+		WAIT_CYCLES 18
 		\\ At HCC=0 set R0=127
 		sta &fe01							; 6c
-		\\ <=== HCC=0
-		stx &fe21							; 4c
-		WAIT_CYCLES 8
 
-	\\ Want to get to:
-	\\ a = SIN(t * a + y * b)
-	\\ PICO-8 example: a = COS(t/300 + y/2000)
+	\\ <=== HCC=0 (scanline=0)
+	\\ R4=0, R7=&ff, R6=1, R9=3
+	lda #4:sta &fe00					; 8c
+	lda #0:sta &fe01					; 8c
 
 	\\ Rows 1-30
 	.char_row_loop
@@ -202,39 +214,48 @@
 		and #3:asl a						; 4c
 		tay									; 2c
 		eor #&ff							; 2c
-		clc									; 2c
+		clc									; 2c <= can be removed.
 		adc #13								; 2c
 		adc prev_scanline					; 3c
 		sta &fe01							; 6c
 		sty prev_scanline					; 3c
 		\\ 24c
 
-		\\ Sets R12,R13 + SHADOW
-		lda angle							; 3c
-		jsr fx_chunky_twister_set_rot		; 79c
-		; sets Y to shadow bit.
+			ldx #&40 + PAL_blue					; 2c
+			stx &fe21							; 4c
 
-		\\ Set R0=101 (102c)
-		lda #0:sta &fe00					; 8c <= 7c
-		lda #101:sta &fe01					; 8c
+			\\ Sets R12,R13 + SHADOW
+			CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
 
-		WAIT_CYCLES 6
+			\\ Set R0=101 (102c)
+			lda #0:sta &fe00					; 8c <= 7c
+			lda #101:sta &fe01					; 8c
 
-		\\ At HCC=102 set R0=1.
-		.here
-		lda #1:sta &fe01					; 8c
+			\\ Set SHADOW bit safely in hblank.
+			lda &fe34:and #&fe:ora shadow_bit:tax	; 11c
 
-		\\ Burn 13 scanlines = 13x2c = 26c
-		lda #127							; 2c
-		sty &fe34							; 4c
-		ldx #&40 + PAL_black				; 2c
-		stx &fe21							; 4c
-		ldx #&40 + PAL_blue					; 2c
-		WAIT_CYCLES 6
-		\\ At HCC=0 set R0=127
-		sta &fe01							; 6c
+			\\ At HCC=102 set R0=1.
+			.here
+			lda #1:sta &fe01					; 8c <= 7c
+			\\ <=== HCC=102
+
+			\\ Burn 13 scanlines = 13x2c = 26c
+			lda #127							; 2c
+			stx &fe34							; 4c
+
+			ldx #&40 + PAL_black				; 2c
+			stx &fe21							; 4c
+			ldx #&40 + PAL_blue					; 2c
+
+			WAIT_CYCLES 6
+
+			\\ At HCC=0 set R0=127
+			sta &fe01							; 6c
+
 		\\ <=== HCC=0
 		stx &fe21							; 4c
+		ldx #&40 + PAL_black				; 2c
+		WAIT_CYCLES 2
 
 		dec row_count						; 5c
 		bne char_row_loop					; 3c
@@ -263,13 +284,20 @@
 	}
 
 	\\ Row 31
-	WAIT_SCANLINES_TRASH_X 2
+	WAIT_SCANLINES_ZERO_X 2
 
 	\\ R9=1
 	lda #9:sta &fe00
 	lda #1:sta &fe01
+
+	lda #0:sta prev_scanline
     rts
 }
+
+\\ xm = cos((t/80)-y+20*sin(t/20000+a/(120+20*sin(t/100+y/500))))*16
+\\ Want to get to:
+\\ a = SIN(t * a + y * b)
+\\ PICO-8 example: a = COS(t/300 + y/2000)
 
 .fx_chunky_twister_calc_rot			; 6c
 {
@@ -329,7 +357,7 @@
 	tay								; 2c
 	rts								; 6c
 }
-\\ 79c
+\\ 79c (even) | 78c (odd)
 
 \ ******************************************************************
 \ *	FX DATA

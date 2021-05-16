@@ -48,7 +48,7 @@ MACRO WAIT_SCANLINES_PRESERVE_REGS no_scanlines
 }
 ENDMACRO
 
-MACRO WAIT_SCANLINES_TRASH_X no_scanlines
+MACRO WAIT_SCANLINES_ZERO_X no_scanlines
 {
 	ldx #no_scanlines	; 2c
 	jsr cycles_wait_scanlines_minus_2c

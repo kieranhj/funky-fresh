@@ -36,11 +36,11 @@ screen_addr = &3000
 FramePeriod = 312*64-2
 ; Exact time so that the FX draw function call starts at VCC=0,HCC=0.
 ; NB. Assumes vsync at scanline 272 (row 34) for 240 lines (30 rows) of visible display.
-Timer1InitialValue = 40*64 - 2*64 - 60 -2
+Timer1InitialValue = 38*64 - 2*64 - 60 -2
 ; Exact time of the visible portion of the display.
-VisibleDisplayPeriod = 256*64 -4
+VisibleDisplayPeriod = 258*64 -4
 ; Exact time of the vblank portion of the display.
-VBlankDisplayPeriod =  56*64	; -2
+VBlankDisplayPeriod =  54*64	; -2
 \ Need to fudge the two periods otherwise stabler raster NOP slide
 \ requires more than the bottom 3 bits of the Timer 1 low counter.
 
@@ -96,6 +96,7 @@ INCLUDE "lib/vgcplayer.h.asm"
 .yb						skip 3
 .xi						skip 2
 .xy						skip 2
+.shadow_bit             skip 1
 
 \\ TODO: Local ZP vars?
 .zp_end
@@ -240,6 +241,17 @@ GUARD screen_addr + RELOC_SPACE
     \\ Adjust vsync pos for 240 lines.
     lda #7:sta &fe00
     lda #34:sta &fe01
+
+    {
+        ldx #2
+        lda #2
+        .vsync1
+        bit &FE4D
+        beq vsync1
+        sta &FE4D       ; or could be ack'd in IRQ
+        dex
+        bne vsync1
+    }
     ELSE
 	\\ Set CRTC registers
 	ldx #0
@@ -313,7 +325,7 @@ GUARD screen_addr + RELOC_SPACE
 	\\ Note: when R0=0, DRAM refresh is off. Don't delay too long.
 	lda #0
 	sta $fe00:sta $fe01
-	WAIT_SCANLINES_TRASH_X 2
+	WAIT_SCANLINES_ZERO_X 2
 	sta $fe00:lda #127:sta $fe01
 
 	\\ Wait for vsync
@@ -593,7 +605,7 @@ include "src/fx-chunky-twister.asm"
 
 .library_start
 include "lib/disksys.asm"
-;include "lib/screen.asm"	; from Nova Invite.
+;include "lib/screen.asm"
 include "lib/exo.asm"
 include "lib/cycles.asm"
 .library_end

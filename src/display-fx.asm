@@ -48,6 +48,10 @@ DISPLAY_FX_MAX = 5
 \ might be left in a ruptured state. Reset these to defaults.
 .fx_default_crtc_draw
 {
+	WAIT_SCANLINES_ZERO_X 2
+
+	\\ <=== HCC=0
+
 	lda #9:sta &fe00
 	lda #7:sta &fe01		; R9=8 scanlines per row (default).
 
@@ -58,6 +62,7 @@ DISPLAY_FX_MAX = 5
 	lda #34:sta &fe01		; R7=vsync at line 272.
 
 	lda #6:sta &fe00
+	sta prev_scanline		; at scanline -2.
 	lda #30:sta &fe01		; R6=240 visible lines.
 	rts
 }

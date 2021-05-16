@@ -117,6 +117,8 @@
 CODE_ALIGN &100
 .fx_vertical_stretch_draw
 {
+	WAIT_SCANLINES_ZERO_X 2
+
 	\\ <=== HCC=0
 
 	\\ R4=0
@@ -252,11 +254,13 @@ CODE_ALIGN &100
 	}
 
 	\\ Row 31
-	WAIT_SCANLINES_TRASH_X 2
+	WAIT_SCANLINES_ZERO_X 2
 
 	\\ R9=1
 	lda #9:sta &fe00
 	lda #1:sta &fe01
+
+	lda #0:sta prev_scanline
     rts
 }
 

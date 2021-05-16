@@ -115,3 +115,9 @@ Borders
 - Ways of doing this:
   - Set 16x palette entries to same colour = 16x6c = 96c (can't do this in hblank.)
   - Display N blank lines and just set bg colour.
+  - FX are going to have to be "border aware":
+    - Set timer so draw fn gets called at HCC=0 but scanline=-2, to give time to set first visible scanline correctly.
+    - Ensure prev_scanline variable is correct across all FX to enable this.
+    - Have top_border_draw fn that returns after N scanlines + fixed number of cycles.
+    - Set row_count so that main draw loop is correct wrt borders.
+    - Have a bottom_border_draw fn that correctly finishes the frame.
