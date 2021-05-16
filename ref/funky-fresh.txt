@@ -22,7 +22,7 @@ TODO:
     - R6=30, R7=34.
 - Chunky Twister just runs automatically - how to drive from Rocket? - DONE
 - Transitions! Top & bottom bars? <= NEXT!
-- Need a solution for the top row so not always fixed to scanline 0.
+- Need a solution for the top row so not always fixed to scanline 0. - DONE
 - Add more FX.
     - Frak Zoomer
     - Psuedo-3D?

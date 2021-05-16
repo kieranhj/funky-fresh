@@ -96,9 +96,11 @@ ENDMACRO
 	lsr yb+1:ror yb+0:ror yb+2
 	lsr yb+1:ror yb+0:ror yb+2
 
+	\\ Holy hackballs! JSR to our inline fn by poking in an RTS.
+	lda twister_calc_rot_rts:pha:lda #&60:sta twister_calc_rot_rts
 	\\ Set up first row of the display.
-	jsr fx_chunky_twister_calc_rot
-	sta angle
+	jsr fx_chunky_twister_calc_rot:sta angle
+	pla:sta twister_calc_rot_rts
 
 	\\ R6=display 1 row.
 	lda #6:sta &fe00
@@ -193,11 +195,17 @@ CODE_ALIGN 128
 		\\ Burn 13 scanlines = 13x2c = 26c
 		lda #127							; 2c
 
-		WAIT_CYCLES 18
+		ldx #&40 + PAL_black				; 2c
+		stx &fe21							; 4c
+		ldx #&40 + PAL_blue					; 2c
+
+		WAIT_CYCLES 10
 		\\ At HCC=0 set R0=127
 		sta &fe01							; 6c
 
 	\\ <=== HCC=0 (scanline=0)
+	stx &fe21							; 4c
+
 	\\ R4=0, R7=&ff, R6=1, R9=3
 	lda #4:sta &fe00					; 8c
 	lda #0:sta &fe01					; 8c
@@ -207,8 +215,41 @@ CODE_ALIGN 128
 	{
 		lda #9:sta &fe00					; 8c
 
-		jsr fx_chunky_twister_calc_rot		; 72c
+		.*fx_chunky_twister_calc_rot
+		{
+			clc								; 2c
+			\\   rocket_track_y_pos => x offset per row (sin table)    [0-10]  <- makes it curve
+			lda xy
+			.*twister_calc_rot_lo
+			adc #0:sta xy		; 8c
+
+			lda xy+1
+			.*twister_calc_rot_hi
+			adc #0:sta xy+1		; 8c
+
+			\ 4096/4000~=1
+			clc								; 2c
+			\\   rocket_track_zoom  => rotation per row (cos table)    [0-10]  <- makes it twist
+			lda yb+2
+			.*twister_calc_rot_zoom_lo
+			adc #0:sta yb+2		; 8c actually LSB!
+			lda yb
+			.*twister_calc_rot_zoom_hi
+			adc #0:sta yb		; 8c
+			tay					; 2c
+			lda yb+1
+			.*twister_calc_rot_sign	adc #0
+			and #15:sta yb+1				; 10c
+			clc:adc #HI(cos):sta load+2		; 8c
+
+			.load
+			lda cos,Y						; 4c
+		}
+		.*twister_calc_rot_rts
+		\\ 60c
+
 		sta angle							; 3c
+		stx &fe21							; 4c
 
 		\\ 2-bits * 2
 		and #3:asl a						; 4c
@@ -221,11 +262,37 @@ CODE_ALIGN 128
 		sty prev_scanline					; 3c
 		\\ 24c
 
-			ldx #&40 + PAL_blue					; 2c
+		WAIT_CYCLES 4
+
+		ldx #&40 + PAL_blue					; 2c
+		lda angle							; 3c
+
+			\\ <=== HCC=0 (scanline=odd)
 			stx &fe21							; 4c
 
 			\\ Sets R12,R13 + SHADOW
-			CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
+			;CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
+			{
+				; 0-127
+				and #&7F						; 2c
+				lsr a:lsr a:tay					; 6c
+
+				lda #13: sta &FE00				; 8c
+				ldx xy+1						; 3c
+				lda x_wibble, X					; 4c
+				lsr a							; 2c
+				clc								; 2c
+				adc twister_vram_table_LO, Y	; 4c
+				sta &FE01						; 6c <= 5c
+
+				lda #12: sta &FE00				; 8c
+				lda twister_vram_table_HI, Y	; 4c
+				adc #0							; 2c
+				sta &FE01						; 6c
+
+				lda x_wibble, X					; 4c
+				and #1:sta shadow_bit 			; 5c
+			}
 
 			\\ Set R0=101 (102c)
 			lda #0:sta &fe00					; 8c <= 7c
@@ -252,14 +319,17 @@ CODE_ALIGN 128
 			\\ At HCC=0 set R0=127
 			sta &fe01							; 6c
 
-		\\ <=== HCC=0
+		\\ <=== HCC=0 (scanline=even)
 		stx &fe21							; 4c
 		ldx #&40 + PAL_black				; 2c
-		WAIT_CYCLES 2
+
+		WAIT_CYCLES 4
 
 		dec row_count						; 5c
-		bne char_row_loop					; 3c
+		beq done_row_loop					; 2c
+		jmp char_row_loop					; 3c
 	}
+	.done_row_loop
     CHECK_SAME_PAGE_AS char_row_loop
 
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
@@ -298,39 +368,6 @@ CODE_ALIGN 128
 \\ Want to get to:
 \\ a = SIN(t * a + y * b)
 \\ PICO-8 example: a = COS(t/300 + y/2000)
-
-.fx_chunky_twister_calc_rot			; 6c
-{
-	clc								; 2c
-	\\   rocket_track_y_pos => x offset per row (sin table)    [0-10]  <- makes it curve
-	lda xy
-	.^twister_calc_rot_lo
-	adc #0:sta xy		; 8c
-
-	lda xy+1
-	.^twister_calc_rot_hi
-	adc #0:sta xy+1		; 8c
-
-	\ 4096/4000~=1
-	clc								; 2c
-	\\   rocket_track_zoom  => rotation per row (cos table)    [0-10]  <- makes it twist
-	lda yb+2
-	.^twister_calc_rot_zoom_lo
-	adc #0:sta yb+2		; 8c actually LSB!
-	lda yb
-	.^twister_calc_rot_zoom_hi
-	adc #0:sta yb		; 8c
-	tay					; 2c
-	lda yb+1
-	.^twister_calc_rot_sign	adc #0
-	and #15:sta yb+1				; 10c
-	clc:adc #HI(cos):sta load+2		; 8c
-
-	.load
-	lda cos,Y						; 4c
-	rts								; 6c
-}
-\\ 72c
 
 .fx_chunky_twister_set_rot			; 6c
 {
