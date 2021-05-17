@@ -155,7 +155,11 @@ CODE_ALIGN 128
 .fx_chunky_twister_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
-	WAIT_CYCLES 16
+    lda #1:sta &fe00
+    lda #82:sta &fe01
+
+    lda #2:sta &fe00
+    lda #101:sta &fe01
 
 	\\ R9 must be set before final scanline of the row.
 	lda #9:sta &fe00					; 8c
@@ -176,7 +180,7 @@ CODE_ALIGN 128
 	\\ Row 1 screen start + SHADOW.
 	CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
 
-	    WAIT_CYCLES 62
+	    WAIT_CYCLES 62-16
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c <= 7c
@@ -359,6 +363,12 @@ CODE_ALIGN 128
 	\\ R9=1
 	lda #9:sta &fe00
 	lda #1:sta &fe01
+
+    lda #1:sta &fe00
+    lda #80:sta &fe01
+
+    lda #2:sta &fe00
+    lda #98:sta &fe01
 
 	lda #0:sta prev_scanline
     rts
