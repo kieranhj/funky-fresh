@@ -121,3 +121,17 @@ Borders
     - Have top_border_draw fn that returns after N scanlines + fixed number of cycles.
     - Set row_count so that main draw loop is correct wrt borders.
     - Have a bottom_border_draw fn that correctly finishes the frame.
+
+LHS Visible Garbage problem
+~~~
+- Palette switch can work but is painful to thread into the RVI code.
+  - Lose 4 columns to LHS of regular screen - looks meh
+  - Could maybe horizontally adjust to compensate but feels risky w/ timing?
+  - Make visible screen 4 chars wider?
+  
+- Turning the display off takes too long as it's a CRTC reg write.
+  - Min 6 cycles.
+
+- Idea of using R0=0 for burning scanlines.
+  - Works in beebjit but not real hw.
+  - 

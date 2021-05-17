@@ -178,33 +178,32 @@ CODE_ALIGN 128
 
 	    WAIT_CYCLES 62
 
-		\\ Set R0=101 (102c)
+		\\ Set R0=101 (102c) <= 114c!
 		lda #0:sta &fe00					; 8c <= 7c
-		lda #101:sta &fe01					; 8c
+		lda #113:sta &fe01					; 8c
 
 		WAIT_CYCLES 13
 
 		\\ Set SHADOW bit safely in hblank.
 		lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; 13c
 
-		\\ At HCC=102 set R0=1.
-		.blah
-		lda #1:sta &fe01					; 8c
-		\\ <=== HCC=102
+		WAIT_CYCLES 12
 
-		\\ Burn 13 scanlines = 13x2c = 26c
+		\\ At HCC=102 set R0=1. <= 114c!
+		.blah
+		lda #0:sta &fe01					; 8c
+		\\ <=== HCC=102 <= 114!
+
+		WAIT_CYCLES 6
+
+		\\ Burn 13 scanlines = 13x2c = 26c <= 14c!
 		lda #127							; 2c
 
-		ldx #&40 + PAL_black				; 2c
-		stx &fe21							; 4c
-		ldx #&40 + PAL_blue					; 2c
-
-		WAIT_CYCLES 10
 		\\ At HCC=0 set R0=127
 		sta &fe01							; 6c
 
 	\\ <=== HCC=0 (scanline=0)
-	stx &fe21							; 4c
+	WAIT_CYCLES 4
 
 	\\ R4=0, R7=&ff, R6=1, R9=3
 	lda #4:sta &fe00					; 8c
@@ -249,7 +248,7 @@ CODE_ALIGN 128
 		\\ 60c
 
 		sta angle							; 3c
-		stx &fe21							; 4c
+		WAIT_CYCLES 4
 
 		\\ 2-bits * 2
 		and #3:asl a						; 4c
@@ -262,13 +261,12 @@ CODE_ALIGN 128
 		sty prev_scanline					; 3c
 		\\ 24c
 
-		WAIT_CYCLES 4
+		WAIT_CYCLES 6
 
-		ldx #&40 + PAL_blue					; 2c
 		lda angle							; 3c
 
 			\\ <=== HCC=0 (scanline=odd)
-			stx &fe21							; 4c
+			WAIT_CYCLES 4
 
 			\\ Sets R12,R13 + SHADOW
 			;CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
@@ -294,36 +292,32 @@ CODE_ALIGN 128
 				and #1:sta shadow_bit 			; 5c
 			}
 
-			\\ Set R0=101 (102c)
+			\\ Set R0=101 (102c) <= 114c!
 			lda #0:sta &fe00					; 8c <= 7c
-			lda #101:sta &fe01					; 8c
+			lda #113:sta &fe01					; 8c
 
 			\\ Set SHADOW bit safely in hblank.
 			lda &fe34:and #&fe:ora shadow_bit:tax	; 11c
 
-			\\ At HCC=102 set R0=1.
-			.here
-			lda #1:sta &fe01					; 8c <= 7c
-			\\ <=== HCC=102
+			WAIT_CYCLES 12
 
-			\\ Burn 13 scanlines = 13x2c = 26c
-			lda #127							; 2c
+			\\ At HCC=102 set R0=1. <= 114c!
+			.here
+			lda #0:sta &fe01					; 8c <= 7c
+			\\ <=== HCC=102 <= 114c!
+
+			\\ Burn 13 scanlines = 13x2c = 26c <= 14c!
 			stx &fe34							; 4c
 
-			ldx #&40 + PAL_black				; 2c
-			stx &fe21							; 4c
-			ldx #&40 + PAL_blue					; 2c
+			WAIT_CYCLES 2
 
-			WAIT_CYCLES 6
+			lda #127							; 2c
 
 			\\ At HCC=0 set R0=127
 			sta &fe01							; 6c
 
 		\\ <=== HCC=0 (scanline=even)
-		stx &fe21							; 4c
-		ldx #&40 + PAL_black				; 2c
-
-		WAIT_CYCLES 4
+		WAIT_CYCLES 10
 
 		dec row_count						; 5c
 		beq done_row_loop					; 2c
