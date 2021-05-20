@@ -155,11 +155,11 @@ CODE_ALIGN 128
 .fx_chunky_twister_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
-    lda #1:sta &fe00
-    lda #82:sta &fe01
+    lda #1:sta &fe00					; 8c
+    lda #82:sta &fe01					; 8c
 
-    lda #2:sta &fe00
-    lda #101:sta &fe01
+    lda #2:sta &fe00					; 8c
+    lda #95:sta &fe01					; 8c
 
 	\\ R9 must be set before final scanline of the row.
 	lda #9:sta &fe00					; 8c
@@ -180,35 +180,34 @@ CODE_ALIGN 128
 	\\ Row 1 screen start + SHADOW.
 	CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
 
-	    WAIT_CYCLES 62-16
+	    WAIT_CYCLES 46
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c <= 7c
-		lda #101:sta &fe01					; 8c
+		lda #101-6:sta &fe01					; 8c
 
-		WAIT_CYCLES 13
+		WAIT_CYCLES 13-6
 
 		\\ Set SHADOW bit safely in hblank.
 		lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; 13c
 
-		\\ At HCC=102 set R0=1.
+		\\ At HCC=102-6 set R0=1.
 		.blah
 		lda #1:sta &fe01					; 8c
-		\\ <=== HCC=102
+		\\ <=== HCC=102-6
 
 		\\ Burn 13 scanlines = 13x2c = 26c
 		lda #127							; 2c
 
-		ldx #&40 + PAL_black				; 2c
-		stx &fe21							; 4c
-		ldx #&40 + PAL_blue					; 2c
+		WAIT_CYCLES 16
 
-		WAIT_CYCLES 10
+		ldx #0								; 2c
+		stx &fe01							; 6c
 		\\ At HCC=0 set R0=127
 		sta &fe01							; 6c
 
 	\\ <=== HCC=0 (scanline=0)
-	stx &fe21							; 4c
+	WAIT_CYCLES 4
 
 	\\ R4=0, R7=&ff, R6=1, R9=3
 	lda #4:sta &fe00					; 8c
@@ -253,7 +252,6 @@ CODE_ALIGN 128
 		\\ 60c
 
 		sta angle							; 3c
-		stx &fe21							; 4c
 
 		\\ 2-bits * 2
 		and #3:asl a						; 4c
@@ -266,19 +264,15 @@ CODE_ALIGN 128
 		sty prev_scanline					; 3c
 		\\ 24c
 
-		WAIT_CYCLES 4
-
-		ldx #&40 + PAL_blue					; 2c
-		lda angle							; 3c
-
-			\\ <=== HCC=0 (scanline=odd)
-			stx &fe21							; 4c
+		WAIT_CYCLES 8
 
 			\\ Sets R12,R13 + SHADOW
 			;CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
 			{
 				; 0-127
+				lda angle						; 3c
 				and #&7F						; 2c
+				\\ <=== HCC=0 (scanline=odd)
 				lsr a:lsr a:tay					; 6c
 
 				lda #13: sta &FE00				; 8c
@@ -300,34 +294,29 @@ CODE_ALIGN 128
 
 			\\ Set R0=101 (102c)
 			lda #0:sta &fe00					; 8c <= 7c
-			lda #101:sta &fe01					; 8c
+			lda #101-6:sta &fe01					; 8c
 
 			\\ Set SHADOW bit safely in hblank.
 			lda &fe34:and #&fe:ora shadow_bit:tax	; 11c
 
-			\\ At HCC=102 set R0=1.
+			\\ At HCC=102-6 set R0=1.
 			.here
 			lda #1:sta &fe01					; 8c <= 7c
-			\\ <=== HCC=102
+			\\ <=== HCC=102-6
 
 			\\ Burn 13 scanlines = 13x2c = 26c
 			lda #127							; 2c
 			stx &fe34							; 4c
 
-			ldx #&40 + PAL_black				; 2c
-			stx &fe21							; 4c
-			ldx #&40 + PAL_blue					; 2c
+			WAIT_CYCLES 12
 
-			WAIT_CYCLES 6
-
+			ldx #0								; 2c
+			stx &fe01							; 6c
 			\\ At HCC=0 set R0=127
 			sta &fe01							; 6c
 
 		\\ <=== HCC=0 (scanline=even)
-		stx &fe21							; 4c
-		ldx #&40 + PAL_black				; 2c
-
-		WAIT_CYCLES 4
+		WAIT_CYCLES 10
 
 		dec row_count						; 5c
 		beq done_row_loop					; 2c
