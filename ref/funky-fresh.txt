@@ -142,45 +142,11 @@ LHS Visible Garbage problem
   - Actually looks quite nice - would have to be a deliberate stylistic choice!
 
 - Use R0=0 to blank characters!
-  - Seems to freeze the scanline counter (although no emulators support yet).
+  - Seems to freeze the scanline counter (although no emulators support yet). <= Added to beebjit.
   - Use regular RVI to select scanline but set R0=0 for final 6 cycles = 6 blank chars.
   - This would mean moving everything 6 cycles earlier => start at 96c
   - Means that hsync would have to move to 95c = 3 chars to the right, hmmm.
-  - Maybe set screen width to 78c?
-
-How to test R0=0?
-~~~
-- Use BASIC for real hw. Start in Owlet test in beebjit.
-- Get to stable raster - would be a useful test framework anyway.
-- Skip N scanlines.
-- Set up one line with something like:
-  - R0=39 + 8xR0=0c + R0=79 with R9=9, R2=50?
-  - Next line 128c, R0=127, R2=98
-  - Basically lose a character row so set R4=39, R7=35 etc.
-  - Interested in working out what happens when resetting R0 after R0=0
-  - Does this happen right away or are scanlines lost?
-  - Next step would be to have the row end in the middle of the 8x short lines.
-  - So R9=6, say, then see which scanline is displayed in the second half?
-  - Finally, see what happens if the cycle ends due to rupture in the middle of the 8x short lines.
-
-New approach to RVI?
-~~~
-- We know what scanline we are displaying, so can always terminate the row
-  by setting R9=current+1.
-- Next next scanline can only be one of 0,2,4,6, therefore need to burn that
-  many scanlines but in a constant time.
-- How about a jump table with the optimal implementation of each?
-  Worst case is 6 scanlines = 6x2c rather than 13x2c as before...
-- Challenge is resetting R9 after this when next > 0. R9=next+1
-
-    Set R0=?80?
-    Set R9=current+1
-    At HCC=?80?
-    Set R9=next+1
-    Set R0=??
-    At end of scanline 0.
-    Set R0=0
-    Wait (next-1)*2 cycles.
-    Set R0=127 for HCC=0
-
-=> Takes a lot longer as have to set R9 twice & R0 an extra time.
+  - On real hw the blanking works \o/ but moving the screen right means more visible on the left /o\
+  - Just one column visible on far left of real CUB monitor
+  - Maybe set screen width to 78c? Narrowing screen makes it less offset but doesn't stop visible column.
+  - Ideally want to get hsync=96 gah!

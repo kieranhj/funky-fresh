@@ -106,6 +106,9 @@ ENDMACRO
 	lda #6:sta &fe00
 	lda #1:sta &fe01
 
+    lda #2:sta &fe00					; 8c
+    lda #95:sta &fe01					; 8c
+
 	lda #119:sta row_count
 	rts
 }
@@ -158,8 +161,7 @@ CODE_ALIGN 128
     lda #1:sta &fe00					; 8c
     lda #82:sta &fe01					; 8c
 
-    lda #2:sta &fe00					; 8c
-    lda #95:sta &fe01					; 8c
+	WAIT_CYCLES 16
 
 	\\ R9 must be set before final scanline of the row.
 	lda #9:sta &fe00					; 8c
@@ -184,17 +186,17 @@ CODE_ALIGN 128
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c <= 7c
-		lda #101-6:sta &fe01					; 8c
+		lda #95:sta &fe01					; 8c
 
 		WAIT_CYCLES 13-6
 
 		\\ Set SHADOW bit safely in hblank.
 		lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; 13c
 
-		\\ At HCC=102-6 set R0=1.
+		\\ At HCC=96 set R0=1.
 		.blah
 		lda #1:sta &fe01					; 8c
-		\\ <=== HCC=102-6
+		\\ <=== HCC=96
 
 		\\ Burn 13 scanlines = 13x2c = 26c
 		lda #127							; 2c
@@ -203,6 +205,7 @@ CODE_ALIGN 128
 
 		ldx #0								; 2c
 		stx &fe01							; 6c
+
 		\\ At HCC=0 set R0=127
 		sta &fe01							; 6c
 
@@ -292,26 +295,28 @@ CODE_ALIGN 128
 				and #1:sta shadow_bit 			; 5c
 			}
 
-			\\ Set R0=101 (102c)
+			\\ Set R0=95 (96c)
 			lda #0:sta &fe00					; 8c <= 7c
-			lda #101-6:sta &fe01					; 8c
+			lda #95:sta &fe01					; 8c
 
 			\\ Set SHADOW bit safely in hblank.
 			lda &fe34:and #&fe:ora shadow_bit:tax	; 11c
 
-			\\ At HCC=102-6 set R0=1.
+			\\ At HCC=96 set R0=1.
 			.here
 			lda #1:sta &fe01					; 8c <= 7c
-			\\ <=== HCC=102-6
+			\\ <=== HCC=96
 
 			\\ Burn 13 scanlines = 13x2c = 26c
 			lda #127							; 2c
 			stx &fe34							; 4c
 
 			WAIT_CYCLES 12
-
 			ldx #0								; 2c
+
+			\\ Blank 6 chars using R0=0 to pause scanline counter.
 			stx &fe01							; 6c
+
 			\\ At HCC=0 set R0=127
 			sta &fe01							; 6c
 
