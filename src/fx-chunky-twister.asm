@@ -177,7 +177,7 @@ CODE_ALIGN 64
 	tax									; 2c
 	eor #&ff							; 2c
 	clc									; 2c
-	adc #13								; 2c
+	adc #9								; 2c
 	adc prev_scanline					; 3c
 	sta &fe01							; 6c
 	stx prev_scanline					; 3c
@@ -186,28 +186,37 @@ CODE_ALIGN 64
 	\\ Row 1 screen start + SHADOW.
 	CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 	; 66o
 
-	    WAIT_CYCLES 64
+	    WAIT_CYCLES 16
 
-		\\ Set R0=101 (102c)
+		\\ Set R0=103 (104c)
 		lda #0:sta &fe00					; 8c <= 7c
-		lda #101:sta &fe01					; 8c
+		lda #103:sta &fe01					; 8c
 
-		WAIT_CYCLES 13
+		WAIT_CYCLES 32
+
+		ldx angle							; 3c
+		ldy angle_to_quadrant, X			; 4c
+		lda twister_quadrant_colour_1,Y:sta &fe21 			; 8c
+		lda twister_quadrant_colour_2,Y:sta &fe21			; 8c
+		lda twister_quadrant_colour_3,Y:sta &fe21			; 8c
+		; 31c
 
 		\\ Set SHADOW bit safely in hblank.
 		lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; 13c
 
-		\\ At HCC=102 set R0=1.
+		\\ At HCC=104 set R0=1.
 		.blah
 		lda #1:sta &fe01					; 8c
-		\\ <=== HCC=102
+		\\ <=== HCC=104
 
-		WAIT_CYCLES 14
-
+		WAIT_CYCLES 6
 		ldx #4:ldy #9						; 4c
 
-		\\ Burn 13 scanlines = 13x2c = 26c
+		\\ Burn R0=1 scanlines.
 		lda #127							; 2c
+
+		\\ Set R0=0.
+		stz &fe01							; 6c
 
 		\\ At HCC=0 set R0=127
 		sta &fe01							; 6c
@@ -268,13 +277,6 @@ CODE_ALIGN 64
 		sty prev_scanline					; 3c
 		\\ 21c
 
-		;tax									; 2c
-		;ldy angle_to_quadrant, X			; 4c
-		;lda twister_quadrant_colour_1,Y:sta &fe21 			; 8c
-		;lda twister_quadrant_colour_2,Y:sta &fe21			; 8c
-		;lda twister_quadrant_colour_3,Y:sta &fe21			; 8c
-		; 28c
-
 		\\ <=== HCC=0 (scanline=odd)
 
 			\\ Sets R12,R13 + SHADOW
@@ -306,7 +308,14 @@ CODE_ALIGN 64
 			stz &fe00							; 6c <= 5c
 			lda #103:sta &fe01					; 8c
 
-			WAIT_CYCLES 30
+			WAIT_CYCLES 3
+
+			ldx angle							; 3c
+			ldy angle_to_quadrant, X			; 4c
+			lda twister_quadrant_colour_1,Y:sta &fe21 			; 8c
+			lda twister_quadrant_colour_2,Y:sta &fe21			; 8c
+			ldx twister_quadrant_colour_3,Y						; 4c
+			; 27c
 
 			\\ Set SHADOW bit safely in hblank.
 			lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; 13c
@@ -319,7 +328,8 @@ CODE_ALIGN 64
 			\\ Burn 2c scanlines through to 128c.
 			lda #127							; 2c
 
-			WAIT_CYCLES 10
+			stx &fe21							; 4c
+			WAIT_CYCLES 6
 
 			\\ Set R0=0 to blank 6x chars.
 			stz &fe01							; 6c
