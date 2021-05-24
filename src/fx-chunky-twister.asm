@@ -274,7 +274,6 @@ CODE_ALIGN 64
 		;lda twister_quadrant_colour_2,Y:sta &fe21			; 8c
 		;lda twister_quadrant_colour_3,Y:sta &fe21			; 8c
 		; 28c
-		WAIT_CYCLES 30
 
 		\\ <=== HCC=0 (scanline=odd)
 
@@ -303,25 +302,27 @@ CODE_ALIGN 64
 				and #1:sta shadow_bit 			; 5c
 			}
 
-			\\ Set R0=109 (110c)
+			\\ Set R0=103 (104c)
 			stz &fe00							; 6c <= 5c
-			lda #109:sta &fe01					; 8c
+			lda #103:sta &fe01					; 8c
+
+			WAIT_CYCLES 30
 
 			\\ Set SHADOW bit safely in hblank.
-			lda &fe34:and #&fe:ora shadow_bit:tax	; 11c
+			lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; 13c
 
-			WAIT_CYCLES 8
-
-			\\ At HCC=110 set R0=1.
+			\\ At HCC=104 set R0=1.
 			.here
 			lda #1:sta &fe01					; 8c <= 7c
-			\\ <=== HCC=110
+			\\ <=== HCC=104
 
-			\\ Burn 13 scanlines = 13x2c = 26c
+			\\ Burn 2c scanlines through to 128c.
 			lda #127							; 2c
-			stx &fe34							; 4c
 
-			WAIT_CYCLES 6
+			WAIT_CYCLES 10
+
+			\\ Set R0=0 to blank 6x chars.
+			stz &fe01							; 6c
 
 			\\ At HCC=0 set R0=127
 			sta &fe01							; 6c
