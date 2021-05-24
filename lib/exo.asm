@@ -218,7 +218,7 @@ ENDIF
         ror a
         dex
         bne rolle
-        CHECK_SAME_PAGE_AS rolle
+        CHECK_SAME_PAGE_AS rolle, FALSE
         plp
 .rolled
         ror a
@@ -233,7 +233,7 @@ ENDIF
         iny
         cpy #52
         bne table_gen
-        CHECK_SAME_PAGE_AS table_gen
+        CHECK_SAME_PAGE_AS table_gen, FALSE
 ; -------------------------------------------------------------------
 ; prepare for main decruncher
         ldy zp_dest_lo
@@ -265,13 +265,13 @@ ENDIF
 .nofetch8
         inx
         bcc no_literal1
-        CHECK_SAME_PAGE_AS no_literal1
+        CHECK_SAME_PAGE_AS no_literal1, FALSE
         sta zp_bitbuf
 ; -------------------------------------------------------------------
 ; check for literal byte (2 bytes)
 ;
         beq literal_start1
-        CHECK_SAME_PAGE_AS literal_start1
+        CHECK_SAME_PAGE_AS literal_start1, FALSE
 ; -------------------------------------------------------------------
 ; check for decrunch done and literal sequences (4 bytes)
 ;
@@ -317,7 +317,7 @@ ENDIF
 .gbnc2_ok
         rol a
         bcs gbnc2_next
-        CHECK_SAME_PAGE_AS gbnc2_next
+        CHECK_SAME_PAGE_AS gbnc2_next, FALSE
         tax
 ; -------------------------------------------------------------------
 ; calulate absolute offset (zp_src) (21 bytes) + get_bits macro
@@ -379,7 +379,7 @@ IF LITERAL_SEQUENCES_NOT_USED=0
 .get_literal_byte
         jsr get_crunched_byte
         bcs literal_byte_gotten
-        CHECK_SAME_PAGE_AS literal_byte_gotten
+        CHECK_SAME_PAGE_AS literal_byte_gotten, FALSE
 ENDIF
 ; -------------------------------------------------------------------
 ; exit or literal sequence handling (16(12) bytes)
@@ -394,7 +394,7 @@ ENDIF
         jsr get_crunched_byte
         tax
         bcs copy_next
-        CHECK_SAME_PAGE_AS copy_next
+        CHECK_SAME_PAGE_AS copy_next, FALSE
 .decr_exit
 ENDIF
         rts

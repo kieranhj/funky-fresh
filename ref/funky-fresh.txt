@@ -121,3 +121,49 @@ Borders
     - Have top_border_draw fn that returns after N scanlines + fixed number of cycles.
     - Set row_count so that main draw loop is correct wrt borders.
     - Have a bottom_border_draw fn that correctly finishes the frame.
+
+LHS Visible Garbage problem
+~~~
+- Palette switch can work but is painful to thread into the RVI code.
+  - Lose 4 columns to LHS of regular screen - looks meh
+  - Could maybe horizontally adjust to compensate - only go to 101c so 3c. :\
+  - Can make visible screen 2 chars wider so lose one column either side.
+  => This isn't going to work for pan & zoom w/ coloured bg. :((
+  
+- Turning the display off takes too long as it's a CRTC reg write.
+  - Have to write R0 at HCC=0 so even with X&Y preloaded would take 12c!
+
+- Idea of using R0=0 for burning scanlines.
+  - Works in beebjit but not real hw. :(
+  - Presume the change from R0=0 to R0=127 isn't taking place as expected vs scanline counter.
+  - Could try to determine this behaviour on real hw.
+
+- Could just skip drawing every other line ala beeb-niccc!
+  - Actually looks quite nice - would have to be a deliberate stylistic choice!
+
+- Use R0=0 to blank characters!
+  - Seems to freeze the scanline counter (although no emulators support yet). <= Added to beebjit.
+  - Use regular RVI to select scanline but set R0=0 for final 6 cycles = 6 blank chars.
+  - This would mean moving everything 6 cycles earlier => start at 96c
+  - Means that hsync would have to move to 95c = 3 chars to the right, hmmm.
+  - On real hw the blanking works \o/ but moving the screen right means more visible on the left /o\
+  - Just one column visible on far left of real CUB monitor
+  - Maybe set screen width to 78c? Narrowing screen makes it less offset but doesn't stop visible column.
+  - Ideally want to get hsync=96 gah!
+
+- Shorten the number of scanlines burned?
+  - Reduce to 9 scanlines from 13 breaks when selecting scanline 6 next after 0 or 2 because R9 < next.
+  - Option: dump scanline 6&7? Wasting 25% of FX RAM - although still 3/6x more than vanilla vrup.
+  - Or try to special case these somehow?!
+      For 0->6, Set R9=1,wait for end of row,Set R9=7,Set R0=?,Set R0=1,wait 4 scanlines,Set R0=128
+      For 2->6, Set R9=3,wait for end of row,Set R9=7,Set R0=?,Set R0=1,wait 4 scanlines,Set R0=128
+      Not enough cycles!
+  - Instead think about restructuring effects based on the scanlines.
+    So use <=6 scanlines for effects that cannot have LH column pre-masked.
+    E.g. Scanlines 01 & 23 OR 45 & 67 in the same effect. Use 0123 & 4567 for even chunkier ones.
+
+  - Chunky Twister:
+      Use 2x2 scanlines per row only. So 64 prerendered rows in one screen.
+      But! Only use a quarter twist across those 64 and use a palette switch for the rest.
+      So brads [0-255] where the top 2 bits are the colour palette and bottom 6 bits are the prerendered rows.
+      

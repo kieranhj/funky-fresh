@@ -3,6 +3,8 @@
 \ *	FUNKY FRESH DEMO FRAMEWORK
 \ ******************************************************************
 
+CPU 1
+
 _DEBUG = TRUE
 
 include "src/zp.h.asm"
@@ -232,7 +234,7 @@ GUARD screen_addr + RELOC_SPACE
 
 	\\ Turn off interlace
 	lda #8:sta &fe00
-	lda #0:sta &fe01
+	lda #&E0:sta &fe01
 
     \\ Reduce screen to 240 lines.
     lda #6:sta &fe00

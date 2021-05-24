@@ -11,13 +11,23 @@
 \\   rocket_track_time  => rotation of top row (cos table)   [0-255]   <- makes it spin
 \\   rocket_track_zoom  => rotation per row * 16 (cos table) [0-10*16] <- makes it twist
 
-MACRO CHUNKY_TWISTER_SET_ROT_FROM_ANGLE		; 67e/68o
+
+\\ xm = cos((t/80)-y+20*sin(t/20000+a/(120+20*sin(t/100+y/500))))*16
+\\ Want to get to:
+\\ a = SIN(t * a + y * b)
+\\ PICO-8 example: a = COS(t/300 + y/2000)
+
+\\ Angle [0-255] in brads.
+\\   [0-63] selects the row.
+\\   Top two bits sets the quadrant & therefore the palette.
+
+MACRO CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE		; 65e/66o
 {
 	; 0-127
-	lda angle:and #&7F				; 5c
-	lsr a:lsr a:tay					; 6c <= 5e
+	lda angle:and #&3E				; 5c
+	lsr a:tay						; 4c
 
-	lda #13: sta &FE00				; 8c
+	lda #13: sta &FE00				; 8c <= 7e
 	ldx xy+1						; 3c
 	lda x_wibble, X					; 4c
 	lsr a							; 2c
@@ -99,7 +109,7 @@ ENDMACRO
 	\\ Holy hackballs! JSR to our inline fn by poking in an RTS.
 	lda twister_calc_rot_rts:pha:lda #&60:sta twister_calc_rot_rts
 	\\ Set up first row of the display.
-	jsr fx_chunky_twister_calc_rot:sta angle
+	jsr fx_chunky_twister_calc_rot
 	pla:sta twister_calc_rot_rts
 
 	\\ R6=display 1 row.
@@ -150,7 +160,7 @@ ENDMACRO
 \\
 \\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
-CODE_ALIGN 128
+CODE_ALIGN 64
 
 .fx_chunky_twister_draw
 {
@@ -163,7 +173,7 @@ CODE_ALIGN 128
 	\\ Row 1 scanline.
 	lda angle							; 3c
 	\\ 2-bits * 2
-	and #3:asl a						; 4c
+	and #1:asl a						; 4c
 	tax									; 2c
 	eor #&ff							; 2c
 	clc									; 2c
@@ -174,9 +184,9 @@ CODE_ALIGN 128
 	\\ 27c
 
 	\\ Row 1 screen start + SHADOW.
-	CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
+	CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 	; 66o
 
-	    WAIT_CYCLES 62
+	    WAIT_CYCLES 64
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c <= 7c
@@ -192,28 +202,26 @@ CODE_ALIGN 128
 		lda #1:sta &fe01					; 8c
 		\\ <=== HCC=102
 
+		WAIT_CYCLES 14
+
+		ldx #4:ldy #9						; 4c
+
 		\\ Burn 13 scanlines = 13x2c = 26c
 		lda #127							; 2c
 
-		ldx #&40 + PAL_black				; 2c
-		stx &fe21							; 4c
-		ldx #&40 + PAL_blue					; 2c
-
-		WAIT_CYCLES 10
 		\\ At HCC=0 set R0=127
 		sta &fe01							; 6c
 
 	\\ <=== HCC=0 (scanline=0)
-	stx &fe21							; 4c
 
-	\\ R4=0, R7=&ff, R6=1, R9=3
-	lda #4:sta &fe00					; 8c
-	lda #0:sta &fe01					; 8c
+	\\ Set R4=0 (one row per cycle).
+	stx &fe00								; 6c
+	stz &fe01								; 6c	
 
 	\\ Rows 1-30
 	.char_row_loop
 	{
-		lda #9:sta &fe00					; 8c
+		sty &fe00							; 6c
 
 		.*fx_chunky_twister_calc_rot
 		{
@@ -244,38 +252,39 @@ CODE_ALIGN 128
 
 			.load
 			lda cos,Y						; 4c
+			sta angle						; 3c
 		}
 		.*twister_calc_rot_rts
-		\\ 60c
-
-		sta angle							; 3c
-		stx &fe21							; 4c
+		\\ 63c
 
 		\\ 2-bits * 2
-		and #3:asl a						; 4c
+		and #1:asl a						; 4c
 		tay									; 2c
 		eor #&ff							; 2c
-		clc									; 2c <= can be removed.
-		adc #13								; 2c
+		;clc								; 2c <= can be removed.
+		adc #9								; 2c
 		adc prev_scanline					; 3c
-		sta &fe01							; 6c
+		sta &fe01							; 6c <= 5c
 		sty prev_scanline					; 3c
-		\\ 24c
+		\\ 21c
 
-		WAIT_CYCLES 4
+		;tax									; 2c
+		;ldy angle_to_quadrant, X			; 4c
+		;lda twister_quadrant_colour_1,Y:sta &fe21 			; 8c
+		;lda twister_quadrant_colour_2,Y:sta &fe21			; 8c
+		;lda twister_quadrant_colour_3,Y:sta &fe21			; 8c
+		; 28c
+		WAIT_CYCLES 30
 
-		ldx #&40 + PAL_blue					; 2c
-		lda angle							; 3c
-
-			\\ <=== HCC=0 (scanline=odd)
-			stx &fe21							; 4c
+		\\ <=== HCC=0 (scanline=odd)
 
 			\\ Sets R12,R13 + SHADOW
-			;CHUNKY_TWISTER_SET_ROT_FROM_ANGLE 	; 68o
+			;CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 	; 66o/67e
 			{
 				; 0-127
-				and #&7F						; 2c
-				lsr a:lsr a:tay					; 6c
+				lda angle						; 3c
+				and #&3E						; 2c
+				lsr a:tay						; 4c
 
 				lda #13: sta &FE00				; 8c
 				ldx xy+1						; 3c
@@ -294,25 +303,23 @@ CODE_ALIGN 128
 				and #1:sta shadow_bit 			; 5c
 			}
 
-			\\ Set R0=101 (102c)
-			lda #0:sta &fe00					; 8c <= 7c
-			lda #101:sta &fe01					; 8c
+			\\ Set R0=109 (110c)
+			stz &fe00							; 6c <= 5c
+			lda #109:sta &fe01					; 8c
 
 			\\ Set SHADOW bit safely in hblank.
 			lda &fe34:and #&fe:ora shadow_bit:tax	; 11c
 
-			\\ At HCC=102 set R0=1.
+			WAIT_CYCLES 8
+
+			\\ At HCC=110 set R0=1.
 			.here
 			lda #1:sta &fe01					; 8c <= 7c
-			\\ <=== HCC=102
+			\\ <=== HCC=110
 
 			\\ Burn 13 scanlines = 13x2c = 26c
 			lda #127							; 2c
 			stx &fe34							; 4c
-
-			ldx #&40 + PAL_black				; 2c
-			stx &fe21							; 4c
-			ldx #&40 + PAL_blue					; 2c
 
 			WAIT_CYCLES 6
 
@@ -320,17 +327,13 @@ CODE_ALIGN 128
 			sta &fe01							; 6c
 
 		\\ <=== HCC=0 (scanline=even)
-		stx &fe21							; 4c
-		ldx #&40 + PAL_black				; 2c
-
-		WAIT_CYCLES 4
-
+		ldy #9								; 2c
 		dec row_count						; 5c
 		beq done_row_loop					; 2c
 		jmp char_row_loop					; 3c
 	}
 	.done_row_loop
-    CHECK_SAME_PAGE_AS char_row_loop
+    CHECK_SAME_PAGE_AS char_row_loop, TRUE
 
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
 	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
@@ -364,38 +367,6 @@ CODE_ALIGN 128
     rts
 }
 
-\\ xm = cos((t/80)-y+20*sin(t/20000+a/(120+20*sin(t/100+y/500))))*16
-\\ Want to get to:
-\\ a = SIN(t * a + y * b)
-\\ PICO-8 example: a = COS(t/300 + y/2000)
-
-.fx_chunky_twister_set_rot			; 6c
-{
-	; 0-127
-	and #&7F						; 2c
-	lsr a:lsr a:tay					; 6c
-
-	lda #13: sta &FE00				; 8c
-	ldx xy+1						; 3c
-	lda x_wibble, X					; 4c
-	sta angle						; 3c
-	lsr a							; 2c
-	clc								; 2c
-	adc twister_vram_table_LO, Y	; 4c
-	sta &FE01						; 6c <= 5c
-
-	lda #12: sta &FE00				; 8c
-	lda twister_vram_table_HI, Y	; 4c
-	adc #0							; 2c
-	sta &FE01						; 6c
-
-	lda angle						; 3c
-	and #1							; 2c
-	tay								; 2c
-	rts								; 6c
-}
-\\ 79c (even) | 78c (odd)
-
 \ ******************************************************************
 \ *	FX DATA
 \ ******************************************************************
@@ -412,10 +383,37 @@ FOR n,0,31,1
 EQUB HI((&3000 + n*640)/8)
 NEXT
 
+PAGE_ALIGN_FOR_SIZE 4
+.twister_quadrant_colour_1
+EQUB &60 + PAL_cyan
+EQUB &60 + PAL_green
+EQUB &60 + PAL_yellow
+EQUB &60 + PAL_red
+
+PAGE_ALIGN_FOR_SIZE 4
+.twister_quadrant_colour_2
+EQUB &10 + PAL_red
+EQUB &10 + PAL_cyan
+EQUB &10 + PAL_green
+EQUB &10 + PAL_yellow
+
+PAGE_ALIGN_FOR_SIZE 4
+.twister_quadrant_colour_3
+EQUB &20 + PAL_green
+EQUB &20 + PAL_yellow
+EQUB &20 + PAL_red
+EQUB &20 + PAL_cyan
+
 PAGE_ALIGN
 .x_wibble
 FOR n,0,255,1
 EQUB 54+40*SIN(2 * PI *n / 256) 
+NEXT
+
+PAGE_ALIGN
+.angle_to_quadrant
+FOR n,0,255,1
+EQUB n >> 6
 NEXT
 
 \ Notes

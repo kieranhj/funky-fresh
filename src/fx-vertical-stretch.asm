@@ -223,7 +223,7 @@ CODE_ALIGN &100
 			dec row_count				; 5c
 			bne char_row_loop			; 3c
 	}
-	CHECK_SAME_PAGE_AS char_row_loop
+	CHECK_SAME_PAGE_AS char_row_loop, TRUE
 	.scanline_last
 
 		ldx #1						; 2c

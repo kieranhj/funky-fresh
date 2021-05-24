@@ -72,9 +72,12 @@ PRINT "Lost ", size, "bytes for code alignment."
 skip size
 ENDMACRO
 
-MACRO CHECK_SAME_PAGE_AS base
+MACRO CHECK_SAME_PAGE_AS base, fatal
 IF HI(P%-1) <> HI(base)
 PRINT "WARNING! Table or branch base address",~base, "may cross page boundary at",~P%
+IF fatal
+	ERROR "Crossing page boundary caused critical cycle timing error."
+ENDIF
 ENDIF
 ENDMACRO
 
