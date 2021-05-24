@@ -42,7 +42,7 @@ Track controls.
 zoom = scale factor (e.g. vertical stretch)
 x_pos = generic x value
 y_pos = generic y value
-time = generic 'time' value that drives the animation
+time = generic 'time' value that drives the animation <= rename 'anim_time' ?
 
 bg_colour = general background colour?
 top_bar = position of top bar (0-127)
@@ -71,9 +71,10 @@ Ponder.
         => restart sequence higher up? or will this become an issue later in the demo?
     => Could have two separate task tracks one for MAIN and one for SHADOW?
 
-- Might need a way of initialising FX (vars) so that editing is the same as playback.
+- Might need a way of initialising FX (vars) so that editing is the same as playback. - DONE.
     - E.g. currently the twister just carries on from wherever it last was.
     - Can't do this in a task as has to be guaranteed before the first update!
+    - Use "time" track. <= should really be "anim_time".
 
 - "Demo reset" task at the top to ensure all FX vars are zero'd when playing from the beginning?
     -> Shouldn't need to do this if update values are driven from Rocket!
@@ -83,14 +84,19 @@ Ponder.
     - Can gain extra bits by shifting up in the editor and down at run-time.
         E.g. if sane range is [0-10] then << 4 in the editor and >> 4 at runtime. If there's time!
 
-- What to do about the first row of the screen currently fixed to scanline 0?
+- What to do about the first row of the screen currently fixed to scanline 0? - DONE.
     - Maybe start draw at scanline -2 so can do RVI on first row?
     - We're effectively treating row 0 as special anyway or does this double that up?
     - VectorEyes had some cunning approach for EI?
 
-- what do about the feather edge of the Chunky Twister?
+- What do about the feather edge of the Chunky Twister? - DONE.
     - Is there a general-ish solution to this?
     - Force screen off during hblank?
+
+- All FX need to manage their own palette updates as well.
+    - Even if set to default, this needs to be done in FX update.
+
+
 
 Nice to haves.
 ~~~
@@ -134,7 +140,7 @@ LHS Visible Garbage problem
   - Have to write R0 at HCC=0 so even with X&Y preloaded would take 12c!
 
 - Idea of using R0=0 for burning scanlines.
-  - Works in beebjit but not real hw. :(
+  - Works in beebjit but not real hw. :( <= DONE.
   - Presume the change from R0=0 to R0=127 isn't taking place as expected vs scanline counter.
   - Could try to determine this behaviour on real hw.
 
@@ -166,4 +172,4 @@ LHS Visible Garbage problem
       Use 2x2 scanlines per row only. So 64 prerendered rows in one screen.
       But! Only use a quarter twist across those 64 and use a palette switch for the rest.
       So brads [0-255] where the top 2 bits are the colour palette and bottom 6 bits are the prerendered rows.
-      
+      DONE!

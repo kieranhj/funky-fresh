@@ -151,12 +151,24 @@ ENDMACRO
 \\
 \\ Select CRTC register 0, i.e. lda #0:sta &fe00
 \\
-\\ cycles -->  94  96  98  100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
-\\             lda.sta..........WAIT_CYCLES 18 ..............................lda..sta ...........|
-\\             #1  &fe01                                                     #127 &fe01
-\\ scanline 1                   2    3    4    5    6    7    8    9    10   11   xx   0    1    2
-\\                                                                                |
-\\                                            --> missed due to end of CRTC frame +
+\\ cycles -->  94   96   98   100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
+\\             lda..sta............WAIT_CYCLES 18 ..............................lda..sta ...........|
+\\             #1   &fe01                                                       #127 &fe01
+\\ scanline 1            hpos      2    3    4    5    6    7    8    9    10   11   xx   0    1    2
+\\                                                                                   |
+\\                                               --> missed due to end of CRTC frame +
+\\
+\\ For limited jump RVI with LHS blanking.
+\\ Display 0,2,4 scanline offset for 2 scanlines.
+\\ (Or rather no jump of > 4 scanlines distance.)
+\\  Set R9 before final scanline to 9 + current - next. eg. R9 = 9 + 0 - 0 = 9
+\\
+\\ cycles -->       96   98   100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
+\\                  lda..sta............lda..WAIT_CYCLES 10 ..........stz............sta ...........|
+\\                  #1   &fe01          #127                          &fe01          &fe01
+\\ scanline 1            hpos           2    3    4    5    6    7    8    9    xx   ?    ?    ?    0
+\\                                                                              |    |
+\\                                          --> missed due to end of CRTC frame +    + scanline counter prevented from updating whilst R0=0!
 \\
 \\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
@@ -183,7 +195,7 @@ CODE_ALIGN 64
 	stx prev_scanline					; 3c
 	\\ 27c
 
-	\\ Row 1 screen start + SHADOW.
+	\\ Set R12,R13 + SHADOW for row 0.
 	CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 	; 66o
 
 	    WAIT_CYCLES 16
@@ -215,7 +227,7 @@ CODE_ALIGN 64
 		\\ Burn R0=1 scanlines.
 		lda #127							; 2c
 
-		\\ Set R0=0.
+		\\ Set R0=0 to blank 6x chars.
 		stz &fe01							; 6c
 
 		\\ At HCC=0 set R0=127
@@ -279,7 +291,7 @@ CODE_ALIGN 64
 
 		\\ <=== HCC=0 (scanline=odd)
 
-			\\ Sets R12,R13 + SHADOW
+			\\ Set R12,R13 + SHADOW for next row.
 			;CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 	; 66o/67e
 			{
 				; 0-127
