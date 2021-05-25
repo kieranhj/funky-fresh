@@ -541,9 +541,9 @@ GUARD screen_addr + RELOC_SPACE
 	}
 
     \\ Set FX SWRAM bank.
-    lda &f4:pha                     ; 6c
+    lda &f4:pha                             ; 6c
     .^call_fx_draw_slot
-    lda #0:sta &f4:sta &fe30        ; 9c
+    lda #SLOT_BANK2:sta &f4:sta &fe30       ; 9c
 
 	; T1 has already latched to its new value for the next interupt (vblank potion)
 	; Latch T1 for the next-plus_one interupt => at the start of the visible display.
@@ -554,7 +554,7 @@ GUARD screen_addr + RELOC_SPACE
 
     \\ Call FX draw function.
 	.^call_fx_draw_fn
-    jsr fx_default_crtc_draw		; restores CRTC regs to defaults.
+    jsr fx_static_image_draw		; restores CRTC regs to defaults.
 
     pla:tay:pla:tax
 

@@ -25,6 +25,7 @@ TODO:
 - Fix top row of vertical stretch. - DONE
 
 - Sort out FX owning their palette.
+- Move to 2x tasks for main & shadow.
 - Transitions! Top & bottom bars?
 - Add more FX.
     - Frak Zoomer

@@ -33,7 +33,7 @@
 
 	\\ Set v to centre of the image.
 	lda #0:sta v
-	lda #128:sta v+1	; Image Height / 2
+	lda #127:sta v+1	; Image Height / 2
 
 	\\ Subtract dv y_pos times to set starting v.
 	ldy rocket_track_y_pos+1

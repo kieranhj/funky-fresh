@@ -366,7 +366,7 @@ EQUB &20 + PAL_cyan
 		jmp char_row_loop					; 3c
 	}
 	.done_row_loop
-    CHECK_SAME_PAGE_AS char_row_loop, TRUE
+    ;CHECK_SAME_PAGE_AS char_row_loop, TRUE
 
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
 	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
