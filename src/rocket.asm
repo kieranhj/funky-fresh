@@ -12,18 +12,19 @@ IF _DEBUG
 
 	cmp #0:beq pause
 
-	lda task_request
+	lda main_task_req
+	ora shadow_task_req
 	bne task_running
 
 	\\ This takes a long time so can't be done in IRQ.
 	\\ Options:
 	\\ - run this as a background task?
 	\\ - restart the demo and play from the beginning?!
-	ldx rocket_vsync_count:stx do_task_load_X+1
-	ldy rocket_vsync_count+1:sty do_task_load_Y+1
-	lda #LO(rocket_set_pos):sta do_task_jmp+1
-	lda #HI(rocket_set_pos):sta do_task_jmp+2
-	inc task_request
+	ldx rocket_vsync_count:stx main_task_load_X+1
+	ldy rocket_vsync_count+1:sty main_task_load_Y+1
+	lda #LO(rocket_set_pos):sta main_task_jmp+1
+	lda #HI(rocket_set_pos):sta main_task_jmp+2
+	inc main_task_req
 
 	.task_running
 	lda #&ff:sta rocket_fast_mode	; turbo mode on!

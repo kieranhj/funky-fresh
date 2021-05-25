@@ -14,36 +14,80 @@ TASK_ID_MAX = 4
 
 .tasks_update
 {
-    \\ If there is already a task running we cannot start this frame.
-    lda task_request
-    bne return
+    \\ If there's already a task running try again when it's done.
+    lda main_task_req
+    bne try_shadow_task
 
     \\ Check if this is a new task.
 	lda rocket_track_task_id+1
-	ldx rocket_track_task_data+1
-	cmp last_task_id
-	bne start_new_task
-	cpx last_task_data
-	beq return
+	ldx rocket_track_task_id+0
+    cmp main_task_id
+    bne new_main_task
+    cpx main_task_data
+    beq try_shadow_task
 
-	.start_new_task
+    .new_main_task
+    IF _DEBUG
+    cmp #TASK_ID_MAX            ; protect against live editing errors!
+    bcs try_shadow_task
+    ENDIF
+
+    \\ Setup the task in the main thread.
+	sta main_task_id
+	stx main_task_data
+
+    \\ Convert task data to int.
+    jsr task_data_to_int
+    stx main_task_load_A+1
+
+    lda main_task_id
+	asl a:tax
+	lda tasks_fn_table+0, X
+	sta main_task_jmp+1
+	lda tasks_fn_table+1, X
+	sta main_task_jmp+2
+
+    ldy #0:sty main_task_load_Y+1
+
+    inc main_task_req
+
+    .try_shadow_task
+    \\ If there's already a task running try again when it's done.
+    lda shadow_task_req
+    bne return
+
+    \\ Check if this is a new task.
+	lda rocket_track_task_data+1
+	ldx rocket_track_task_data+0
+    cmp shadow_task_id
+    bne new_shadow_task
+    cpx shadow_task_data
+    beq return
+
+    .new_shadow_task
     IF _DEBUG
     cmp #TASK_ID_MAX            ; protect against live editing errors!
     bcs return
     ENDIF
 
     \\ Setup the task in the main thread.
-	sta last_task_id
-	stx last_task_data
-    stx do_task_load_A+1
+	sta shadow_task_id
+	stx shadow_task_data
 
+    \\ Convert task data to int.
+    jsr task_data_to_int
+    stx shadow_task_load_A+1
+
+    lda shadow_task_id
 	asl a:tax
 	lda tasks_fn_table+0, X
-	sta do_task_jmp+1
+	sta shadow_task_jmp+1
 	lda tasks_fn_table+1, X
-	sta do_task_jmp+2
+	sta shadow_task_jmp+2
 
-    inc task_request
+    ldy #1:sty shadow_task_load_Y+1
+
+    inc shadow_task_req
 
 	.return
 	rts
@@ -111,3 +155,22 @@ TASK_ID_MAX = 4
 	bne page_loop
 	rts
 }
+
+\\ TODO: Could bake this at conversion time rather than linear search a table.
+.task_data_to_int
+{
+    txa
+    ldx #0
+    .loop
+    cmp task_data_float_to_int, X
+    beq return
+    inx
+    bne loop
+    .return
+    rts
+}
+
+.task_data_float_to_int
+FOR n,0,99,1
+EQUB 256*n/100
+NEXT

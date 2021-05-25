@@ -23,9 +23,9 @@ TODO:
 - Need a solution for the top row so not always fixed to scanline 0. - DONE
 - Move FX code to SWRAM as out of core RAM. - DONE
 - Fix top row of vertical stretch. - DONE
+- Sort out FX owning their palette. - JUST DO STATIC IMAGE FOR NOW.
+- Move to 2x tasks for main & shadow. - STARTED, TO TIDY.
 
-- Sort out FX owning their palette.
-- Move to 2x tasks for main & shadow.
 - Transitions! Top & bottom bars?
 - Add more FX.
     - Frak Zoomer
@@ -33,6 +33,8 @@ TODO:
     - Tech-tech?
     - EI style wibble appear?
 
+- Update Rocket integration to save track files in the right folder.
+- Write up Shadow World demo idea.
 
 
 Track controls.
@@ -74,7 +76,7 @@ Ponder.
 - Staring in the middle of the sequence means it's likely to have missed a task to initalise one of the screens.
     - Or the sequence author just has to be aware of this limitation?
         => restart sequence higher up? or will this become an issue later in the demo?
-    => Could have two separate task tracks one for MAIN and one for SHADOW?
+    => Could have two separate task tracks one for MAIN and one for SHADOW? - DONE.
 
 - Might need a way of initialising FX (vars) so that editing is the same as playback. - DONE.
     - E.g. currently the twister just carries on from wherever it last was.
@@ -95,8 +97,8 @@ Ponder.
     - VectorEyes had some cunning approach for EI?
 
 - What do about the feather edge of the Chunky Twister? - DONE.
-    - Is there a general-ish solution to this?
-    - Force screen off during hblank?
+    - Is there a general-ish solution to this? => R0=0.
+    - Force screen off during hblank? => RTW investigating a solution!
 
 - All FX need to manage their own palette updates as well.
     - Even if set to default, this needs to be done in FX update.

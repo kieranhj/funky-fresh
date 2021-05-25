@@ -14,7 +14,10 @@ static_image_scrn_addr = screen_addr + 640
 	lda #HI(static_image_scrn_addr/8):sta &fe01
 	lda #13:sta &fe00
 	lda #LO(static_image_scrn_addr/8):sta &fe01
-	rts
+
+	ldx #LO(fx_static_image_default_palette)
+	ldy #HI(fx_static_image_default_palette)
+	jmp fx_static_image_set_palette
 }
 
 .fx_static_image_shadow_update
@@ -26,6 +29,23 @@ static_image_scrn_addr = screen_addr + 640
 	lda #HI(static_image_scrn_addr/8):sta &fe01
 	lda #13:sta &fe00
 	lda #LO(static_image_scrn_addr/8):sta &fe01
+
+	ldx #LO(fx_static_image_default_palette)
+	ldy #HI(fx_static_image_default_palette)
+	jmp fx_static_image_set_palette
+}
+
+.fx_static_image_set_palette
+{
+    stx pal_loop+1
+    sty pal_loop+2
+
+	ldx #15
+	.pal_loop
+	lda fx_static_image_default_palette, X
+	sta &fe21
+	dex
+	bpl pal_loop
 	rts
 }
 
@@ -51,4 +71,24 @@ static_image_scrn_addr = screen_addr + 640
 	sta prev_scanline		; at scanline -2.
 	lda #30:sta &fe01		; R6=240 visible lines.
 	rts
+}
+
+.fx_static_image_default_palette
+{
+	EQUB &00 + PAL_black
+	EQUB &10 + PAL_red
+	EQUB &20 + PAL_green
+	EQUB &30 + PAL_yellow
+	EQUB &40 + PAL_blue
+	EQUB &50 + PAL_magenta
+	EQUB &60 + PAL_cyan
+	EQUB &70 + PAL_white
+	EQUB &80 + PAL_black
+	EQUB &90 + PAL_red
+	EQUB &A0 + PAL_green
+	EQUB &B0 + PAL_yellow
+	EQUB &C0 + PAL_blue
+	EQUB &D0 + PAL_magenta
+	EQUB &E0 + PAL_cyan
+	EQUB &F0 + PAL_white
 }

@@ -73,9 +73,12 @@ INCLUDE "lib/vgcplayer.h.asm"
 ;.seed                   skip 2
 
 .music_enabled          skip 1
-.task_request           skip 1
-.last_task_id			skip 1
-.last_task_data			skip 1
+.main_task_req          skip 1
+.main_task_id			skip 1
+.main_task_data			skip 1
+.shadow_task_req        skip 1
+.shadow_task_id			skip 1
+.shadow_task_data		skip 1
 .display_fx				skip 1
 \\ TODO: Is delta_vsync actually needed?
 .prev_vsync             skip 2
@@ -387,14 +390,8 @@ GUARD screen_addr + RELOC_SPACE
     \\ Main loop!
     .loop
     {
-        .wait_for_task
-        lda task_request
-        beq wait_for_task
-
-        \\ Do our background task.
-		jsr do_task
-
-        dec task_request
+        jsr do_main_task
+        jsr do_shadow_task
     }
     jmp loop
 
@@ -572,16 +569,42 @@ GUARD screen_addr + RELOC_SPACE
 
 .old_irqv   EQUW &FFFF
 
-.do_task
+.do_main_task
 {
-.^do_task_load_A
+    lda main_task_req
+    beq return
+
+.^main_task_load_A
     lda #0
-.^do_task_load_X
+.^main_task_load_X
     ldx #0
-.^do_task_load_Y
+.^main_task_load_Y
     ldy #0
-.^do_task_jmp
-    jmp do_nothing
+.^main_task_jmp
+    jsr do_nothing
+
+    dec main_task_req
+    .return
+    rts
+}
+
+.do_shadow_task
+{
+    lda shadow_task_req
+    beq return
+
+.^shadow_task_load_A
+    lda #0
+.^shadow_task_load_X
+    ldx #0
+.^shadow_task_load_Y
+    ldy #0
+.^shadow_task_jmp
+    jsr do_nothing
+
+    dec shadow_task_req
+    .return
+    rts
 }
 
 .MUSIC_JUMP_SN_RESET
@@ -630,26 +653,6 @@ IF _DEBUG
 ENDIF
 
 IF 0
-.mode4_default_palette
-{
-	EQUB &00 + PAL_black
-	EQUB &10 + PAL_black
-	EQUB &20 + PAL_black
-	EQUB &30 + PAL_black
-	EQUB &40 + PAL_black
-	EQUB &50 + PAL_black
-	EQUB &60 + PAL_black
-	EQUB &70 + PAL_black
-	EQUB &80 + PAL_white
-	EQUB &90 + PAL_white
-	EQUB &A0 + PAL_white
-	EQUB &B0 + PAL_white
-	EQUB &C0 + PAL_white
-	EQUB &D0 + PAL_white
-	EQUB &E0 + PAL_white
-	EQUB &F0 + PAL_white
-}
-
 .mode4_crtc_regs
 {
 	EQUB 63    			    ; R0  horizontal total
