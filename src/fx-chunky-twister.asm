@@ -120,6 +120,7 @@ ENDMACRO
 	rts
 }
 
+\\ TODO: Make this comment correct for this framework!
 \ ******************************************************************
 \ Draw FX
 \
@@ -136,43 +137,52 @@ ENDMACRO
 \ A FULL AND VALID 312 line PAL signal before exiting!
 \ ******************************************************************
 
-\\ Limited RVI
-\\ Display 0,2,4,6 scanline offset for 2 scanlines.
-\\ <--- 102c total w/ 80c visible and hsync at 98c ---> <2c> ..13x <2c> = 128c
-\\ Plus one extra for luck! (i.e. we wait for 13 but C9 counts 14 in total.)
-\\ R9 = 13 + current - next
-\\
-\\  Assumes R4=0, i.e. one row per CRTC cycle.
-\\  Scanline 0 has normal R0 width 128c.
-\\  Must set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 0 - 2 = 11
-\\  Set scanline 1 to have width 102c.
-\\  At 102c set R0 width to 2c and skip remaining 26c.
-\\  At 0c reset R0 width to 128c.
-\\
-\\ Select CRTC register 0, i.e. lda #0:sta &fe00
-\\
-\\ cycles -->  94   96   98   100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
-\\             lda..sta............WAIT_CYCLES 18 ..............................lda..sta ...........|
-\\             #1   &fe01                                                       #127 &fe01
-\\ scanline 1            hpos      2    3    4    5    6    7    8    9    10   11   xx   0    1    2
-\\                                                                                   |
-\\                                               --> missed due to end of CRTC frame +
-\\
-\\ For limited jump RVI with LHS blanking.
+\\ Limited jump RVI with LHS blanking.
 \\ Display 0,2,4 scanline offset for 2 scanlines.
-\\ (Or rather no jump of > 4 scanlines distance.)
+\\ (Or rather no jump > 4 scanlines distance between subsequent cycles.)
 \\  Set R9 before final scanline to 9 + current - next. eg. R9 = 9 + 0 - 0 = 9
 \\
 \\ cycles -->       96   98   100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
 \\                  lda..sta............lda..WAIT_CYCLES 10 ..........stz............sta ...........|
 \\                  #1   &fe01          #127                          &fe01          &fe01
-\\ scanline 1            hpos           2    3    4    5    6    7    8    9    xx   ?    ?    ?    0
-\\                                                                              |    |
-\\                                          --> missed due to end of CRTC frame +    + scanline counter prevented from updating whilst R0=0!
+\\ scanline 1            ^              2    3    4    5    6    7    8    9    xx   ?    ?    ?    0
+\\                       hpos                                                   |    |
+\\                                          --> missed due to end of CRTC cycle +    + scanline counter prevented from updating whilst R0=0!
 \\
-\\ NB. There is no additional scanline if this is not the end of the CRTC frame.
+\\ NB. There is no additional scanline if this is not the end of the CRTC cycle.
 
-CODE_ALIGN 64
+PAGE_ALIGN_FOR_SIZE 32
+.twister_vram_table_LO
+FOR n,0,31,1
+EQUB LO((&3000 + n*640)/8)
+NEXT
+
+PAGE_ALIGN_FOR_SIZE 32
+.twister_vram_table_HI
+FOR n,0,31,1
+EQUB HI((&3000 + n*640)/8)
+NEXT
+
+PAGE_ALIGN_FOR_SIZE 4
+.twister_quadrant_colour_1
+EQUB &60 + PAL_cyan
+EQUB &60 + PAL_green
+EQUB &60 + PAL_yellow
+EQUB &60 + PAL_red
+
+PAGE_ALIGN_FOR_SIZE 4
+.twister_quadrant_colour_2
+EQUB &10 + PAL_red
+EQUB &10 + PAL_cyan
+EQUB &10 + PAL_green
+EQUB &10 + PAL_yellow
+
+PAGE_ALIGN_FOR_SIZE 4
+.twister_quadrant_colour_3
+EQUB &20 + PAL_green
+EQUB &20 + PAL_yellow
+EQUB &20 + PAL_red
+EQUB &20 + PAL_cyan
 
 .fx_chunky_twister_draw
 {
@@ -393,39 +403,6 @@ CODE_ALIGN 64
 \ ******************************************************************
 \ *	FX DATA
 \ ******************************************************************
-
-PAGE_ALIGN_FOR_SIZE 32
-.twister_vram_table_LO
-FOR n,0,31,1
-EQUB LO((&3000 + n*640)/8)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 32
-.twister_vram_table_HI
-FOR n,0,31,1
-EQUB HI((&3000 + n*640)/8)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 4
-.twister_quadrant_colour_1
-EQUB &60 + PAL_cyan
-EQUB &60 + PAL_green
-EQUB &60 + PAL_yellow
-EQUB &60 + PAL_red
-
-PAGE_ALIGN_FOR_SIZE 4
-.twister_quadrant_colour_2
-EQUB &10 + PAL_red
-EQUB &10 + PAL_cyan
-EQUB &10 + PAL_green
-EQUB &10 + PAL_yellow
-
-PAGE_ALIGN_FOR_SIZE 4
-.twister_quadrant_colour_3
-EQUB &20 + PAL_green
-EQUB &20 + PAL_yellow
-EQUB &20 + PAL_red
-EQUB &20 + PAL_cyan
 
 PAGE_ALIGN
 .x_wibble

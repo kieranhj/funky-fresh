@@ -13,7 +13,6 @@ TODO:
     - Display FX.
     - Separate out FX.
     - Rocket.
-
 - Add another RVI effect that can be switched between. - DONE
     - Chunky Twister.
 - Figure out the run-time, no editor, track data interpolation. - DONE
@@ -21,13 +20,17 @@ TODO:
 - Move screen to 240 lines => 16 more scanlines. - DONE
     - R6=30, R7=34.
 - Chunky Twister just runs automatically - how to drive from Rocket? - DONE
-- Transitions! Top & bottom bars? <= NEXT!
 - Need a solution for the top row so not always fixed to scanline 0. - DONE
+
+- Fix top row of vertical stretch.
+- Move FX code to SWRAM as out of core RAM.
+- Transitions! Top & bottom bars?
 - Add more FX.
     - Frak Zoomer
     - Psuedo-3D?
     - Tech-tech?
     - EI style wibble appear?
+
 
 
 Track controls.

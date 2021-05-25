@@ -114,7 +114,6 @@
 \\
 \\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
-CODE_ALIGN &100
 .fx_vertical_stretch_draw
 {
 	WAIT_SCANLINES_ZERO_X 2
