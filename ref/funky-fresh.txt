@@ -21,9 +21,10 @@ TODO:
     - R6=30, R7=34.
 - Chunky Twister just runs automatically - how to drive from Rocket? - DONE
 - Need a solution for the top row so not always fixed to scanline 0. - DONE
+- Move FX code to SWRAM as out of core RAM. - DONE
 
 - Fix top row of vertical stretch.
-- Move FX code to SWRAM as out of core RAM.
+- Sort out FX owning their palette.
 - Transitions! Top & bottom bars?
 - Add more FX.
     - Frak Zoomer

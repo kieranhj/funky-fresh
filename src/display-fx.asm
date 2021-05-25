@@ -6,11 +6,11 @@
 \\ TODO: Support Display FX code in SWRAM banks.
 .display_fx_table
 {
-	equw do_nothing,			            fx_default_crtc_draw	    ; &00
-	equw fx_vertical_stretch_update,	    fx_vertical_stretch_draw	; &01
-	equw fx_static_image_main_update,		fx_default_crtc_draw	    ; &02
-	equw fx_static_image_shadow_update,		fx_default_crtc_draw	    ; &03
-	equw fx_chunky_twister_update,			fx_chunky_twister_draw		; &04
+	equw do_nothing,			            fx_default_crtc_draw,		SLOT_BANK2	; &00
+	equw fx_vertical_stretch_update,	    fx_vertical_stretch_draw,	SLOT_BANK2	; &01
+	equw fx_static_image_main_update,		fx_default_crtc_draw,		SLOT_BANK2  ; &02
+	equw fx_static_image_shadow_update,		fx_default_crtc_draw,		SLOT_BANK2  ; &03
+	equw fx_chunky_twister_update,			fx_chunky_twister_draw,		SLOT_BANK2	; &04
 }
 DISPLAY_FX_MAX = 5
 
@@ -27,7 +27,10 @@ DISPLAY_FX_MAX = 5
 
 	\\ Set Display FX callbacks in IRQ.
 	sta display_fx
-	asl a:asl a:tax
+	asl a:asl a
+	clc
+	adc display_fx:adc display_fx
+	tax
 
 	lda display_fx_table+0, X
 	sta call_fx_update_fn+1
@@ -38,6 +41,10 @@ DISPLAY_FX_MAX = 5
 	sta call_fx_draw_fn+1
 	lda display_fx_table+3, X
 	sta call_fx_draw_fn+2
+
+	lda display_fx_table+4, X
+	sta call_fx_update_slot+1
+	sta call_fx_draw_slot+1
 
 	.return
 	rts

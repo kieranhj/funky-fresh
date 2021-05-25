@@ -63,6 +63,17 @@ CLEAR &8000, &C000
 ORG &8000
 GUARD &C000
 .bank2_start
+
+\ ******************************************************************
+\ *	DEMO MODULES
+\ ******************************************************************
+
+.fx_start
+include "src/fx-vertical-stretch.asm"
+include "src/fx-static-image.asm"
+include "src/fx-chunky-twister.asm"
+.fx_end
+
 .bank2_end
 
 SAVE "build/BANK2", bank2_start, bank2_end, bank2_start
@@ -70,6 +81,7 @@ SAVE "build/BANK2", bank2_start, bank2_end, bank2_start
 PRINT "------"
 PRINT "BANK 2"
 PRINT "------"
+PRINT "FX size =", ~fx_end-fx_start
 PRINT "SIZE =", ~bank2_end-bank2_start
 PRINT "HIGH WATERMARK =", ~P%
 PRINT "FREE =", ~&C000-P%

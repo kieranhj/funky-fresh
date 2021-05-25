@@ -38,7 +38,7 @@ screen_addr = &3000
 FramePeriod = 312*64-2
 ; Exact time so that the FX draw function call starts at VCC=0,HCC=0.
 ; NB. Assumes vsync at scanline 272 (row 34) for 240 lines (30 rows) of visible display.
-Timer1InitialValue = 38*64 - 2*64 - 60 -2
+Timer1InitialValue = 38*64 - 2*64 - 67 -2
 ; Exact time of the visible portion of the display.
 VisibleDisplayPeriod = 258*64 -4
 ; Exact time of the vblank portion of the display.
@@ -199,13 +199,11 @@ GUARD screen_addr + RELOC_SPACE
         lda #HI(&8000)
         jsr disksys_load_file
 
-    IF 0
         SWRAM_SELECT SLOT_BANK2
         ldx #LO(bank2_filename)
         ldy #HI(bank2_filename)
         lda #HI(&8000)
         jsr disksys_load_file
-    ENDIF
     }
 
     \\ Load HAZEL last as it trashes the FS workspace.
@@ -486,9 +484,17 @@ GUARD screen_addr + RELOC_SPACE
     ENDIF
     \\ New frame effectively starts here!
 
+    \\ Set FX SWRAM bank.
+    lda &f4:pha
+    .^call_fx_update_slot
+    lda #0:sta &f4:sta &fe30
+
     \\ Call FX update function.
 	.^call_fx_update_fn
     jsr do_nothing
+
+    \\ Restore existing SWRAM bank.
+    pla:sta &f4:sta &fe30
 
     pla:tay:pla:tax
 
@@ -534,9 +540,14 @@ GUARD screen_addr + RELOC_SPACE
 		.stable
 	}
 
+    \\ Set FX SWRAM bank.
+    lda &f4:pha                     ; 6c
+    .^call_fx_draw_slot
+    lda #0:sta &f4:sta &fe30        ; 9c
+
 	; T1 has already latched to its new value for the next interupt (vblank potion)
 	; Latch T1 for the next-plus_one interupt => at the start of the visible display.
-	lda #LO(VBlankDisplayPeriod):sta &fe46	; 8c
+	lda #LO(VBlankDisplayPeriod):sta &fe46	; 8c <= 7c
 	lda #HI(VBlankDisplayPeriod):sta &fe47	; 8c
 
     txa:pha:tya:pha
@@ -546,6 +557,9 @@ GUARD screen_addr + RELOC_SPACE
     jsr fx_default_crtc_draw		; restores CRTC regs to defaults.
 
     pla:tay:pla:tax
+
+    \\ Restore existing SWRAM bank.
+    pla:sta &f4:sta &fe30
 
 	\\ Next IRQ will be the vblank portion of the display.
 	lda #(vblank_display_portion-irq_handler_dest)
@@ -588,18 +602,6 @@ include "src/rocket.asm"
 include "src/tasks.asm"
 
 .main_end
-
-\ ******************************************************************
-\ *	DEMO MODULES
-\ ******************************************************************
-
-.fx_start
-
-include "src/fx-vertical-stretch.asm"
-include "src/fx-static-image.asm"
-include "src/fx-chunky-twister.asm"
-
-.fx_end
 
 \ ******************************************************************
 \ *	LIBRARY MODULES
@@ -714,7 +716,6 @@ PRINT "------"
 PRINT "ZP size =", ~zp_end-zp_start, "(",~rocket_zp_start-zp_end,"free)"
 PRINT "ROCKET ZP size =", ~rocket_zp_end-rocket_zp_start, "(",~rocket_zp_reserved-rocket_zp_end,"free)"
 PRINT "MAIN size =", ~main_end-main_start
-PRINT "FX size =", ~fx_end-fx_start
 PRINT "LIBRARY size =",~library_end-library_start
 PRINT "DATA size =",~data_end-data_start
 PRINT "RELOC size =",~reloc_from_end-reloc_from_start
