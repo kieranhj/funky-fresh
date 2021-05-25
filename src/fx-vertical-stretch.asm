@@ -58,10 +58,6 @@
 	lda vram_table_HI, X
 	sta &fe01
 
-	\\ Scanline of row 0 is always 0.
-	lda #0
-	sta prev_scanline
-
 	\\ This FX always uses screen in MAIN RAM.
 	; clear bit 0 to display MAIN.
 	lda &fe34:and #&fe:sta &fe34
@@ -70,10 +66,11 @@
 	lda #6:sta &fe00					; 8c
 	lda #1:sta &fe01					; 8c
 
-	lda #118:sta row_count				; 5c
+	lda #119:sta row_count				; 5c
 	rts
 }
 
+\\ TODO: Make this comment correct for this framework!
 \ ******************************************************************
 \ Draw FX
 \
@@ -114,17 +111,11 @@
 \\
 \\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
-CODE_ALIGN 128
+CODE_ALIGN 64
 
 .fx_vertical_stretch_draw
 {
-	WAIT_SCANLINES_ZERO_X 2
-
-	\\ <=== HCC=0
-
-	\\ R4=0
-	lda #4:sta &fe00					; 8c
-	lda #0:sta &fe01					; 8c
+	\\ <=== HCC=0 (scanline=-2)
 
 	\\ Update v 		<-- could be done in update.
 	clc:lda v:adc dv:sta v				; 11c
@@ -156,26 +147,34 @@ CODE_ALIGN 128
 	stx prev_scanline					; 3c
 	\\ 35c
 
-	WAIT_CYCLES 21
+	WAIT_CYCLES 33
+
+		\\ <=== HCC=0 (scanline=-1)
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c
 		lda #101:sta &fe01					; 8c
 
-		WAIT_CYCLES 58+16
+		WAIT_CYCLES 78
 
 		\\ At HCC=102 set R0=1.
 		lda #1:sta &fe01					; 8c
-		\\ Burn 13 scanlines = 13x2c = 26c
+		\\ <=== HCC=102
+
+		\\ Burn R0=1 scanlines.
 		WAIT_CYCLES 18
+
+		\\ At HCC=0 set R0=127
+		lda #127:sta &fe01					; 8c
+
+	\\ <=== HCC=0 (scanline=0)
+
+	lda #4:sta &fe00						; 8c
+	lda #0:sta &fe01						; 8c
 
 	\\ Now 2x scanlines per loop.
 	.char_row_loop
 	{
-			\\ At HCC=0 set R0=127
-			lda #127:sta &fe01		; 8c
-		
-		\\ <=== HCC=0
 		\\ Update v
 		clc:lda v:adc dv:sta v				; 11c
 		lda v+1:adc dv+1:sta v+1			; 9c
@@ -206,8 +205,8 @@ CODE_ALIGN 128
 		stx prev_scanline				; 3c
 		\\ 35c
 
-		\\ 33c
-			WAIT_CYCLES 68		\\ <=== HCC=0
+		\\ 17c
+			WAIT_CYCLES 52		\\ <=== HCC=0 (scanline=odd)
 			\\ 35c
 
 			\\ Set R0=101 (102c)
@@ -218,20 +217,22 @@ CODE_ALIGN 128
 
 			\\ At HCC=102 set R0=1.
 			lda #1:sta &fe01				; 8c
-			\\ Burn 13 scanlines = 13x2c = 26c
-			WAIT_CYCLES 10
+			\\ <=== HCC=102
 
-			dec row_count				; 5c
-			bne char_row_loop			; 3c
+			\\ Burn R0=1 scanlines.
+			WAIT_CYCLES 18
+
+			\\ At HCC=0 set R0=127
+			lda #127:sta &fe01				; 8c
+
+		\\ <=== HCC=0 (scanline=even)
+
+		WAIT_CYCLES 8
+		dec row_count				; 5c
+		bne char_row_loop			; 3c
 	}
 	CHECK_SAME_PAGE_AS char_row_loop, TRUE
 	.scanline_last
-
-		ldx #1						; 2c
-		\\ At HCC=0 set R0=127
-		lda #127:sta &fe01			; 8c <= 7c
-
-		\\ <=== HCC=0
 
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
 	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
