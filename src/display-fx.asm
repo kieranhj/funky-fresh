@@ -7,9 +7,9 @@
 .display_fx_table
 {
 	equw do_nothing,			            fx_static_image_draw,		SLOT_BANK2	; &00
-	equw fx_vertical_stretch_update,	    fx_vertical_stretch_draw,	SLOT_BANK2	; &01
-	equw fx_static_image_main_update,		fx_static_image_draw,		SLOT_BANK2  ; &02
-	equw fx_static_image_shadow_update,		fx_static_image_draw,		SLOT_BANK2  ; &03
+	equw fx_static_image_main_update,		fx_static_image_draw,		SLOT_BANK2  ; &01
+	equw fx_static_image_shadow_update,		fx_static_image_draw,		SLOT_BANK2  ; &02
+	equw fx_vertical_stretch_update,	    fx_vertical_stretch_draw,	SLOT_BANK2	; &03
 	equw fx_chunky_twister_update,			fx_chunky_twister_draw,		SLOT_BANK2	; &04
 }
 DISPLAY_FX_MAX = 5
