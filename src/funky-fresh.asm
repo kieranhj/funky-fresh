@@ -88,6 +88,7 @@ INCLUDE "lib/vgcplayer.h.asm"
 .row_count				skip 1
 .prev_scanline			skip 1
 .temp                   skip 1
+.product                skip 2
 
 \\ TODO: Move FX ZP vars?
 \\ TODO: Give FX vars proper names!
@@ -298,7 +299,7 @@ GUARD screen_addr + RELOC_SPACE
     lda #hi(vgm_stream_buffers)
     ldx #lo(vgc_data_tune)
     ldy #hi(vgc_data_tune)
-    sec ; loop
+    clc ; no loop
     jsr vgm_init
 
     \\ Init sequence.

@@ -29,8 +29,8 @@
 
 	jsr fx_vertical_stretch_update
 
-	lda dv:sta fx_strech_grid_dv_LO+1
-	lda dv+1:sta fx_strech_grid_dv_HI+1
+	lda dv:sta fx_stretch_grid_dv_LO+1
+	lda dv+1:sta fx_stretch_grid_dv_HI+1
 
 	jmp fx_frequency_update_grid
 }
@@ -86,7 +86,7 @@
 	\\ 20c
 
 	\\ Row 1 screen start
-	lsr a:tax							; 4c
+	tax							; 2c
 	lda #13:sta &fe00					; 8c
 	lda vram_table_LO, X				; 4c
 	sta &fe01							; 6c
@@ -97,7 +97,7 @@
 	
 	\\ Row 1 scanline
 	lda #9:sta &fe00					; 8c
-	lda v+1:and #6						; 5c
+	lda v+1:asl a:and #6						; 7c
 	\\ 2-bits * 2
 	tax									; 2c
 	eor #&ff							; 2c
@@ -146,15 +146,15 @@
 	{
 		\\ Update v
 		lda v
-		.*fx_strech_grid_dv_LO
+		.*fx_stretch_grid_dv_LO
 		adc #0:sta v				; 8c
 		lda v+1
-		.*fx_strech_grid_dv_HI
+		.*fx_stretch_grid_dv_HI
 		adc #0:sta v+1				; 8c
 		\\ 16c
 
 		\\ Row N+1 screen start
-		lsr a:tax							; 4c
+		tax							; 2c
 		lda #13:sta &fe00					; 8c
 		lda vram_table_LO, X				; 4c
 		sta &fe01							; 6c
@@ -166,7 +166,7 @@
 		\\ NB. Must set R9 before final scanline of the row!
 		\\ Row N+1 scanline
 		lda #9:sta &fe00				; 8c
-		lda v+1:and #6					; 5c
+		lda v+1:asl a:and #6					; 7c
 		\\ 2-bits * 2
 		tax								; 2c
 		eor #&ff						; 2c

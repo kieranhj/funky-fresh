@@ -23,6 +23,27 @@
 \ be late and your raster timings will be wrong!
 \ ******************************************************************
 
+.standard_multiply_AX
+{
+	CPX #0:BEQ zero
+	DEX:STX product+1
+	LSR A:STA product
+	LDA #0
+	BCC s1:ADC product+1:.s1 ROR A:ROR product
+	BCC s2:ADC product+1:.s2 ROR A:ROR product
+	BCC s3:ADC product+1:.s3 ROR A:ROR product
+	BCC s4:ADC product+1:.s4 ROR A:ROR product
+	BCC s5:ADC product+1:.s5 ROR A:ROR product
+	BCC s6:ADC product+1:.s6 ROR A:ROR product
+	BCC s7:ADC product+1:.s7 ROR A:ROR product
+	BCC s8:ADC product+1:.s8 ROR A:ROR product
+	STA product+1
+	RTS
+	.zero
+	STX product:STX product+1
+	RTS
+}
+
 .fx_vertical_stretch_update
 {
 	ldx rocket_track_zoom+1
@@ -33,22 +54,45 @@
 
 	\\ Set v to centre of the image.
 	lda #0:sta v
-	lda #127:sta v+1	; Image Height / 2
+	lda #63:sta v+1	; Image Height / 2
 
 	\\ Subtract dv y_pos times to set starting v.
 	\\ v = 127 - y_pos * dv
+	IF 0
 	ldy rocket_track_y_pos+1
 	.sub_loop
+	sec				; 2c
+	lda v			; 3c
+	sbc dv			; 3c
+	sta v			; 3c
+	lda v+1			; 3c
+	sbc dv+1		; 3c
+	sta v+1			; 3c
+	dey				; 2c
+	bne sub_loop	; 3c
+	\\ 19c * y_pos (60) = 960c!!
+	ELSE
+	lda dv+1:beq just_lower
+	
+	\\ Just upper.
+	lda #0:sta product
+	lda rocket_track_y_pos+1:sta product+1
+	jmp done_lower
+
+	.just_lower
+	lda dv
+	ldx rocket_track_y_pos+1
+	jsr standard_multiply_AX
+	.done_lower
+	
 	sec
 	lda v
-	sbc dv
+	sbc product
 	sta v
 	lda v+1
-	sbc dv+1
+	sbc product+1
 	sta v+1
-
-	dey
-	bne sub_loop
+	ENDIF
 
 	\\ Set CRTC start address of row 0.
 	lsr a:tax
@@ -113,8 +157,6 @@
 \\
 \\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
-CODE_ALIGN 64
-
 .fx_vertical_stretch_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
@@ -125,7 +167,7 @@ CODE_ALIGN 64
 	\\ 20c
 
 	\\ Row 1 screen start
-	lsr a:tax							; 4c
+	tax							; 2c
 	lda #13:sta &fe00					; 8c
 	lda vram_table_LO, X				; 4c
 	sta &fe01							; 6c
@@ -136,7 +178,7 @@ CODE_ALIGN 64
 	
 	\\ Row 1 scanline
 	lda #9:sta &fe00					; 8c
-	lda v+1:and #6						; 5c
+	lda v+1:asl a:and #6						; 7c
 	\\ 2-bits * 2
 	tax									; 2c
 	eor #&ff							; 2c
@@ -189,7 +231,7 @@ CODE_ALIGN 64
 		\\ 16c
 
 		\\ Row N+1 screen start
-		lsr a:tax							; 4c
+		tax							; 2c
 		lda #13:sta &fe00					; 8c
 		lda vram_table_LO, X				; 4c
 		sta &fe01							; 6c
@@ -201,7 +243,7 @@ CODE_ALIGN 64
 		\\ NB. Must set R9 before final scanline of the row!
 		\\ Row N+1 scanline
 		lda #9:sta &fe00				; 8c
-		lda v+1:and #6					; 5c
+		lda v+1:asl a:and #6					; 7c
 		\\ 2-bits * 2
 		tax								; 2c
 		eor #&ff						; 2c
@@ -247,7 +289,7 @@ CODE_ALIGN 64
 		beq scanline_last			; 2c
 		jmp char_row_loop			; 3c
 	}
-	CHECK_SAME_PAGE_AS char_row_loop, TRUE
+	CHECK_SAME_PAGE_AS char_row_loop, FALSE
 	.scanline_last
 
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
@@ -286,35 +328,41 @@ CODE_ALIGN 64
 \ *	FX DATA
 \ ******************************************************************
 
-PAGE_ALIGN_FOR_SIZE 128
+PAGE_ALIGN_FOR_SIZE 256
 .vram_table_LO
 FOR n,0,127,1
 EQUB LO((&3000 + (n DIV 4)*640)/8)
 NEXT
+FOR n,0,127,1
+EQUB LO(&3000/8)
+NEXT
 
-PAGE_ALIGN_FOR_SIZE 128
+PAGE_ALIGN_FOR_SIZE 256
 .vram_table_HI
 FOR n,0,127,1
 EQUB HI((&3000 + (n DIV 4)*640)/8)
 NEXT
+FOR n,0,127,1
+EQUB HI(&3000/8)
+NEXT
 
-PAGE_ALIGN_FOR_SIZE 128
+PAGE_ALIGN_FOR_SIZE 64
 .dv_table_LO
 FOR n,0,63,1
 height=128
 max_height=height*10
 h=128+n*(max_height-height)/63
-dv = 512 * height / h
+dv = 256 * height / h
 ;PRINT h, height/h, dv
 EQUB LO(dv)
 NEXT
 
-PAGE_ALIGN_FOR_SIZE 128
+PAGE_ALIGN_FOR_SIZE 64
 .dv_table_HI
 FOR n,0,63,1
 height=128
 max_height=1280
 h=128+n*(max_height-height)/63
-dv = 512 * height / h
+dv = 256 * height / h
 EQUB HI(dv)
 NEXT
