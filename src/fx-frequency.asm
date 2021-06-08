@@ -90,7 +90,11 @@ VGC_FREQ_MAX = 64
     ; R6=240 visible lines.
 	lda #6:sta &fe00        ; 8c
 	lda #30:sta &fe01		; 8c
-    rts
+
+    ; Reset bottom of palette.
+	ldx #LO(fx_static_image_default_palette)
+	ldy #HI(fx_static_image_default_palette)
+	jmp fx_static_image_set_palette
 }
 
 \\ TODO: Make this comment correct for this framework!

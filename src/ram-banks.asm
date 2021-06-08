@@ -45,7 +45,7 @@ INCBIN "build/twister1-mode2.exo"
 INCBIN "build/twister2-mode2.exo"
 
 .exo_asset_stripes
-INCBIN "build/stripes-mode2.exo"
+INCBIN "build/logo-with-stripes-mode2.exo"
 
 .bank1_end
 

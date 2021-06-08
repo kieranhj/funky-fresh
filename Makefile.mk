@@ -39,7 +39,7 @@ code: music assets
 music: ./build/beeb-demo.bbc.vgc
 
 .PHONY:assets
-assets: ./build/logo-mode2.exo \
+assets: ./build/logo-with-stripes-mode2.exo ./build/logo-mode2.exo \
 		./build/doom-screen.exo ./build/scr-screen.exo \
 		./build/twister1-mode2.exo ./build/twister2-mode2.exo \
 		./build/funky-sequence.bin ./build/stripes-mode2.exo
@@ -92,6 +92,10 @@ clean:
 ./build/logo-mode2.bin: ./data/raw/logo-mode2.bin
 	$(MKDIR_P) "./build"
 	$(COPY) .\data\raw\logo-mode2.bin build
+
+./build/logo-with-stripes-mode2.bin: ./data/raw/logo-with-stripes-mode2.bin
+	$(MKDIR_P) "./build"
+	$(COPY) .\data\raw\logo-with-stripes-mode2.bin build
 
 ./build/twister1-mode2.bin: ./data/raw/twister1-mode2.bin
 	$(MKDIR_P) "./build"

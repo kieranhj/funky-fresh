@@ -40,7 +40,7 @@ static_image_scrn_addr = screen_addr + 640
     stx pal_loop+1
     sty pal_loop+2
 
-	ldx #15
+	ldx #7		; let's not worry about the top 8 for now.
 	.pal_loop
 	lda fx_static_image_default_palette, X
 	sta &fe21

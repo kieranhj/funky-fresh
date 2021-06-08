@@ -211,7 +211,7 @@ CODE_ALIGN 64
 		stx prev_scanline				; 3c
 		\\ 35c
 
-		WAIT_CYCLES 15
+		WAIT_CYCLES 15					; jump to black bar version here - oof!
 		\\ <=== HCC=118 (scanline=odd)
 			WAIT_CYCLES 80				; for palette changes.
 
@@ -227,6 +227,13 @@ CODE_ALIGN 64
 
 			\\ Burn R0=1 scanlines.
 			WAIT_CYCLES 18
+			; dec row_count2		; 5c
+			; bne alt_path			; jump away and back.
+			; 2c
+			; tya:adc #8:tay		; 6c
+			; lda #15				; 2c
+			; sta row_count			; 3c
+			; Just fits!!
 
 			\\ At HCC=0 set R0=127
 			lda #127:sta &fe01				; 8c
