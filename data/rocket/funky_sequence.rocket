@@ -2,17 +2,16 @@
 <rootElement>
 <tracks rows="10000" startRow="0" endRow="10000" rowsPerBeat="8"
 beatsPerMin="125">
-	<track name="task_1" folded="0" muteKeyCount="0"
-color="ffb28050">
+	<track name="task_1" folded="0" muteKeyCount="0" color="ffb28050">
 		<key row="0" value="3.000000" interpolation="0" />
 		<key row="8" value="1.000000" interpolation="0" />
 		<key row="136" value="1.020000" interpolation="0" />
 		<key row="168" value="1.030000" interpolation="0" />
 		<key row="280" value="1.000000" interpolation="0" />
 		<key row="632" value="1.030000" interpolation="0" />
+		<key row="968" value="1.050000" interpolation="0" />
 	</track>
-	<track name="task_2" folded="0" muteKeyCount="0"
-color="ffa9b250">
+	<track name="task_2" folded="0" muteKeyCount="0" color="ffa9b250">
 		<key row="0" value="0.000000" interpolation="0" />
 		<key row="20" value="2.010000" interpolation="0" />
 		<key row="152" value="2.040000" interpolation="0" />
@@ -31,6 +30,7 @@ color="ff60b250">
 		<key row="632" value="1.000000" interpolation="0" />
 		<key row="636" value="2.000000" interpolation="0" />
 		<key row="640" value="4.000000" interpolation="0" />
+		<key row="968" value="5.000000" interpolation="0" />
 	</track>
 	<track name="zoom" folded="0" muteKeyCount="0" color="ffb27474">
 		<key row="16" value="0.000000" interpolation="1" />
@@ -126,7 +126,8 @@ color="ff60b250">
 		<key row="928" value="32.000000" interpolation="1" />
 		<key row="960" value="0.000000" interpolation="0" />
 	</track>
-	<track name="anim_time" folded="0" muteKeyCount="0" color="ff8850b2">
+	<track name="anim_time" folded="0" muteKeyCount="0"
+color="ff8850b2">
 		<key row="192" value="0.000000" interpolation="1" />
 		<key row="280" value="128.000000" interpolation="0" />
 		<key row="640" value="0.000000" interpolation="1" />
