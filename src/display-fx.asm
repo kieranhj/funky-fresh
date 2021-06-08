@@ -11,8 +11,10 @@
 	equw fx_static_image_shadow_update,		fx_static_image_draw,		SLOT_BANK2  ; &02
 	equw fx_vertical_stretch_update,	    fx_vertical_stretch_draw,	SLOT_BANK2	; &03
 	equw fx_chunky_twister_update,			fx_chunky_twister_draw,		SLOT_BANK2	; &04
+	equw fx_frequency_update,				fx_frequency_draw,			SLOT_BANK2	; &05
+    ; v---------------------------------------------------------------------------- ; update DISPLAY_FX_MAX!
 }
-DISPLAY_FX_MAX = 5
+DISPLAY_FX_MAX = 6
 
 .display_fx_update
 {

@@ -34,6 +34,7 @@ ORG &8000
 GUARD &C000
 .bank1_start
 
+\\ TODO: Generate bank of assets and labels etc. automatically from one list.
 .exo_asset_logo_mode2
 INCBIN "build/logo-mode2.exo"
 
@@ -42,6 +43,9 @@ INCBIN "build/twister1-mode2.exo"
 
 .exo_asset_twister_2
 INCBIN "build/twister2-mode2.exo"
+
+.exo_asset_stripes
+INCBIN "build/stripes-mode2.exo"
 
 .bank1_end
 
@@ -72,6 +76,7 @@ GUARD &C000
 include "src/fx-vertical-stretch.asm"
 include "src/fx-static-image.asm"
 include "src/fx-chunky-twister.asm"
+include "src/fx-frequency.asm"
 .fx_end
 
 .bank2_end

@@ -9,6 +9,7 @@
 	equw task_decrunch_asset_to_main	    ; &01
 	equw task_decrunch_asset_to_shadow  	; &02
     equw task_wipe_screens                  ; &03
+    ; v------------------------------------ ; update TASK_ID_MAX!
 }
 TASK_ID_MAX = 4
 
@@ -54,7 +55,7 @@ TASK_ID_MAX = 4
     .try_shadow_task
     \\ If there's already a task running try again when it's done.
     lda shadow_task_req
-    bne return
+    bne task_update_return
 
     \\ Check if this is a new task.
 	lda rocket_track_task_data+1
@@ -62,12 +63,12 @@ TASK_ID_MAX = 4
     cmp shadow_task_id
     bne new_shadow_task
     cpx shadow_task_data
-    beq return
+    beq task_update_return
 
     .new_shadow_task
     IF _DEBUG
     cmp #TASK_ID_MAX            ; protect against live editing errors!
-    bcs return
+    bcs task_update_return
     ENDIF
 
     \\ Setup the task in the main thread.
@@ -88,10 +89,9 @@ TASK_ID_MAX = 4
     ldy #1:sty shadow_task_load_Y+1
 
     inc shadow_task_req
-
-	.return
-	rts
 }
+.task_update_return
+rts
 
 .task_decrunch_asset_to_main
 {
@@ -101,6 +101,10 @@ TASK_ID_MAX = 4
     lda &fe34:and #&fb:sta &fe34
     
     .^task_decrunch_asset_X
+    IF _DEBUG
+    cpx #ASSET_ID_MAX*4
+    bcs task_update_return
+    ENDIF
 
     \\ Select SWRAM slot.
     lda assets_table+2, X

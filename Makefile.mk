@@ -1,6 +1,7 @@
 ifeq ($(OS),Windows_NT)
 RM_RF:=-cmd /c rd /s /q
 MKDIR_P:=-cmd /c mkdir
+COPY:=copy
 BEEBASM?=bin\beebasm.exe
 EXO?=bin\exomizer.exe
 PYTHON2?=C:\Dev\Python27\python.exe
@@ -8,6 +9,7 @@ PYTHON3?=python.exe
 else
 RM_RF:=rm -Rf
 MKDIR_P:=mkdir -p
+COPY:=cp
 BEEBASM?=beebasm
 EXO?=exomizer
 PYTHON3?=python
@@ -40,7 +42,7 @@ music: ./build/beeb-demo.bbc.vgc
 assets: ./build/logo-mode2.exo \
 		./build/doom-screen.exo ./build/scr-screen.exo \
 		./build/twister1-mode2.exo ./build/twister2-mode2.exo \
-		./build/funky-sequence.bin
+		./build/funky-sequence.bin ./build/stripes-mode2.exo
 
 ##########################################################################
 ##########################################################################
@@ -85,18 +87,23 @@ clean:
 ##########################################################################
 ##########################################################################
 
-# Try to avoid having raw binaries without source assets!
+# TODO: Try to avoid having raw binaries without source assets!
+# TODO: Need a copy command that copes with forward slash directory separator.
 ./build/logo-mode2.bin: ./data/raw/logo-mode2.bin
 	$(MKDIR_P) "./build"
-	copy .\data\raw\logo-mode2.bin build
+	$(COPY) .\data\raw\logo-mode2.bin build
 
 ./build/twister1-mode2.bin: ./data/raw/twister1-mode2.bin
 	$(MKDIR_P) "./build"
-	copy .\data\raw\twister1-mode2.bin build
+	$(COPY) .\data\raw\twister1-mode2.bin build
 
 ./build/twister2-mode2.bin: ./data/raw/twister2-mode2.bin
 	$(MKDIR_P) "./build"
-	copy .\data\raw\twister2-mode2.bin build
+	$(COPY) .\data\raw\twister2-mode2.bin build
+
+./build/stripes-mode2.bin: ./data/raw/stripes-mode2.bin
+	$(MKDIR_P) "./build"
+	$(COPY) .\data\raw\stripes-mode2.bin build
 
 ##########################################################################
 ##########################################################################

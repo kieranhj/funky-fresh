@@ -13,7 +13,7 @@
 ENABLE_HUFFMAN = FALSE
 
 ; Enable this to capture the SN chip register settings (for fx etc.)
-ENABLE_VGM_FX = FALSE
+ENABLE_VGM_FX = TRUE
 
 LZ_STORE_BUFFER_INLINE=TRUE
 
@@ -72,3 +72,25 @@ ENDIF ; ENABLE_HUFFMAN
 ; they may need to be zero page due to indirect addressing
 zp_block_data = zp_stream_src ; re-uses zp_stream_src, must be zp ; zp_buffer+0 ; must be zp
 zp_block_size = zp_temp+0 ; does not need to be zp
+
+
+; Sound chip data from the vgm player
+IF ENABLE_VGM_FX
+.vgm_fx SKIP 11
+; first 8 bytes are:
+; tone0 LO, tone1 LO, tone2 LO, tone3, vol0, vol1, vol2, vol3 (all 4-bit values)
+; next 3 bytes are:
+; tone0 HI, tone1 HI, tone2 HI (all 6-bit values)
+VGM_FX_TONE0_LO = 0
+VGM_FX_TONE1_LO = 1
+VGM_FX_TONE2_LO = 2
+VGM_FX_TONE3_LO = 3 ; noise
+VGM_FX_VOL0     = 4
+VGM_FX_VOL1     = 5
+VGM_FX_VOL2     = 6
+VGM_FX_VOL3     = 7 ; noise
+VGM_FX_TONE0_HI = 8
+VGM_FX_TONE1_HI = 9
+VGM_FX_TONE2_HI = 10
+VGM_FX_MAX      = 11
+ENDIF

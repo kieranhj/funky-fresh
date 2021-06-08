@@ -180,3 +180,22 @@ LHS Visible Garbage problem
       But! Only use a quarter twist across those 64 and use a palette switch for the rest.
       So brads [0-255] where the top 2 bits are the colour palette and bottom 6 bits are the prerendered rows.
       DONE!
+
+
+Frequency FX
+~~~
+
+Actual freq = 4,000,000 / 32 * sn_value (10-bits)
+We don't care about actual freq but need a 1/sn_value to get linear coverage.
+Hmmm, linear coverage doesn't help.
+- Slow down the fade so the screen is fuller.
+- Set up table for brightness fade.
+- Add random or vsync offset to fill up the screen?
+  - vsync doesn't work - try random but on beat?
+- Can this be done at the same time as stretch?
+  - There are 114c spare but not contiguous!
+
+Rather than freq, maybe other patterns would be more fun on the grid?
+- Strobing squares, spirals, etc.
+- Argh! How to define all these w/out endless code?
+- This is a take on the Loonies Phosphor demo-ish?

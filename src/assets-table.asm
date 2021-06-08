@@ -10,4 +10,7 @@
     equw exo_asset_scr_mode2,       SLOT_BANK0       ; &02
     equw exo_asset_twister_1,       SLOT_BANK1       ; &03
     equw exo_asset_twister_2,       SLOT_BANK1       ; &04
+    equw exo_asset_stripes,         SLOT_BANK1       ; &05
+    ; v--------------------------------------------- ; update ASSET_ID_MAX!
 }
+ASSET_ID_MAX = 6
