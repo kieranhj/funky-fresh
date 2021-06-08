@@ -104,6 +104,9 @@ INCLUDE "lib/vgcplayer.h.asm"
 .xy						skip 2
 .shadow_bit             skip 1
 
+\\ FX stretch grid
+.grid_row_count         skip 1
+
 \\ TODO: Local ZP vars?
 .zp_end
 

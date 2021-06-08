@@ -27,11 +27,30 @@ VGC_FREQ_MAX = 64
 \ be late and your raster timings will be wrong!
 \ ******************************************************************
 
-.vgc_reg_copy       skip VGM_FX_MAX
+.vgc_freq_array
+FOR n,0,FX_FREQ_MAX-1,1
+EQUB FX_FREQ_PAL_END
+NEXT
 
 .fx_frequency_update
 {
+	; clear bit 0 to display MAIN.
+	lda &fe34:and #&fe:sta &fe34
+	; Set R12/R13 for full screen.
+	lda #12:sta &fe00
+	lda #HI(static_image_scrn_addr/8):sta &fe01
+	lda #13:sta &fe00
+	lda #LO(static_image_scrn_addr/8):sta &fe01
+
+    ; R6=240 visible lines.
+	lda #6:sta &fe00        ; 8c
+	lda #30:sta &fe01		; 8c
+}
+\\ Drop through!
+.fx_frequency_update_grid
+{
     \\ Fade all frequencies.
+    IF 0
     ldx #VGC_FREQ_MAX-1
     .fade_loop
     ldy vgc_freq_array, X
@@ -39,6 +58,13 @@ VGC_FREQ_MAX = 64
     sta vgc_freq_array, X
     dex
     bpl fade_loop
+    ELSE
+    FOR x,0,VGC_FREQ_MAX-1,1
+    ldy vgc_freq_array+x
+    lda fx_freq_next_pal_value, Y ; next colour
+    sta vgc_freq_array+x
+    NEXT
+    ENDIF
 
     \\ Check VGC registers values for new notes.
     ldx #2
@@ -72,24 +98,20 @@ VGC_FREQ_MAX = 64
     bpl loop
 
     \\ Copy VGC registers.
+    IF 0
     ldx #VGM_FX_MAX-1
     .copy_loop
     lda vgm_fx, X
     sta vgc_reg_copy, X
     dex
     bpl copy_loop
-
-	; clear bit 0 to display MAIN.
-	lda &fe34:and #&fe:sta &fe34
-	; Set R12/R13 for full screen.
-	lda #12:sta &fe00
-	lda #HI(static_image_scrn_addr/8):sta &fe01
-	lda #13:sta &fe00
-	lda #LO(static_image_scrn_addr/8):sta &fe01
-
-    ; R6=240 visible lines.
-	lda #6:sta &fe00        ; 8c
-	lda #30:sta &fe01		; 8c
+    ELSE
+    FOR x,0,VGM_FX_MAX-1,1
+    lda vgm_fx+x
+    sta vgc_reg_copy+x
+    NEXT
+    rts
+    ENDIF
 
     ; Reset bottom of palette.
 	ldx #LO(fx_static_image_default_palette)
@@ -187,11 +209,7 @@ VGC_FREQ_MAX = 64
     rts
 }
 
-.vgc_freq_array
-FOR n,0,FX_FREQ_MAX-1,1
-EQUB FX_FREQ_PAL_END
-NEXT
-;skip FX_FREQ_MAX
+.vgc_reg_copy       skip VGM_FX_MAX
 
 \\ white -> yellow -> cyan -> green -> magenta -> red -> blue -> black
 

@@ -1,6 +1,6 @@
 \ -*- mode:beebasm -*-
 \ ******************************************************************
-\ *	VERTICAL STRETCH FX
+\ *	VERTICAL STRETCH ON TOP OF FREQUENCY GRID FX
 \ ******************************************************************
 
 \\ TODO: Describe the FX and requirements.
@@ -23,53 +23,16 @@
 \ be late and your raster timings will be wrong!
 \ ******************************************************************
 
-.fx_vertical_stretch_update
+.fx_stretch_grid_update
 {
-	ldx rocket_track_zoom+1
-	lda dv_table_LO, X
-	sta dv:sta fx_vertical_strech_dv_LO+1
-	lda dv_table_HI, X
-	sta dv+1:sta fx_vertical_strech_dv_HI+1
+	\\ Hope there's enough time for all this!!
 
-	\\ Set v to centre of the image.
-	lda #0:sta v
-	lda #127:sta v+1	; Image Height / 2
+	jsr fx_vertical_stretch_update
 
-	\\ Subtract dv y_pos times to set starting v.
-	\\ v = 127 - y_pos * dv
-	ldy rocket_track_y_pos+1
-	.sub_loop
-	sec
-	lda v
-	sbc dv
-	sta v
-	lda v+1
-	sbc dv+1
-	sta v+1
+	lda dv:sta fx_strech_grid_dv_LO+1
+	lda dv+1:sta fx_strech_grid_dv_HI+1
 
-	dey
-	bne sub_loop
-
-	\\ Set CRTC start address of row 0.
-	lsr a:tax
-	lda #13:sta &fe00
-	lda vram_table_LO, X
-	sta &fe01
-	lda #12:sta &fe00
-	lda vram_table_HI, X
-	sta &fe01
-
-	\\ This FX always uses screen in MAIN RAM.
-	\\ TODO: Add a data byte to specify MAIN or SHADOW.
-	; clear bit 0 to display MAIN.
-	lda &fe34:and #&fe:sta &fe34
-
-	\\ R6=display 1 row.
-	lda #6:sta &fe00					; 8c
-	lda #1:sta &fe01					; 8c
-
-	lda #119:sta row_count				; 5c
-	rts
+	jmp fx_frequency_update_grid
 }
 
 \\ TODO: Make this comment correct for this framework!
@@ -113,9 +76,7 @@
 \\
 \\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
-CODE_ALIGN 64
-
-.fx_vertical_stretch_draw
+.fx_stretch_grid_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
 
@@ -164,7 +125,11 @@ CODE_ALIGN 64
 		\\ <=== HCC=102
 
 		\\ Burn R0=1 scanlines.
-		WAIT_CYCLES 14
+		lda #15:sta grid_row_count			; 5c
+
+		WAIT_CYCLES 7
+
+		ldy #0								; 2c
 		clc									; 2c
 		ldx #4								; 2c
 
@@ -181,10 +146,10 @@ CODE_ALIGN 64
 	{
 		\\ Update v
 		lda v
-		.*fx_vertical_strech_dv_LO
+		.*fx_strech_grid_dv_LO
 		adc #0:sta v				; 8c
 		lda v+1
-		.*fx_vertical_strech_dv_HI
+		.*fx_strech_grid_dv_HI
 		adc #0:sta v+1				; 8c
 		\\ 16c
 
@@ -215,7 +180,15 @@ CODE_ALIGN 64
 
 		WAIT_CYCLES 15					; jump to black bar version here - oof!
 		\\ <=== HCC=118 (scanline=odd)
-			WAIT_CYCLES 80				; for palette changes.
+
+			FOR stripe,0,7,1
+			lda vgc_freq_array+stripe, Y        ; 4c
+			ora #&80+(stripe*&10)               ; 2c column <= could factor out?
+			sta &fe21                           ; 4c
+			NEXT
+			\\ 10c * 8 = 80c
+
+		    \\ <== HCC=70 (scanline=even) so that colour is set before final stripe displayed.
 
 			\\ Set R0=101 (102c)
 			stz &fe00						; 6c
@@ -228,14 +201,16 @@ CODE_ALIGN 64
 			\\ <=== HCC=102
 
 			\\ Burn R0=1 scanlines.
-			WAIT_CYCLES 18
-			; dec row_count2		; 5c
-			; bne alt_path			; jump away and back.
-			; 2c
-			; tya:adc #8:tay		; 6c
-			; lda #15				; 2c
-			; sta row_count			; 3c
-			; Just fits!!
+			{
+				dec grid_row_count	; 5c
+				bne alt_path		; jump away and back.
+									; 2c
+				tya:adc #8:tay		; 6c
+				lda #15				; 2c
+				sta grid_row_count  ; 3c
+				\\ 18c
+			}
+			.^return_from_alt_path
 
 			\\ At HCC=0 set R0=127
 			lda #127:sta &fe01				; 8c
@@ -247,7 +222,7 @@ CODE_ALIGN 64
 		beq scanline_last			; 2c
 		jmp char_row_loop			; 3c
 	}
-	CHECK_SAME_PAGE_AS char_row_loop, TRUE
+	CHECK_SAME_PAGE_AS char_row_loop, FALSE
 	.scanline_last
 
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
@@ -280,41 +255,9 @@ CODE_ALIGN 64
 
 	lda #0:sta prev_scanline
     rts
+
+	.alt_path					; 8c
+	WAIT_CYCLES 7
+	jmp return_from_alt_path	; 3c
+	\\ 18c
 }
-
-\ ******************************************************************
-\ *	FX DATA
-\ ******************************************************************
-
-PAGE_ALIGN_FOR_SIZE 128
-.vram_table_LO
-FOR n,0,127,1
-EQUB LO((&3000 + (n DIV 4)*640)/8)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 128
-.vram_table_HI
-FOR n,0,127,1
-EQUB HI((&3000 + (n DIV 4)*640)/8)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 128
-.dv_table_LO
-FOR n,0,63,1
-height=128
-max_height=height*10
-h=128+n*(max_height-height)/63
-dv = 512 * height / h
-;PRINT h, height/h, dv
-EQUB LO(dv)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 128
-.dv_table_HI
-FOR n,0,63,1
-height=128
-max_height=1280
-h=128+n*(max_height-height)/63
-dv = 512 * height / h
-EQUB HI(dv)
-NEXT

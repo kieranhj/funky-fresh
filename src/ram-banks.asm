@@ -77,6 +77,7 @@ include "src/fx-vertical-stretch.asm"
 include "src/fx-static-image.asm"
 include "src/fx-chunky-twister.asm"
 include "src/fx-frequency.asm"
+include "src/fx-stretch-grid.asm"
 .fx_end
 
 .bank2_end
