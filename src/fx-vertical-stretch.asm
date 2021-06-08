@@ -27,9 +27,9 @@
 {
 	ldx rocket_track_zoom+1
 	lda dv_table_LO, X
-	sta dv
+	sta dv:sta fx_vertical_strech_dv_LO+1
 	lda dv_table_HI, X
-	sta dv+1
+	sta dv+1:sta fx_vertical_strech_dv_HI+1
 
 	\\ Set v to centre of the image.
 	lda #0:sta v
@@ -162,23 +162,29 @@ CODE_ALIGN 64
 		\\ <=== HCC=102
 
 		\\ Burn R0=1 scanlines.
-		WAIT_CYCLES 18
+		WAIT_CYCLES 14
+		clc									; 2c
+		ldx #4								; 2c
 
 		\\ At HCC=0 set R0=127
 		lda #127:sta &fe01					; 8c
 
 	\\ <=== HCC=0 (scanline=0)
 
-	lda #4:sta &fe00						; 8c
-	lda #0:sta &fe01						; 8c
+	stx &fe00								; 6c
+	stz &fe01								; 6c
 
 	\\ Now 2x scanlines per loop.
 	.char_row_loop
 	{
 		\\ Update v
-		clc:lda v:adc dv:sta v				; 11c
-		lda v+1:adc dv+1:sta v+1			; 9c
-		\\ 20c
+		lda v
+		.*fx_vertical_strech_dv_LO
+		adc #0:sta v				; 8c
+		lda v+1
+		.*fx_vertical_strech_dv_HI
+		adc #0:sta v+1				; 8c
+		\\ 16c
 
 		\\ Row N+1 screen start
 		lsr a:tax							; 4c
@@ -205,15 +211,15 @@ CODE_ALIGN 64
 		stx prev_scanline				; 3c
 		\\ 35c
 
-		\\ 17c
-			WAIT_CYCLES 52		\\ <=== HCC=0 (scanline=odd)
-			\\ 35c
+		WAIT_CYCLES 15
+		\\ <=== HCC=118 (scanline=odd)
+			WAIT_CYCLES 80				; for palette changes.
 
 			\\ Set R0=101 (102c)
-			lda #0:sta &fe00				; 8c <= 7c
+			stz &fe00						; 6c
 			lda #101:sta &fe01				; 8c
 
-			WAIT_CYCLES 44
+			WAIT_CYCLES 10
 
 			\\ At HCC=102 set R0=1.
 			lda #1:sta &fe01				; 8c
@@ -227,9 +233,10 @@ CODE_ALIGN 64
 
 		\\ <=== HCC=0 (scanline=even)
 
-		WAIT_CYCLES 8
+		clc							; 2c
 		dec row_count				; 5c
-		bne char_row_loop			; 3c
+		beq scanline_last			; 2c
+		jmp char_row_loop			; 3c
 	}
 	CHECK_SAME_PAGE_AS char_row_loop, TRUE
 	.scanline_last

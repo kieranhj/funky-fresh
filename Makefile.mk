@@ -33,7 +33,7 @@ disc: code
 .PHONY:code
 code: music assets
 	$(MKDIR_P) "./build"
-	$(BEEBASM) -i src/funky-fresh.asm -v > build/compile.txt
+	$(BEEBASM) -i src/funky-fresh.asm -v > ./compile.txt
 
 .PHONY:music
 music: ./build/beeb-demo.bbc.vgc

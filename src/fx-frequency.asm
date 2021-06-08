@@ -5,7 +5,8 @@
 
 \\ TODO: Describe the FX and requirements.
 
-FX_COLOUR_MAX = 8
+FX_FREQ_PAL_START = 8
+FX_FREQ_PAL_END = 7     ; PAL_black
 FX_FREQ_ROWS = 8
 FX_FREQ_COLS = 8
 FX_FREQ_MAX = FX_FREQ_ROWS * FX_FREQ_COLS
@@ -33,12 +34,8 @@ VGC_FREQ_MAX = 64
     \\ Fade all frequencies.
     ldx #VGC_FREQ_MAX-1
     .fade_loop
-    sec
-    lda vgc_freq_array, X
-    sbc #1              ; vsync_delta?
-    bcs ok
-    lda #0
-    .ok
+    ldy vgc_freq_array, X
+    lda fx_freq_next_pal_value, Y ; next colour
     sta vgc_freq_array, X
     dex
     bpl fade_loop
@@ -59,7 +56,7 @@ VGC_FREQ_MAX = 64
     beq loop_cont
 
     .make_note
-    lda #FX_COLOUR_MAX-1            ; no. frames of fade
+    lda #FX_FREQ_PAL_START          ; no. frames of fade
     ldy vgm_fx+VGM_FX_TONE0_HI, X   ; top 6-bits of tone value for channel X
     ; could invert the freq index here?
     sta vgc_freq_array, Y
@@ -67,6 +64,7 @@ VGC_FREQ_MAX = 64
     asl a
     tay
     ; could invert the freq index here?
+    lda #FX_FREQ_PAL_START          ; no. frames of fade
     sta vgc_freq_array, Y
 
     .loop_cont
@@ -129,13 +127,14 @@ VGC_FREQ_MAX = 64
     .row_loop
     \\ <== HCC=102 (scanline=-1)
 
+    WAIT_CYCLES 16
+
     FOR stripe,0,7,1
     lda vgc_freq_array+stripe, Y        ; 4c
-    eor #7                              ; 2c <= remove?
     ora #&80+(stripe*&10)               ; 2c column <= could factor out?
     sta &fe21                           ; 4c
     NEXT
-    \\ 12c * 8 = 96c
+    \\ 10c * 8 = 80c
 
     \\ <== HCC=70 (scanline=0) so that colour is set before final stripe displayed.
 
@@ -185,4 +184,27 @@ VGC_FREQ_MAX = 64
 }
 
 .vgc_freq_array
-skip FX_FREQ_MAX
+FOR n,0,FX_FREQ_MAX-1,1
+EQUB FX_FREQ_PAL_END
+NEXT
+;skip FX_FREQ_MAX
+
+\\ white -> yellow -> cyan -> green -> magenta -> red -> blue -> black
+
+.fx_freq_next_pal_value
+equb &0C                  ; &00 PAL_white (7) (ii)
+equb &0D                  ; &01 PAL_cyan (6) (vi)
+equb &0E                  ; &02 PAL_magenta (5) (viii)
+equb &0F                  ; &03 PAL_blue (4) (xiv)
+equb &09                  ; &04 PAL_yellow (3) (iv)
+equb &0A                  ; &05 PAL_green (2) (x)
+equb &0B                  ; &06 PAL_red (1) (xii)
+equb &07                  ; &07 PAL_black (0) (xvi) <-- ends here!
+equb &00                  ; &08 PAL_white (15) (i)  <-- starts here!
+equb &01                  ; &09 PAL_cyan (14) (v)
+equb &02                  ; &0A PAL_magenta (13) (vii)
+equb &03                  ; &0B PAL_blue (12) (xiii)
+equb &04                  ; &0C PAL_yellow (11) (iii)
+equb &05                  ; &0D PAL_green (10) (ix)
+equb &06                  ; &0E PAL_red (9) (xi)
+equb &07                  ; &0F PAL_black (8) (xv)
