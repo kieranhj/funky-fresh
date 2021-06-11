@@ -14,10 +14,7 @@ static_image_scrn_addr = screen_addr + 640
 	lda #HI(static_image_scrn_addr/8):sta &fe01
 	lda #13:sta &fe00
 	lda #LO(static_image_scrn_addr/8):sta &fe01
-
-	ldx #LO(fx_static_image_default_palette)
-	ldy #HI(fx_static_image_default_palette)
-	jmp fx_static_image_set_palette
+	rts
 }
 
 .fx_static_image_shadow_update
@@ -29,10 +26,7 @@ static_image_scrn_addr = screen_addr + 640
 	lda #HI(static_image_scrn_addr/8):sta &fe01
 	lda #13:sta &fe00
 	lda #LO(static_image_scrn_addr/8):sta &fe01
-
-	ldx #LO(fx_static_image_default_palette)
-	ldy #HI(fx_static_image_default_palette)
-	jmp fx_static_image_set_palette
+	rts
 }
 
 .fx_static_image_set_palette

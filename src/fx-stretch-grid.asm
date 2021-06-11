@@ -110,15 +110,25 @@
 	stx prev_scanline					; 3c
 	\\ 35c
 
-	WAIT_CYCLES 33
+	WAIT_CYCLES 21
+	ldy #0								; 2c
 
-		\\ <=== HCC=0 (scanline=-1)
+	\\ <=== HCC=118 (scanline=-2)
+
+		FOR stripe,0,7,1
+		lda vgc_freq_array+stripe, Y        ; 4c
+		ora #&80+(stripe*&10)               ; 2c column <= could factor out?
+		sta &fe21                           ; 4c
+		NEXT
+		\\ 10c * 8 = 80c
+
+		\\ <== HCC=70 (scanline=odd) so that colour is set before final stripe displayed.
 
 		\\ Set R0=101 (102c)
-		lda #0:sta &fe00					; 8c
+		stz &fe00							; 6c
 		lda #101:sta &fe01					; 8c
 
-		WAIT_CYCLES 78
+		WAIT_CYCLES 10
 
 		\\ At HCC=102 set R0=1.
 		lda #1:sta &fe01					; 8c
@@ -126,12 +136,10 @@
 
 		\\ Burn R0=1 scanlines.
 		lda #15:sta grid_row_count			; 5c
-
-		WAIT_CYCLES 7
-
-		ldy #0								; 2c
 		clc									; 2c
 		ldx #4								; 2c
+
+		WAIT_CYCLES 9
 
 		\\ At HCC=0 set R0=127
 		lda #127:sta &fe01					; 8c
@@ -154,19 +162,19 @@
 		\\ 16c
 
 		\\ Row N+1 screen start
-		tax							; 2c
-		lda #13:sta &fe00					; 8c
-		lda vram_table_LO, X				; 4c
-		sta &fe01							; 6c
-		lda #12:sta &fe00					; 8c
-		lda vram_table_HI, X				; 4c
-		sta &fe01							; 6c
-		\\ 40c
+		tax								; 2c
+		lda #13:sta &fe00				; 8c
+		lda vram_table_LO, X			; 4c
+		sta &fe01						; 6c
+		lda #12:sta &fe00				; 8c
+		lda vram_table_HI, X			; 4c
+		sta &fe01						; 6c
+		\\ 38c
 	
 		\\ NB. Must set R9 before final scanline of the row!
 		\\ Row N+1 scanline
 		lda #9:sta &fe00				; 8c
-		lda v+1:asl a:and #6					; 7c
+		lda v+1:asl a:and #6			; 7c
 		\\ 2-bits * 2
 		tax								; 2c
 		eor #&ff						; 2c
@@ -176,10 +184,20 @@
 		adc prev_scanline				; 3c
 		sta &fe01						; 6c
 		stx prev_scanline				; 3c
-		\\ 35c
+		\\ 37c
 
-		WAIT_CYCLES 15					; jump to black bar version here - oof!
-		\\ <=== HCC=118 (scanline=odd)
+		;WAIT_CYCLES 15					; jump to black bar version here - oof!
+		lda grid_row_count				; 3c
+		cmp #1							; 2c
+		bne colour_path
+		; 2c
+		jmp set_black_palette			; 3c
+		.colour_path
+		; 3c
+		WAIT_CYCLES 7
+		\\ 15c
+
+		\\ <=== HCC=118 (scanline=even)
 
 			FOR stripe,0,7,1
 			lda vgc_freq_array+stripe, Y        ; 4c
@@ -187,20 +205,24 @@
 			sta &fe21                           ; 4c
 			NEXT
 			\\ 10c * 8 = 80c
+			.^return_from_black_palette
 
-		    \\ <== HCC=70 (scanline=even) so that colour is set before final stripe displayed.
+		    \\ <== HCC=70 (scanline=odd) so that colour is set before final stripe displayed.
 
 			\\ Set R0=101 (102c)
 			stz &fe00						; 6c
 			lda #101:sta &fe01				; 8c
 
-			WAIT_CYCLES 10
+			WAIT_CYCLES 8
+			clc								; 2c
 
 			\\ At HCC=102 set R0=1.
 			lda #1:sta &fe01				; 8c
 			\\ <=== HCC=102
 
 			\\ Burn R0=1 scanlines.
+
+			\\ Increment freq_array index every 30 scanlines.
 			{
 				dec grid_row_count	; 5c
 				bne alt_path		; jump away and back.
@@ -260,4 +282,15 @@
 	WAIT_CYCLES 7
 	jmp return_from_alt_path	; 3c
 	\\ 18c
+
+	.set_black_palette					; 10c
+    FOR stripe,0,7,1
+    lda #&80+(stripe*&10)+PAL_black     ; 2c
+    sta &fe21                           ; 4c
+    NEXT
+    \\ 6c * 8 = 48c
+
+	WAIT_CYCLES 34
+	jmp return_from_black_palette		; 3c
+	\\ 95c
 }

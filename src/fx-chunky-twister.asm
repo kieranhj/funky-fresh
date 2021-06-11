@@ -397,7 +397,11 @@ EQUB &20 + PAL_cyan
 	lda #1:sta &fe01
 
 	lda #0:sta prev_scanline
-    rts
+
+	\\ FX responsible for resetting lower palette.
+	ldx #LO(fx_static_image_default_palette)
+	ldy #HI(fx_static_image_default_palette)
+	jmp fx_static_image_set_palette
 }
 
 \ ******************************************************************

@@ -110,13 +110,8 @@ NEXT
     lda vgm_fx+x
     sta vgc_reg_copy+x
     NEXT
-    rts
     ENDIF
-
-    ; Reset bottom of palette.
-	ldx #LO(fx_static_image_default_palette)
-	ldy #HI(fx_static_image_default_palette)
-	jmp fx_static_image_set_palette
+    rts
 }
 
 \\ TODO: Make this comment correct for this framework!

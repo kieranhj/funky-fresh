@@ -57,7 +57,7 @@
 	lda #63:sta v+1	; Image Height / 2
 
 	\\ Subtract dv y_pos times to set starting v.
-	\\ v = 127 - y_pos * dv
+	\\ v = centre - y_pos * dv
 	IF 0
 	ldy rocket_track_y_pos+1
 	.sub_loop
@@ -72,19 +72,25 @@
 	bne sub_loop	; 3c
 	\\ 19c * y_pos (60) = 960c!!
 	ELSE
+	\\ TODO: Fix this hack!
+
+	\\ Assumes dv can be no larger than 1.0 / 256!
 	lda dv+1:beq just_lower
-	
-	\\ Just upper.
+
+	\\ If dv == 256 -> 1.0 then 
+	\\ v = centre - y_pos so product = y_pos
 	lda #0:sta product
 	lda rocket_track_y_pos+1:sta product+1
 	jmp done_lower
 
 	.just_lower
+	\\ product = y_pos * dv
 	lda dv
 	ldx rocket_track_y_pos+1
 	jsr standard_multiply_AX
 	.done_lower
-	
+
+	\\ v = centre - y_pos * dv
 	sec
 	lda v
 	sbc product
