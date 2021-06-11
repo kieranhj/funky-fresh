@@ -47,6 +47,9 @@ INCBIN "build/twister2-mode2.exo"
 .exo_asset_stripes
 INCBIN "build/logo-with-stripes-mode2.exo"
 
+.exo_asset_zoom
+INCBIN "build/zoom-2by160-mode2.exo"
+
 .bank1_end
 
 SAVE "build/BANK1", bank1_start, bank1_end, bank1_start
@@ -78,6 +81,7 @@ include "src/fx-static-image.asm"
 include "src/fx-chunky-twister.asm"
 include "src/fx-frequency.asm"
 include "src/fx-stretch-grid.asm"
+include "src/fx-frak-zoomer.asm"
 .fx_end
 
 .bank2_end

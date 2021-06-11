@@ -42,7 +42,8 @@ music: ./build/beeb-demo.bbc.vgc
 assets: ./build/logo-with-stripes-mode2.exo ./build/logo-mode2.exo \
 		./build/doom-screen.exo ./build/scr-screen.exo \
 		./build/twister1-mode2.exo ./build/twister2-mode2.exo \
-		./build/funky-sequence.bin ./build/stripes-mode2.exo
+		./build/funky-sequence.bin ./build/stripes-mode2.exo \
+		./build/zoom-2by160-mode2.exo ./build/frak-sprite.bin
 
 ##########################################################################
 ##########################################################################
@@ -72,6 +73,10 @@ clean:
 ./build/scr-screen.bin: ./data/gfx/TitleScreen_BBC.png
 	$(MKDIR_P) "./build"
 	$(PYTHON2) $(PNG2BBC) -q -o $@ $< --160 2
+
+./build/frak-sprite.bin: ./data/gfx/frak-sprite.png
+	$(MKDIR_P) "./build"
+	$(PYTHON3) bin/png2bbcpal.py -o $@ -c ./build/frak-lines.asm $< 2
 
 ##########################################################################
 ##########################################################################
@@ -108,6 +113,10 @@ clean:
 ./build/stripes-mode2.bin: ./data/raw/stripes-mode2.bin
 	$(MKDIR_P) "./build"
 	$(COPY) .\data\raw\stripes-mode2.bin build
+
+./build/zoom-2by160-mode2.bin: ./data/raw/zoom-2by160-mode2.bin
+	$(MKDIR_P) "./build"
+	$(COPY) .\data\raw\zoom-2by160-mode2.bin build
 
 ##########################################################################
 ##########################################################################

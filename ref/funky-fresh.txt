@@ -23,7 +23,7 @@ TODO:
 - Need a solution for the top row so not always fixed to scanline 0. - DONE
 - Move FX code to SWRAM as out of core RAM. - DONE
 - Fix top row of vertical stretch. - DONE
-- Sort out FX owning their palette. - JUST DO STATIC IMAGE FOR NOW.
+- Sort out FX owning their palette. - DONE => FX Must reset any colours altered at end of draw.
 - Move to 2x tasks for main & shadow. - STARTED, TO TIDY.
 
 - Transitions! Top & bottom bars?
@@ -32,9 +32,11 @@ TODO:
     - Psuedo-3D?
     - Tech-tech?
     - EI style wibble appear?
+    - Text slide on and stick top line
 
 - Update Rocket integration to save track files in the right folder.
-- Write up Shadow World demo idea.
+- Write up Shadow World demo idea. - DONE
+- Add data byte to display_fx track.
 
 
 Track controls.
@@ -49,7 +51,7 @@ Track controls.
 zoom = scale factor (e.g. vertical stretch)
 x_pos = generic x value
 y_pos = generic y value
-time = generic 'time' value that drives the animation <= rename 'anim_time' ?
+anim_time = generic 'time' value that drives the animation
 
 bg_colour = general background colour?
 top_bar = position of top bar (0-127)
@@ -184,7 +186,6 @@ LHS Visible Garbage problem
 
 Frequency FX
 ~~~
-
 Actual freq = 4,000,000 / 32 * sn_value (10-bits)
 We don't care about actual freq but need a 1/sn_value to get linear coverage.
 Hmmm, linear coverage doesn't help.
@@ -199,3 +200,4 @@ Rather than freq, maybe other patterns would be more fun on the grid?
 - Strobing squares, spirals, etc.
 - Argh! How to define all these w/out endless code?
 - This is a take on the Loonies Phosphor demo-ish?
+
