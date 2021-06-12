@@ -97,6 +97,7 @@ INCLUDE "lib/vgcplayer.h.asm"
 \\ FX vertical stretch.
 .v						skip 2
 .dv						skip 2
+.zoom                   skip 1
 
 \\ FX chunky twister.
 .angle					skip 1

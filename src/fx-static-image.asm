@@ -7,6 +7,7 @@ static_image_scrn_addr = screen_addr + 640
 
 .fx_static_image_main_update
 {
+	\\ TODO: Move this to draw.
 	; clear bit 0 to display MAIN.
 	lda &fe34:and #&fe:sta &fe34
 	; Set R12/R13 for full screen.
@@ -19,6 +20,7 @@ static_image_scrn_addr = screen_addr + 640
 
 .fx_static_image_shadow_update
 {
+	\\ TODO: Move this to draw.
 	; set bit 1 to display SHADOW.
 	lda &fe34:ora #1:sta &fe34
 	; Set R12/R13 for full screen.

@@ -47,9 +47,9 @@
 .fx_vertical_stretch_update
 {
 	ldx rocket_track_zoom+1
-	lda dv_table_LO, X
+	lda fx_stretch_dv_table_LO, X
 	sta dv:sta fx_vertical_strech_dv_LO+1
-	lda dv_table_HI, X
+	lda fx_stretch_dv_table_HI, X
 	sta dv+1:sta fx_vertical_strech_dv_HI+1
 
 	\\ Set v to centre of the image.
@@ -100,24 +100,9 @@
 	sta v+1
 	ENDIF
 
-	\\ Set CRTC start address of row 0.
-	lsr a:tax
-	lda #13:sta &fe00
-	lda vram_table_LO, X
-	sta &fe01
-	lda #12:sta &fe00
-	lda vram_table_HI, X
-	sta &fe01
-
-	\\ This FX always uses screen in MAIN RAM.
-	\\ TODO: Add a data byte to specify MAIN or SHADOW.
-	; clear bit 0 to display MAIN.
-	lda &fe34:and #&fe:sta &fe34
-
 	\\ R6=display 1 row.
 	lda #6:sta &fe00					; 8c
 	lda #1:sta &fe01					; 8c
-
 	lda #119:sta row_count				; 5c
 	rts
 }
@@ -167,24 +152,19 @@
 {
 	\\ <=== HCC=0 (scanline=-2)
 
-	\\ Update v 		<-- could be done in update.
-	clc:lda v:adc dv:sta v				; 11c
-	lda v+1:adc dv+1:sta v+1			; 9c
-	\\ 20c
-
 	\\ Row 1 screen start
-	tax							; 2c
-	lda #13:sta &fe00					; 8c
-	lda vram_table_LO, X				; 4c
+	ldx v+1								; 3c
+	lda #13:sta &fe00					; 8c <= 7c
+	lda fx_stretch_vram_table_LO, X		; 4c
 	sta &fe01							; 6c
 	lda #12:sta &fe00					; 8c
-	lda vram_table_HI, X				; 4c
+	lda fx_stretch_vram_table_HI, X		; 4c
 	sta &fe01							; 6c
-	\\ 40c
+	\\ 38c
 	
-	\\ Row 1 scanline
-	lda #9:sta &fe00					; 8c
-	lda v+1:asl a:and #6						; 7c
+	\\ Set displayed scanline for rasterline 0.
+	lda #9:sta &fe00					; 8c <= 7c
+	lda v+1:asl a:and #6				; 7c
 	\\ 2-bits * 2
 	tax									; 2c
 	eor #&ff							; 2c
@@ -193,11 +173,16 @@
 	clc									; 2c
 	adc prev_scanline					; 3c
 	\\ R9 must be set before final scanline of the row.
-	sta &fe01							; 6c
+	sta &fe01							; 6c <= 5c
 	stx prev_scanline					; 3c
-	\\ 35c
+	\\ 37c
 
-	WAIT_CYCLES 33
+	\\ This FX always uses screen in MAIN RAM.
+	\\ TODO: Add a data byte to specify MAIN or SHADOW.
+	; clear bit 0 to display MAIN.
+	lda &fe34:and #&fe:sta &fe34		; 10c
+
+	WAIT_CYCLES 43
 
 		\\ <=== HCC=0 (scanline=-1)
 
@@ -239,10 +224,10 @@
 		\\ Row N+1 screen start
 		tax							; 2c
 		lda #13:sta &fe00					; 8c
-		lda vram_table_LO, X				; 4c
+		lda fx_stretch_vram_table_LO, X				; 4c
 		sta &fe01							; 6c
 		lda #12:sta &fe00					; 8c
-		lda vram_table_HI, X				; 4c
+		lda fx_stretch_vram_table_HI, X				; 4c
 		sta &fe01							; 6c
 		\\ 40c
 	
@@ -328,7 +313,7 @@
 \ ******************************************************************
 
 PAGE_ALIGN_FOR_SIZE 256
-.vram_table_LO
+.fx_stretch_vram_table_LO
 FOR n,0,127,1
 EQUB LO((&3000 + (n DIV 4)*640)/8)
 NEXT
@@ -337,7 +322,7 @@ EQUB LO(&3000/8)
 NEXT
 
 PAGE_ALIGN_FOR_SIZE 256
-.vram_table_HI
+.fx_stretch_vram_table_HI
 FOR n,0,127,1
 EQUB HI((&3000 + (n DIV 4)*640)/8)
 NEXT
@@ -346,7 +331,7 @@ EQUB HI(&3000/8)
 NEXT
 
 PAGE_ALIGN_FOR_SIZE 64
-.dv_table_LO
+.fx_stretch_dv_table_LO
 FOR n,0,63,1
 height=128
 max_height=height*10
@@ -357,7 +342,7 @@ EQUB LO(dv)
 NEXT
 
 PAGE_ALIGN_FOR_SIZE 64
-.dv_table_HI
+.fx_stretch_dv_table_HI
 FOR n,0,63,1
 height=128
 max_height=1280

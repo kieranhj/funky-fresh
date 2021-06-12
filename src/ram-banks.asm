@@ -76,12 +76,14 @@ GUARD &C000
 \ ******************************************************************
 
 .fx_start
+\\ v------ NB. Currently assuming all FX in same SWRAM bank!!
 include "src/fx-vertical-stretch.asm"
 include "src/fx-static-image.asm"
 include "src/fx-chunky-twister.asm"
 include "src/fx-frequency.asm"
 include "src/fx-stretch-grid.asm"
 include "src/fx-frak-zoomer.asm"
+\\ ^------ NB. Currently assuming all FX in same SWRAM bank!!
 .fx_end
 
 .bank2_end

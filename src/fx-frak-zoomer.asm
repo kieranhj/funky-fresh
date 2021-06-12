@@ -31,6 +31,7 @@ FRAK_SPRITE_HEIGHT=44
 
 	\\ Scanline 0,2,4,6 from zoom.
 	lda rocket_track_zoom+1				; 3c
+	sta zoom
 	tax
 	and #3:eor #3:asl a					; 6c
 	sta next_scanline
@@ -40,7 +41,9 @@ FRAK_SPRITE_HEIGHT=44
 	sta fx_zoom_add_dv+1
 
 	\\ Subtract dv 128 times to set starting v.
-	ldy #64
+	\\ v = centre - y_pos * dv
+	ldy rocket_track_y_pos+1
+	beq done_sub_loop
 	.sub_loop
 	sec
 	lda v
@@ -59,6 +62,7 @@ FRAK_SPRITE_HEIGHT=44
 	.sub_ok
 	dey
 	bne sub_loop
+	.done_sub_loop
 
 	\\ Hi byte of V * 16
 	clc
@@ -76,32 +80,15 @@ FRAK_SPRITE_HEIGHT=44
 	sta pal_loop+2
 
 	\\ Set palette for first line.
-	ldy #15
+	ldy #15						; 2c
 	.pal_loop
-	lda frak_data, y
-	sta &fe21
-	dey
-	bpl pal_loop
-
-	\\ Set screen address for zoom.
-	txa
-	\\ 64 zooms, 2 scanlines each = 4 per char row.
-	lsr a:lsr a:tax						; 6c
-	lda #13:sta &fe00					; 8c
-	lda fx_zoom_vram_table_LO, X		; 4c
-	clc									; 2c
-	adc rocket_track_x_pos+1			; 3c
-	sta &fe01							; 6c <= 5c
-	lda #12:sta &fe00					; 8c
-	lda fx_zoom_vram_table_HI, X		; 4c
-	adc #0								; 2c
-	sta &fe01							; 6c
-	\\ 51c
-
-	\\ This FX always uses screen in MAIN RAM.
-	\\ TODO: Add a data byte to specify MAIN or SHADOW.
-	; clear bit 0 to display MAIN.
-	lda &fe34:and #&fe:sta &fe34
+	lda frak_data, y			; 4c
+	sta &fe21					; 4c
+	dey							; 2c
+	bpl pal_loop				; 3c
+	\\ 2+16*13-1=234c !!
+	\\ lda (frakptr), Y:sta &fe21:iny ; 11c
+	\\ 16*11=176c hmmmm.
 
 	lda #6:sta &fe00			; 8c
 	lda #1:sta &fe01			; 8c
@@ -129,7 +116,7 @@ FRAK_SPRITE_HEIGHT=44
 \\ Double-line RVI with no LHS blanking.
 \\ Display 0,2,4,6 scanline as first row from any other.
 \\ NB. Can't hide LHS garbage but don't need to as scanline -1!
-\\  Set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 0 - 6 = 
+\\  Set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 0 - 0 = 13
 \\
 \\ cycles -->  94   96   98   100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
 \\             lda..sta............WAIT_CYCLES 18 ..............................lda..sta ...........|
@@ -156,8 +143,6 @@ CODE_ALIGN 32
 {
 	\\ <=== HCC=0 (scanline=-2)
 
-	WAIT_CYCLES 14
-
 	\\ R9 must be set before final scanline of the row.
 	lda #9:sta &fe00					; 8c
 
@@ -173,13 +158,29 @@ CODE_ALIGN 32
 	stx prev_scanline					; 3c
 	\\ 24c
 
-	WAIT_CYCLES 48
+	\\ Set screen address for zoom.
+	lda zoom							; 3c
+	\\ 64 zooms, 2 scanlines each = 4 per char row.
+	lsr a:lsr a:tax						; 6c
+	lda #13:sta &fe00					; 8c <= 7c
+	lda fx_zoom_vram_table_LO, X		; 4c
+	clc									; 2c
+	adc rocket_track_x_pos+1			; 3c
+	sta &fe01							; 6c <= 5c
+	lda #12:sta &fe00					; 8c
+	lda fx_zoom_vram_table_HI, X		; 4c
+	adc #0								; 2c
+	sta &fe01							; 6c
+	\\ 50c
 
-	\\ <=== HCC=94 (scanline=-2)
+	\\ This FX always uses screen in MAIN RAM.
+	\\ TODO: Add a data byte to specify MAIN or SHADOW.
+	; clear bit 0 to display MAIN.
+	lda &fe34:and #&fe:sta &fe34		; 10c
 
-	WAIT_CYCLES 34
+	WAIT_CYCLES 36
 
-	\\ <=== HCC=0 (scanline=-1)
+		\\ <=== HCC=0 (scanline=-1)
 
 		\\ Set R0=101 (102c)
 		lda #0:sta &fe00					; 8c

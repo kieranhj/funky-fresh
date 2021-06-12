@@ -25,8 +25,6 @@
 
 .fx_stretch_grid_update
 {
-	\\ Hope there's enough time for all this!!
-
 	jsr fx_vertical_stretch_update
 
 	lda dv:sta fx_stretch_grid_dv_LO+1
@@ -88,10 +86,10 @@
 	\\ Row 1 screen start
 	tax							; 2c
 	lda #13:sta &fe00					; 8c
-	lda vram_table_LO, X				; 4c
+	lda fx_stretch_vram_table_LO, X				; 4c
 	sta &fe01							; 6c
 	lda #12:sta &fe00					; 8c
-	lda vram_table_HI, X				; 4c
+	lda fx_stretch_vram_table_HI, X				; 4c
 	sta &fe01							; 6c
 	\\ 40c
 	
@@ -164,10 +162,10 @@
 		\\ Row N+1 screen start
 		tax								; 2c
 		lda #13:sta &fe00				; 8c
-		lda vram_table_LO, X			; 4c
+		lda fx_stretch_vram_table_LO, X			; 4c
 		sta &fe01						; 6c
 		lda #12:sta &fe00				; 8c
-		lda vram_table_HI, X			; 4c
+		lda fx_stretch_vram_table_HI, X			; 4c
 		sta &fe01						; 6c
 		\\ 38c
 	

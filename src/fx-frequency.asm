@@ -3,6 +3,8 @@
 \ *	FREQUENCY FX
 \ ******************************************************************
 
+_FX_FREQ_UNROLL = TRUE
+
 \\ TODO: Describe the FX and requirements.
 
 FX_FREQ_PAL_START = 8
@@ -34,13 +36,15 @@ NEXT
 
 .fx_frequency_update
 {
+    \\ TODO: Move this to draw.
 	; clear bit 0 to display MAIN.
-	lda &fe34:and #&fe:sta &fe34
+	lda &fe34:and #&fe:sta &fe34                ; 10c
 	; Set R12/R13 for full screen.
-	lda #12:sta &fe00
-	lda #HI(static_image_scrn_addr/8):sta &fe01
-	lda #13:sta &fe00
-	lda #LO(static_image_scrn_addr/8):sta &fe01
+	lda #12:sta &fe00                           ; 8c
+	lda #HI(static_image_scrn_addr/8):sta &fe01 ; 8c
+	lda #13:sta &fe00                           ; 8c
+	lda #LO(static_image_scrn_addr/8):sta &fe01 ; 8c
+    \\ 42c
 
     ; R6=240 visible lines.
 	lda #6:sta &fe00        ; 8c
@@ -50,7 +54,7 @@ NEXT
 .fx_frequency_update_grid
 {
     \\ Fade all frequencies.
-    IF 0
+    IF _FX_FREQ_UNROLL=FALSE
     ldx #VGC_FREQ_MAX-1
     .fade_loop
     ldy vgc_freq_array, X
@@ -98,7 +102,7 @@ NEXT
     bpl loop
 
     \\ Copy VGC registers.
-    IF 0
+    IF _FX_FREQ_UNROLL=FALSE
     ldx #VGM_FX_MAX-1
     .copy_loop
     lda vgm_fx, X

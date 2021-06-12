@@ -47,6 +47,8 @@ Track controls.
 => Best practice: Try to drive variables directly in update rather than "delta values".
 => Best practice: Can use "delta values" safely in draw.
 => Best practice: Use as many bits of the track values as possible to aid interpolation, shift down at runtime if needed.
+=> Requirements: Set display registers in draw, inc. R12/13.
+=> Requirements: Reset lower 8 colours of palette at end of draw if changed.
 
 zoom = scale factor (e.g. vertical stretch)
 x_pos = generic x value
