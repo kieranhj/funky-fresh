@@ -25,35 +25,19 @@ FRAK_SPRITE_HEIGHT=44
 
 .fx_frak_zoomer_update
 {
-	\\ Set screen address for zoom.
-	lda rocket_track_zoom+1
-	lsr a:lsr a		; 64 zooms, 2 scanlines each = 4 per row
-	tax
-	lda #13:sta &fe00
-	lda fx_zoom_vram_table_LO, X
-	clc
-	adc rocket_track_x_pos
-	sta &fe01
-	lda #12:sta &fe00
-	lda fx_zoom_vram_table_HI, X
-	adc #0
-	sta &fe01
-
-	\\ Scanline 0,2,4,6
-	lda rocket_track_zoom+1
-	and #3
-	eor #3
-	asl a
-	sta prev_scanline
-
 	\\ Want centre of screen to be centre of sprite.
 	lda #0:sta v
 	lda #FRAK_SPRITE_HEIGHT/2:sta v+1
 
+	\\ Scanline 0,2,4,6 from zoom.
+	lda rocket_track_zoom+1				; 3c
+	tax
+	and #3:eor #3:asl a					; 6c
+	sta next_scanline
+
 	\\ Set dv.
-	ldx rocket_track_zoom+1
 	lda fx_zoom_dv_table, X
-	sta add_dv+1
+	sta fx_zoom_add_dv+1
 
 	\\ Subtract dv 128 times to set starting v.
 	ldy #64
@@ -92,17 +76,37 @@ FRAK_SPRITE_HEIGHT=44
 	sta pal_loop+2
 
 	\\ Set palette for first line.
-	ldx #15
+	ldy #15
 	.pal_loop
-	lda frak_data, X
+	lda frak_data, y
 	sta &fe21
-	dex
+	dey
 	bpl pal_loop
+
+	\\ Set screen address for zoom.
+	txa
+	\\ 64 zooms, 2 scanlines each = 4 per char row.
+	lsr a:lsr a:tax						; 6c
+	lda #13:sta &fe00					; 8c
+	lda fx_zoom_vram_table_LO, X		; 4c
+	clc									; 2c
+	adc rocket_track_x_pos+1			; 3c
+	sta &fe01							; 6c <= 5c
+	lda #12:sta &fe00					; 8c
+	lda fx_zoom_vram_table_HI, X		; 4c
+	adc #0								; 2c
+	sta &fe01							; 6c
+	\\ 51c
 
 	\\ This FX always uses screen in MAIN RAM.
 	\\ TODO: Add a data byte to specify MAIN or SHADOW.
 	; clear bit 0 to display MAIN.
 	lda &fe34:and #&fe:sta &fe34
+
+	lda #6:sta &fe00			; 8c
+	lda #1:sta &fe01			; 8c
+
+	lda #119:sta row_count		; 5c
 	rts
 }
 
@@ -122,88 +126,104 @@ FRAK_SPRITE_HEIGHT=44
 \ A FULL AND VALID 312 line PAL signal before exiting!
 \ ******************************************************************
 
-\\ To repeat just one scanline, need to burn 6 scanlines.
-\\ 6x4c = 24c hsync at 98,
-\\ <-- 104 cycles w/ 80 visible hsync at 98 --> <4c> <4c> ... <4c>
-\\ Need R0=4 at HCC=104
-\\ Need R0=100 at HCC=0
+\\ Double-line RVI with no LHS blanking.
+\\ Display 0,2,4,6 scanline as first row from any other.
+\\ NB. Can't hide LHS garbage but don't need to as scanline -1!
+\\  Set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 0 - 6 = 
+\\
+\\ cycles -->  94   96   98   100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
+\\             lda..sta............WAIT_CYCLES 18 ..............................lda..sta ...........|
+\\             #1   &fe01                                                       #127 &fe01
+\\ scanline 1            ^         2    3    4    5    6    7    8    9    10   11   12   13   xx   0
+\\                       hpos                                                                  |
+\\                                                         --> missed due to end of CRTC cycle +
+\\ NB. There is no additional scanline if this is not the end of the CRTC cycle.
 
-CODE_ALIGN 16
+\\ Repeated double-line RVI with LHS blanking.
+\\ Display 0,2,4,6 scanline as repeated row.
+\\  Set R9 before final scanline to 9 + current - next = 9 constant.
+\\
+\\ cycles -->  96   98   100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
+\\             lda..sta............WAIT_CYCLES 10 ..........lda..stz ...........sta ...........|
+\\             #1   &fe01                                   #127 &fe01          &fe01
+\\ scanline 7       ^              8    9    x    0    1    2    3    4    5    ?    ?    ?    6
+\\                  hpos                     |                                  |
+\\       --> missed due to end of CRTC cycle +                                  + scanline counter prevented from updating whilst R0=0!
+
+CODE_ALIGN 32
 
 .fx_frak_zoomer_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
 
-	WAIT_SCANLINES_ZERO_X 2
+	WAIT_CYCLES 14
+
+	\\ R9 must be set before final scanline of the row.
+	lda #9:sta &fe00					; 8c
+
+	\\ Set R9=13+current-next.
+	lda #13								; 2c
+	clc									; 2c
+	adc prev_scanline					; 3c
+	sec									; 2c
+	sbc next_scanline					; 3c
+	sta &fe01							; 6c
+
+	ldx next_scanline					; 3c
+	stx prev_scanline					; 3c
+	\\ 24c
+
+	WAIT_CYCLES 48
+
+	\\ <=== HCC=94 (scanline=-2)
+
+	WAIT_CYCLES 34
+
+	\\ <=== HCC=0 (scanline=-1)
+
+		\\ Set R0=101 (102c)
+		lda #0:sta &fe00					; 8c
+		lda #101:sta &fe01					; 8c
+
+		WAIT_CYCLES 78
+
+		\\ <=== HCC=94 (scanline=-1)
+
+		lda #1:sta &fe01					; 8c
+		\\ <=== HCC=102 (scanline=-1)
+
+		\\ Burn R0=1 scanlines.
+		WAIT_CYCLES 14
+		ldx #4								; 2c
+		ldy #9								; 2c
+
+		\\ At HCC=0 set R0=127.
+		lda #127:sta &fe01					; 8c
 
 	\\ <=== HCC=0 (scanline=0)
 
-	WAIT_CYCLES 14
+	\\ Set R4=0 (one row per cycle).
+	stx &fe00								; 6c
+	stz &fe01								; 6c	
 
-	\\ R4=0, R7=&ff, R6=1
-	lda #4:sta &fe00			; 8c
-	lda #0:sta &fe01			; 8c
-
-	\\ vsync at row 35 = scanline 280.
-	lda #7:sta &fe00			; 8c
-	lda #3:sta &fe01			; 8c
-
-	lda #6:sta &fe00			; 8c
-	lda #1:sta &fe01			; 8c
-
-	lda #126:sta row_count		; 5c
-
-	WAIT_CYCLES 61
-
-		\\ <=== HCC=0
-		.scanline_1_hcc0
-		lda #0:sta &fe00		; 8c
-		lda #101:sta &fe01		; 8c
-
-		\\ Need to set correct scanline here.
-		\\ 0=>0 R9=13 burn 12
-		\\ 0=>2 R9=11 burn 12
-		\\ 0=>4 R9=9 burn 12
-		\\ 0=>6 R9=7 burn 12
-
-		lda #9:sta &fe00		; 8c
-		sec						; 2c
-		lda #13					; 2c
-		sbc prev_scanline		; 3c
-		sta &fe01				; 6c <== 5c
-		lda #0:sta &fe00		; 8c
-
-		WAIT_CYCLES 50
-		
-		\\ R0=1 <2c> x13
-		lda #1:sta &fe01		; 8c
-		\\ <=== HCC=102
-
-		WAIT_CYCLES 18
-		lda #127:sta &fe01		; 8c <== 7c
-		\\ <=== HCC=0
-
-		WAIT_CYCLES 16
-		jmp scanline_even_hcc0	; 3c
-
-	\\ Now 2x scanlines per loop.
+	\\ 2x scanlines per row.
 	.scanline_loop
 	{
-		WAIT_CYCLES 11
+		\\ <=== HCC=12 (scanline=even)
 
-		.^scanline_even_hcc0
+		\\ Update texture v.
 		clc						; 2c
 		lda v					; 3c
-		.*add_dv
+		.*fx_zoom_add_dv
 		adc #128				; 2c
 		sta v					; 3c
 		lda v+1					; 3c
 		adc #0					; 2c
 
-		cmp #FRAK_SPRITE_HEIGHT		; 2c
+		cmp #FRAK_SPRITE_HEIGHT	; 2c
 		bcc ok
 		; 2c
-		sbc #FRAK_SPRITE_HEIGHT		; 2c
+		sbc #FRAK_SPRITE_HEIGHT	; 2c
 		jmp store				; 3c
 		.ok
 		; 3c
@@ -219,35 +239,48 @@ CODE_ALIGN 16
 		sta set_palette+2		; 4c
 		\\ 18c
 
-		WAIT_CYCLES 4
+		\\ Set R9=9 constant.
+		sty &fe00				; 6c <= 5c
+		sty &fe01				; 6c
 
-		\\ Ideally call at HCC=68
+		\\ <=== HCC=68 (scanline=even)
 		.set_palette
 		jsr frak_line0			; 60c
 
-		.*scanline_odd_hcc_0
-		\\ <=== HCC=0
-		lda #0:sta &fe00		; 8c
-		lda #103:sta &fe01		; 8c
+			\\ <=== HCC=0 (scanline=odd)
 
-		lda #9:sta &fe00		; 8c
-		lda #7:sta &fe01		; 8c
-		lda #0:sta &fe00		; 8c	
+			lda #0:sta &fe00		; 8c
+			lda #103:sta &fe01		; 8c
 
-		WAIT_CYCLES 56
+			WAIT_CYCLES 80
 
-		lda #3:sta &fe01		; 8c
-		\\ <=== HCC=104
+			lda #1:sta &fe01		; 8c
+			\\ <=== HCC=104
 
-		WAIT_CYCLES 16
-		lda #127:sta &fe01		; 8c
-		\\ <=== HCC=0
+			WAIT_CYCLES 10
+
+			lda #127				; 2c
+			stz &fe01				; 6c
+			sta &fe01				; 6c
+
+		\\ <=== HCC=0 (scanline=even)
+
+		WAIT_CYCLES 4
 
 		dec row_count			; 5c
 		bne scanline_loop		; 3c
 	}
-	CHECK_SAME_PAGE_AS scanline_loop, FALSE
+	CHECK_SAME_PAGE_AS scanline_loop, TRUE
 	.scanline_last
+
+	\\ Currently at scanline 2+118*2=238, need 312 lines total.
+	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
+	lda #4: sta &FE00
+	lda #36: sta &FE01
+
+	\\ R7 vsync at scanline 272 = 238 + 17*2
+	lda #7:sta &fe00
+	lda #17:sta &fe01
 
 	\\ Need to recover back to correct scanline count.
 	lda #9:sta &fe00
@@ -256,20 +289,19 @@ CODE_ALIGN 16
 	adc #1
 	sta &fe01
 
-	lda #6:sta &fe00			; 8c
-	lda #0:sta &fe01			; 8c
-
+	\\ Wait for scanline 240.
 	WAIT_SCANLINES_ZERO_X 2
 
-	\\ R9=7
-	.scanline_end_of_screen
+	\\ R9=1
 	lda #9:sta &fe00
-	lda #7:sta &fe01
+	lda #1:sta &fe01
 
-	\\ Total 312 line - 256 = 56 scanlines
-	lda #4: sta &FE00
-	lda #6: sta &FE01
-    rts
+	lda #0:sta prev_scanline
+
+	\\ FX responsible for resetting lower palette.
+	ldx #LO(fx_static_image_default_palette)
+	ldy #HI(fx_static_image_default_palette)
+	jmp fx_static_image_set_palette
 }
 
 include "build/frak-lines.asm"

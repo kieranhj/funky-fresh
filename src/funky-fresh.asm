@@ -87,6 +87,7 @@ INCLUDE "lib/vgcplayer.h.asm"
 \\ FX general ZP vars.
 .row_count				skip 1
 .prev_scanline			skip 1
+.next_scanline          skip 1
 .temp                   skip 1
 .product                skip 2
 

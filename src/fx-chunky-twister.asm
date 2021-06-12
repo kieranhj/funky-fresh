@@ -240,7 +240,7 @@ EQUB &20 + PAL_cyan
 		\\ Set R0=0 to blank 6x chars.
 		stz &fe01							; 6c
 
-		\\ At HCC=0 set R0=127
+		\\ At HCC=0 set R0=127.
 		sta &fe01							; 6c
 
 	\\ <=== HCC=0 (scanline=0)
@@ -249,9 +249,10 @@ EQUB &20 + PAL_cyan
 	stx &fe00								; 6c
 	stz &fe01								; 6c	
 
-	\\ Rows 1-30
+	\\ 2x scanlines per row.
 	.char_row_loop
 	{
+		\\ Y=9to set R9!
 		sty &fe00							; 6c
 
 		.*fx_chunky_twister_calc_rot
@@ -389,7 +390,7 @@ EQUB &20 + PAL_cyan
 		sta &fe01
 	}
 
-	\\ Row 31
+	\\ Wait for scanline 240.
 	WAIT_SCANLINES_ZERO_X 2
 
 	\\ R9=1

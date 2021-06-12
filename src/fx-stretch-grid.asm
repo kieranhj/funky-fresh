@@ -244,7 +244,6 @@
 		beq scanline_last			; 2c
 		jmp char_row_loop			; 3c
 	}
-	CHECK_SAME_PAGE_AS char_row_loop, FALSE
 	.scanline_last
 
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
