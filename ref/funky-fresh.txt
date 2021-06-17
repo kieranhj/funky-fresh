@@ -203,3 +203,33 @@ Rather than freq, maybe other patterns would be more fun on the grid?
 - Argh! How to define all these w/out endless code?
 - This is a take on the Loonies Phosphor demo-ish?
 
+Zoom
+~~~
+How to get the x & y pos tracks to work nicely?
+If we're imagining that this is a camera looking at a flat plane from distance
+1 (1 texel = 80 screen pixels) to 80 (1 texel = 1 screen pixel) then Ideally
+want x & y pos to be in the same coordinate system, so an xpos covers the entire
+width of the sprite at any distance.
+
+Need to calculate dx for each distance.
+char_offset = x_pos * dx
+Where dx = max_char_width/16
+0: dx = 16/16 = 1
+34: dx = 640/16 = 40
+Restrict x_pos to [0,16) as moving two texels at a time so fp 4.8
+Max_char_width is fp 12.0
+Ideally multiply to 16.8 but only need 
+
+char_offset = x_pos * max_char_width >> 12 = top 12-bits of multiplication.
+Screen is 80 chars wide.
+80/16=5 => 8
+80/32=2.5 => 12
+80/64=1.25 => 5.9
+80/128=0.625 => 10.8
+80/160=0.5 => 12
+80/213=0.3756 => 12.8
+At distance d, edge of viewport in X is?
+
+Viewport is 80 units wide so 40 units from centre to left edge.
+Need to subtract 40*dv from the x_pos before calculating the char_offset to get left edge in chars.
+left_pos = (x_pos - 40*dv) MOD 16

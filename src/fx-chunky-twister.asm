@@ -139,7 +139,7 @@ ENDMACRO
 
 \\ Limited jump RVI with LHS blanking.
 \\ Display 0,2,4 scanline offset for 2 scanlines.
-\\ (Or rather no jump > 4 scanlines distance between subsequent cycles.)
+\\ (Or rather no jump forward > 4 scanlines distance between subsequent cycles.)
 \\  Set R9 before final scanline to 9 + current - next. eg. R9 = 9 + 0 - 0 = 9
 \\
 \\ cycles -->       96   98   100  102  104  106  108  110  112  114  116  118  120  122  124  126  0

@@ -48,7 +48,7 @@ INCBIN "build/twister2-mode2.exo"
 INCBIN "build/logo-with-stripes-mode2.exo"
 
 .exo_asset_zoom
-INCBIN "build/zoom-2by160-mode2.exo"
+INCBIN "build/zoom-screen.exo"
 
 .bank1_end
 

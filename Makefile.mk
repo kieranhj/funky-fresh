@@ -43,7 +43,8 @@ assets: ./build/logo-with-stripes-mode2.exo ./build/logo-mode2.exo \
 		./build/doom-screen.exo ./build/scr-screen.exo \
 		./build/twister1-mode2.exo ./build/twister2-mode2.exo \
 		./build/funky-sequence.bin ./build/stripes-mode2.exo \
-		./build/zoom-2by160-mode2.exo ./build/frak-sprite.bin
+		./build/zoom-2by160-mode2.exo ./build/frak-sprite.bin \
+		./build/zoom-screen.exo
 
 ##########################################################################
 ##########################################################################
@@ -117,6 +118,10 @@ clean:
 ./build/zoom-2by160-mode2.bin: ./data/raw/zoom-2by160-mode2.bin
 	$(MKDIR_P) "./build"
 	$(COPY) .\data\raw\zoom-2by160-mode2.bin build
+
+./build/zoom-screen.bin: ./data/raw/zoom-screen.bin
+	$(MKDIR_P) "./build"
+	$(COPY) .\data\raw\zoom-screen.bin build
 
 ##########################################################################
 ##########################################################################

@@ -3,7 +3,9 @@
 \ *	FRAK ZOOMER FX
 \ ******************************************************************
 
-FRAK_SPRITE_HEIGHT=44
+FRAK_SPRITE_WIDTH=32
+FRAK_SPRITE_HEIGHT=44	; TODO: Need to make this a multiple of 2.
+FRAK_MAX_ZOOM=55
 
 \\ TODO: Describe the FX and requirements.
 \\ Describe the track values used:
@@ -23,6 +25,46 @@ FRAK_SPRITE_HEIGHT=44
 \ be late and your raster timings will be wrong!
 \ ******************************************************************
 
+;When you start, one 16-bit number will be in product+0-product+1, low byte first as usual for 6502
+;and the other 16-bit number will be in product+2-product+3, same way. When you're done,
+;the 32-bit answer will take all four bytes, with the high cell first.
+;IOW, $12345678 will be in the order 34 12 78 56.
+;Addresses temp+0 and temp+1 will be used as a scratchpad.
+.multiply_16_by_16
+{
+   	LDA  product+2    ; Get the multiplicand and
+    STA  temp+0       ; put it in the scratchpad.
+    LDA  product+3
+    STA  temp+1
+    STZ  product+2    ; Zero-out the original multiplicand area.
+    STZ  product+3
+
+    LDY  #16		  ; We'll loop 16 times.
+.loop1
+	ASL  product+2    ; Shift the entire 32 bits over one bit position.
+    ROL  product+3
+    ROL  product+0
+    ROL  product+1
+    BCC  loop2 ; Skip the adding-in to the result if
+               ; the high bit shifted out was 0.
+    CLC        ; Else, add multiplier to intermediate result.
+    LDA  temp+0
+    ADC  product+2
+    STA  product+2
+    LDA  temp+1
+    ADC  product+3
+    STA  product+3
+
+    LDA  #0    ; If C=1, incr lo byte of hi cell.
+    ADC  product+0
+    STA  product+0
+
+.loop2
+	DEY        	  ; If we haven't done 16 iterations yet,
+    BNE  loop1    ; then go around again.
+    RTS
+}
+
 .fx_frak_zoomer_update
 {
 	\\ Want centre of screen to be centre of sprite.
@@ -31,14 +73,15 @@ FRAK_SPRITE_HEIGHT=44
 
 	\\ Scanline 0,2,4,6 from zoom.
 	lda rocket_track_zoom+1				; 3c
+	; TODO: Clamp to max zoom level.
 	sta zoom
 	tax
-	and #3:eor #3:asl a					; 6c
+	lda fx_zoom_scanlines, X
 	sta next_scanline
 
 	\\ Set dv.
 	lda fx_zoom_dv_table, X
-	sta fx_zoom_add_dv+1
+	sta dv:sta fx_zoom_add_dv+1
 
 	\\ Subtract dv 128 times to set starting v.
 	\\ v = centre - y_pos * dv
@@ -47,7 +90,7 @@ FRAK_SPRITE_HEIGHT=44
 	.sub_loop
 	sec
 	lda v
-	sbc fx_zoom_dv_table, X
+	sbc dv
 	sta v
 	lda v+1
 	sbc #0
@@ -80,6 +123,7 @@ FRAK_SPRITE_HEIGHT=44
 	sta pal_loop+2
 
 	\\ Set palette for first line.
+	\\ Should really be in draw function.
 	ldy #15						; 2c
 	.pal_loop
 	lda frak_data, y			; 4c
@@ -87,12 +131,38 @@ FRAK_SPRITE_HEIGHT=44
 	dey							; 2c
 	bpl pal_loop				; 3c
 	\\ 2+16*13-1=234c !!
-	\\ lda (frakptr), Y:sta &fe21:iny ; 11c
+	\\ ALT: lda (frakptr), Y:sta &fe21:iny ; 11c
 	\\ 16*11=176c hmmmm.
+
+	\\ Need char offset for left edge of viewport that is 80 units wide, centre is 40.
+	\\ So subtract distance to left edge of viewport before calculating.
+	\\ left_pos = (x_pos - 40*dv) MOD sprite_width
+	\\ char_off=(sprite_width_in_chars_for_zoom * left_pos) / sprite_width.
+	\\ sprite_width_in_chars_for_zoom and x_pos both 12-bits.
+	txa:asl a:tax
+	sec
+	lda rocket_track_x_pos+0
+	sbc fx_zoom_viewport_width+0,X
+	sta product+0
+	lda rocket_track_x_pos+1
+	sbc fx_zoom_viewport_width+1,X
+	and #15	;MOD16
+	sta product+1
+	lda fx_zoom_max_char_width+0,X:sta product+2
+	lda fx_zoom_max_char_width+1,X:sta product+3
+	jsr multiply_16_by_16
+
+	;IOW, $12345678 will be in the order 34 12 78 56.
+	;We want 345 as a 12-bit number so shift by 4:
+	lsr product+0:ror product+3
+	lsr product+0:ror product+3
+	lsr product+0:ror product+3
+	lsr product+0:ror product+3
+	lda product+0:sta char_off+1
+	lda product+3:sta char_off+0
 
 	lda #6:sta &fe00			; 8c
 	lda #1:sta &fe01			; 8c
-
 	lda #119:sta row_count		; 5c
 	rts
 }
@@ -115,8 +185,8 @@ FRAK_SPRITE_HEIGHT=44
 
 \\ Double-line RVI with no LHS blanking.
 \\ Display 0,2,4,6 scanline as first row from any other.
-\\ NB. Can't hide LHS garbage but don't need to as scanline -1!
-\\  Set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 0 - 0 = 13
+\\ NB. Can't hide LHS garbage but will only be visible on scanline 0. :\
+\\  Set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 6 - 0 = 13
 \\
 \\ cycles -->  94   96   98   100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
 \\             lda..sta............WAIT_CYCLES 18 ..............................lda..sta ...........|
@@ -161,16 +231,29 @@ CODE_ALIGN 32
 	\\ Set screen address for zoom.
 	lda zoom							; 3c
 	\\ 64 zooms, 2 scanlines each = 4 per char row.
+	IF 0
 	lsr a:lsr a:tax						; 6c
 	lda #13:sta &fe00					; 8c <= 7c
 	lda fx_zoom_vram_table_LO, X		; 4c
 	clc									; 2c
-	adc rocket_track_x_pos+1			; 3c
+	adc char_off							; 3c
 	sta &fe01							; 6c <= 5c
 	lda #12:sta &fe00					; 8c
 	lda fx_zoom_vram_table_HI, X		; 4c
 	adc #0								; 2c
 	sta &fe01							; 6c
+	ELSE
+	NOP:asl a:tax						; 6c
+	lda #13:sta &fe00					; 8c <= 7c
+	lda fx_zoom_crtc_addresses+0, X		; 4c
+	clc									; 2c
+	adc char_off							; 3c
+	sta &fe01							; 6c <= 5c
+	lda #12:sta &fe00					; 8c
+	lda fx_zoom_crtc_addresses+1, X		; 4c
+	adc char_off+1							; 3c
+	sta &fe01							; 6c <= 5c
+	ENDIF
 	\\ 50c
 
 	\\ This FX always uses screen in MAIN RAM.
@@ -305,32 +388,32 @@ CODE_ALIGN 32
 	jmp fx_static_image_set_palette
 }
 
+\\ Generated code for palette swaps each line.
 include "build/frak-lines.asm"
 
 \ ******************************************************************
 \ *	FX DATA
 \ ******************************************************************
 
-PAGE_ALIGN_FOR_SIZE 16
-.fx_zoom_vram_table_LO
-FOR n,15,0,-1
-EQUB LO((&3000 + (n)*1280)/8)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 16
-.fx_zoom_vram_table_HI
-FOR n,15,0,-1
-EQUB HI((&3000 + (n)*1280)/8)
-NEXT
-
-PAGE_ALIGN_FOR_SIZE 64
+PAGE_ALIGN_FOR_SIZE FRAK_MAX_ZOOM
 .fx_zoom_dv_table
-FOR n,63,0,-1
-; u=128*d/80
-; d=1+n*(79/31))
-PRINT 2 / ((1 + n*79/63) / 80)
-EQUB 255 * (1 + n*79/63) / 80		; 128
-NEXT
+incbin "data/raw/zoom-dv-table.bin"
+
+PAGE_ALIGN_FOR_SIZE 2*FRAK_MAX_ZOOM
+.fx_zoom_crtc_addresses
+incbin "data/raw/zoom-to-crtc-addr.bin"
+
+PAGE_ALIGN_FOR_SIZE 2*FRAK_MAX_ZOOM
+.fx_zoom_max_char_width
+incbin "data/raw/zoom-sprite-width-in-chars.bin"
+
+PAGE_ALIGN_FOR_SIZE FRAK_MAX_ZOOM
+.fx_zoom_scanlines
+incbin "data/raw/zoom-to-scanline.bin"
+
+PAGE_ALIGN_FOR_SIZE 2*FRAK_MAX_ZOOM
+.fx_zoom_viewport_width
+incbin "data/raw/zoom-viewport-width.bin"
 
 .frak_data
 INCBIN "build/frak-sprite.bin"
