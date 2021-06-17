@@ -67,45 +67,37 @@ FRAK_MAX_ZOOM=55
 
 .fx_frak_zoomer_update
 {
-	\\ Want centre of screen to be centre of sprite.
-	lda #0:sta v
-	lda #FRAK_SPRITE_HEIGHT/2:sta v+1
-
 	\\ Scanline 0,2,4,6 from zoom.
 	lda rocket_track_zoom+1				; 3c
-	; TODO: Clamp to max zoom level.
+	cmp #FRAK_MAX_ZOOM
+	bcc zoom_ok
+	lda #FRAK_MAX_ZOOM-1
+	.zoom_ok
 	sta zoom
 	tax
 	lda fx_zoom_scanlines, X
 	sta next_scanline
 
 	\\ Set dv.
-	lda fx_zoom_dv_table, X
-	sta dv:sta fx_zoom_add_dv+1
+	txa:asl a:tax
+	lda fx_zoom_dv_table+0, X
+	sta fx_zoom_add_dv_LO+1
+	lda fx_zoom_dv_table+1, X
+	sta fx_zoom_add_dv_HI+1
 
-	\\ Subtract dv 128 times to set starting v.
-	\\ v = centre - y_pos * dv
-	ldy rocket_track_y_pos+1
-	beq done_sub_loop
-	.sub_loop
+	\\ top_pos = (y_pos - 60*dv) MOD sprite_height
 	sec
-	lda v
-	sbc dv
-	sta v
-	lda v+1
-	sbc #0
+	lda rocket_track_y_pos+0
+	sbc fx_zoom_viewport_height+0,X
+	sta v+0
+	lda rocket_track_y_pos+1
+	sbc fx_zoom_viewport_height+1,X
+	and #63
+	tay
+	lda fx_zoom_map_sprite_height_HI, Y
 	sta v+1
-
-	\\ Wrap sprite height.
-	bpl sub_ok
-	clc
-	adc #FRAK_SPRITE_HEIGHT
-	sta v+1
-
-	.sub_ok
-	dey
-	bne sub_loop
-	.done_sub_loop
+	lda fx_zoom_map_sprite_height_LO, Y
+	sta v+0
 
 	\\ Hi byte of V * 16
 	clc
@@ -137,9 +129,8 @@ FRAK_MAX_ZOOM=55
 	\\ Need char offset for left edge of viewport that is 80 units wide, centre is 40.
 	\\ So subtract distance to left edge of viewport before calculating.
 	\\ left_pos = (x_pos - 40*dv) MOD sprite_width
-	\\ char_off=(sprite_width_in_chars_for_zoom * left_pos) / sprite_width.
+	\\ char_off = (sprite_width_in_chars_for_zoom * left_pos) / sprite_width.
 	\\ sprite_width_in_chars_for_zoom and x_pos both 12-bits.
-	txa:asl a:tax
 	sec
 	lda rocket_track_x_pos+0
 	sbc fx_zoom_viewport_width+0,X
@@ -298,10 +289,11 @@ CODE_ALIGN 32
 		\\ Update texture v.
 		clc						; 2c
 		lda v					; 3c
-		.*fx_zoom_add_dv
+		.*fx_zoom_add_dv_LO
 		adc #128				; 2c
 		sta v					; 3c
 		lda v+1					; 3c
+		.*fx_zoom_add_dv_HI
 		adc #0					; 2c
 
 		cmp #FRAK_SPRITE_HEIGHT	; 2c
@@ -395,7 +387,8 @@ include "build/frak-lines.asm"
 \ *	FX DATA
 \ ******************************************************************
 
-PAGE_ALIGN_FOR_SIZE FRAK_MAX_ZOOM
+; TODO: Should really be 2x bytes LO & HI for dv=1.0 at zoom=0.
+PAGE_ALIGN_FOR_SIZE 2*FRAK_MAX_ZOOM
 .fx_zoom_dv_table
 incbin "data/raw/zoom-dv-table.bin"
 
@@ -415,5 +408,20 @@ PAGE_ALIGN_FOR_SIZE 2*FRAK_MAX_ZOOM
 .fx_zoom_viewport_width
 incbin "data/raw/zoom-viewport-width.bin"
 
+PAGE_ALIGN_FOR_SIZE 2*FRAK_MAX_ZOOM
+.fx_zoom_viewport_height
+incbin "data/raw/zoom-viewport-height.bin"
+
 .frak_data
 INCBIN "build/frak-sprite.bin"
+
+PAGE_ALIGN_FOR_SIZE 64
+.fx_zoom_map_sprite_height_LO
+FOR n,0,63,1
+EQUB LO(256 * n * FRAK_SPRITE_HEIGHT / 64)
+NEXT
+
+.fx_zoom_map_sprite_height_HI
+FOR n,0,63,1
+EQUB HI(256 * n * FRAK_SPRITE_HEIGHT / 64)
+NEXT
