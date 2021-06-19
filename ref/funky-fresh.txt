@@ -233,3 +233,9 @@ At distance d, edge of viewport in X is?
 Viewport is 80 units wide so 40 units from centre to left edge.
 Need to subtract 40*dv from the x_pos before calculating the char_offset to get left edge in chars.
 left_pos = (x_pos - 40*dv) MOD 16
+
+Batman demo zoomer scrolls at constant rate in pixels to nowhere near the same zoom.
+Zooms down to about 16 texels visible. Presumably has 256 chars per zoom fixed?
+So just prerender all of them then just wrap at 255-80=175
+Or just have 3x screen widths, i.e. 3x80chars = 240 = 480 bytes
+Would give 42 zooms max.

@@ -4,7 +4,7 @@
 \ ******************************************************************
 
 FRAK_SPRITE_WIDTH=32
-FRAK_SPRITE_HEIGHT=44	; TODO: Need to make this a multiple of 2.
+FRAK_SPRITE_HEIGHT=43	; TODO: Need to make this a multiple of 2.
 FRAK_MAX_ZOOM=55
 
 \\ TODO: Describe the FX and requirements.
@@ -92,12 +92,9 @@ FRAK_MAX_ZOOM=55
 	sta v+0
 	lda rocket_track_y_pos+1
 	sbc fx_zoom_viewport_height+1,X
-	and #63
 	tay
-	lda fx_zoom_map_sprite_height_HI, Y
+	lda frak_mod_sprite_height, Y
 	sta v+1
-	lda fx_zoom_map_sprite_height_LO, Y
-	sta v+0
 
 	\\ Hi byte of V * 16
 	clc
@@ -137,7 +134,7 @@ FRAK_MAX_ZOOM=55
 	sta product+0
 	lda rocket_track_x_pos+1
 	sbc fx_zoom_viewport_width+1,X
-	and #15	;MOD16
+	and #15	;MOD FRAK_SPRITE_WIDTH_IN_CHARS
 	sta product+1
 	lda fx_zoom_max_char_width+0,X:sta product+2
 	lda fx_zoom_max_char_width+1,X:sta product+3
@@ -415,13 +412,7 @@ incbin "data/raw/zoom-viewport-height.bin"
 .frak_data
 INCBIN "build/frak-sprite.bin"
 
-PAGE_ALIGN_FOR_SIZE 64
-.fx_zoom_map_sprite_height_LO
-FOR n,0,63,1
-EQUB LO(256 * n * FRAK_SPRITE_HEIGHT / 64)
-NEXT
-
-.fx_zoom_map_sprite_height_HI
-FOR n,0,63,1
-EQUB HI(256 * n * FRAK_SPRITE_HEIGHT / 64)
+.frak_mod_sprite_height
+FOR n,0,255,1
+EQUB n MOD FRAK_SPRITE_HEIGHT
 NEXT
