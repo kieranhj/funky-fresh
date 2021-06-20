@@ -218,20 +218,7 @@ CODE_ALIGN 32
 
 	\\ Set screen address for zoom.
 	lda zoom							; 3c
-	\\ 64 zooms, 2 scanlines each = 4 per char row.
-	IF 0
-	lsr a:lsr a:tax						; 6c
-	lda #13:sta &fe00					; 8c <= 7c
-	lda fx_zoom_vram_table_LO, X		; 4c
-	clc									; 2c
-	adc char_off							; 3c
-	sta &fe01							; 6c <= 5c
-	lda #12:sta &fe00					; 8c
-	lda fx_zoom_vram_table_HI, X		; 4c
-	adc #0								; 2c
-	sta &fe01							; 6c
-	ELSE
-	NOP:asl a:tax						; 6c
+	asl a:tax							; 4c
 	lda #13:sta &fe00					; 8c <= 7c
 	lda fx_zoom_crtc_addresses+0, X		; 4c
 	clc									; 2c
@@ -241,15 +228,14 @@ CODE_ALIGN 32
 	lda fx_zoom_crtc_addresses+1, X		; 4c
 	adc char_off+1							; 3c
 	sta &fe01							; 6c <= 5c
-	ENDIF
-	\\ 50c
+	\\ 48c
 
 	\\ This FX always uses screen in MAIN RAM.
 	\\ TODO: Add a data byte to specify MAIN or SHADOW.
 	; clear bit 0 to display MAIN.
 	lda &fe34:and #&fe:sta &fe34		; 10c
 
-	WAIT_CYCLES 36
+	WAIT_CYCLES 38
 
 		\\ <=== HCC=0 (scanline=-1)
 

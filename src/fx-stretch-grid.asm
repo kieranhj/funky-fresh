@@ -184,7 +184,6 @@
 		stx prev_scanline				; 3c
 		\\ 37c
 
-		;WAIT_CYCLES 15					; jump to black bar version here - oof!
 		lda grid_row_count				; 3c
 		cmp #1							; 2c
 		bne colour_path
