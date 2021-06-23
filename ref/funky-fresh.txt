@@ -29,7 +29,7 @@ TODO:
 - Transitions! Top & bottom bars?
 - Add more FX.
     - Frak Zoomer
-    - Psuedo-3D?
+    - Psuedo-3D? - DONE
     - Tech-tech?
     - EI style wibble appear?
     - Text slide on and stick top line
@@ -239,3 +239,19 @@ Zooms down to about 16 texels visible. Presumably has 256 chars per zoom fixed?
 So just prerender all of them then just wrap at 255-80=175
 Or just have 3x screen widths, i.e. 3x80chars = 240 = 480 bytes
 Would give 42 zooms max.
+
+Top & Bottom Borders
+~~~
+Effects will still have to be coded to support borders, can't be fully transparent.
+Call 'border_update' fn at end of FX update.
+If top_border > 0 then redirects draw callback to top border draw.
+  Set R12/13 to blank lines.
+  Set colour palette for border.
+'top_border_update' waits for top_border rows, setting last one to black.
+  Reduce row_count by top_border and 120-bottom_border.
+  Set prev_scanline accordingly.
+  Call original draw fn at top_border scanline-2 HCC=0.
+
+At end of FX draw, call 'bottom_border_draw' fn to finish.
+  Resets CRTC registers as per default approach.
+  

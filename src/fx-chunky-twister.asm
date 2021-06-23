@@ -8,7 +8,7 @@
 \\   rocket_track_x_pos => x offset of top row (sin table)   [0-255]   <- makes it move side-to-side
 \\   rocket_track_y_pos => x offset per row * 16 (sin table) [0-10*16] <- makes it curve
 
-\\   rocket_track_time  => rotation of top row (cos table)   [0-255]   <- makes it spin
+\\   rocket_track_anim_time  => rotation of top row (cos table)   [0-255]   <- makes it spin
 \\   rocket_track_zoom  => rotation per row * 16 (cos table) [0-10*16] <- makes it twist
 
 
@@ -95,10 +95,10 @@ ENDMACRO
 	lda rocket_track_x_pos+0:sta xy
 	lda rocket_track_x_pos+1:sta xy+1
 
-	\\   rocket_track_time  => rotation of top row (cos table) [0-255] <- makes it spin
+	\\   rocket_track_anim_time  => rotation of top row (cos table) [0-255] <- makes it spin
 	lda #0:sta yb+2	; actually LSB
-	lda rocket_track_time+0:sta yb
-	lda rocket_track_time+1:sta yb+1
+	lda rocket_track_anim_time+0:sta yb
+	lda rocket_track_anim_time+1:sta yb+1
 
 	; use top 12 bits for 4096 byte table
 	lsr yb+1:ror yb+0:ror yb+2

@@ -88,6 +88,10 @@ color="ff60b250">
 		<key row="1152" value="54.000000" interpolation="0" />
 		<key row="1168" value="54.000000" interpolation="1" />
 		<key row="1208" value="0.000000" interpolation="0" />
+		<key row="1248" value="0.000000" interpolation="1" />
+		<key row="1256" value="40.000000" interpolation="0" />
+		<key row="1280" value="54.000000" interpolation="1" />
+		<key row="1288" value="0.000000" interpolation="0" />
 	</track>
 	<track name="x_pos" folded="0" muteKeyCount="0" color="ff4fb292">
 		<key row="192" value="0.000000" interpolation="1" />
@@ -99,9 +103,13 @@ color="ff60b250">
 		<key row="928" value="-255.000000" interpolation="1" />
 		<key row="960" value="0.000000" interpolation="0" />
 		<key row="968" value="0.000000" interpolation="1" />
-		<key row="1040" value="48.000000" interpolation="0" />
+		<key row="1000" value="12.000000" interpolation="1" />
+		<key row="1040" value="0.000000" interpolation="0" />
 		<key row="1096" value="48.000000" interpolation="1" />
 		<key row="1128" value="128.000000" interpolation="0" />
+		<key row="1208" value="128.000000" interpolation="1" />
+		<key row="1248" value="256.000000" interpolation="0" />
+		<key row="1280" value="0.000000" interpolation="0" />
 	</track>
 	<track name="y_pos" folded="0" muteKeyCount="0" color="ff4f71b2">
 		<key row="16" value="59.000000" interpolation="0" />
@@ -142,8 +150,14 @@ color="ff60b250">
 		<key row="928" value="32.000000" interpolation="1" />
 		<key row="960" value="0.000000" interpolation="0" />
 		<key row="968" value="0.000000" interpolation="0" />
-		<key row="1040" value="0.000000" interpolation="1" />
-		<key row="1055" value="59.000000" interpolation="0" />
+		<key row="1000" value="0.000000" interpolation="1" />
+		<key row="1040" value="22.000000" interpolation="0" />
+		<key row="1152" value="22.000000" interpolation="1" />
+		<key row="1168" value="44.000000" interpolation="1" />
+		<key row="1208" value="22.000000" interpolation="1" />
+		<key row="1256" value="224.000000" interpolation="1" />
+		<key row="1280" value="240.000000" interpolation="1" />
+		<key row="1288" value="256.000000" interpolation="0" />
 	</track>
 	<track name="anim_time" folded="0" muteKeyCount="0"
 color="ff8850b2">
@@ -156,5 +170,9 @@ color="ff8850b2">
 		<key row="960" value="0.000000" interpolation="0" />
 	</track>
 	<track name="speed" folded="0" muteKeyCount="0" color="ff8850b2" />
+	<track name="top_border" folded="0" muteKeyCount="0"
+color="ffb27474" />
+	<track name="top_colour" folded="0" muteKeyCount="0"
+color="ffb28050" />
 </tracks>
 	</rootElement>

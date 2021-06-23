@@ -33,6 +33,7 @@ SCREEN_ROW_BYTES = SCREEN_WIDTH_COLS * 8
 SCREEN_SIZE_BYTES = SCREEN_HEIGHT_ROWS * SCREEN_ROW_BYTES
 
 screen_addr = &3000
+blank_addr = &400
 
 ; Exact time for a 50Hz frame less latch load time
 FramePeriod = 312*64-2
@@ -111,6 +112,9 @@ INCLUDE "lib/vgcplayer.h.asm"
 \\ FX stretch grid
 .grid_row_count         skip 1
 
+\\ FX borders
+.border_row_count       skip 1
+
 \\ TODO: Local ZP vars?
 .zp_end
 
@@ -163,6 +167,8 @@ GUARD screen_addr + RELOC_SPACE
     inx
     cpx #zp_max	; TODO: Check if we need to keep SWRAM slots in ZP from Loader.
     bne zp_loop
+
+    \\ TODO: Ensure MAIN RAM is writeable.
 
     \\ TODO: Load banks and relocate data in a boot loader at &1900?
 	\\ Relocate data to lower RAM
@@ -221,7 +227,7 @@ GUARD screen_addr + RELOC_SPACE
     IF 0
     {
         \\ Ensure HAZEL RAM is writeable.
-        lda &fe34:ora #&8:sta &fe34
+        ACCCON_HAZEL_RAM_WRITEABLE
 
         ldx #LO(hazel_filename)
         ldy #HI(hazel_filename)
@@ -292,6 +298,15 @@ GUARD screen_addr + RELOC_SPACE
     \\ TODO: Set CRTC address wraparound bits!
     ENDIF
 
+    \\ Clear RAM for blank char rows.
+    ldy #HI(blank_addr)
+    ldx #HI(SCREEN_ROW_BYTES+&ff)
+    jsr clear_pages
+    SWRAM_SELECT_ANDY
+    ldy #HI(blank_addr+andy_start)
+    ldx #HI(SCREEN_ROW_BYTES+&ff)
+    jsr clear_pages
+
     \\ Init system
     ;lda &fe44:sta seed
     ;lda &fe45:sta seed+1
@@ -338,6 +353,15 @@ GUARD screen_addr + RELOC_SPACE
 	sta $fe00:sta $fe01
 	WAIT_SCANLINES_ZERO_X 2
 	sta $fe00:lda #127:sta $fe01
+
+    ; TODO: Remove, only added for loop padding below.
+    IF 1
+    lda &0e00
+    lda &0e00
+    lda &0e00
+    lda &0e00
+    PRINT "WARNING: This code only added to avoid branch crossing page boundary."
+    ENDIF
 
 	\\ Wait for vsync
 	{
@@ -631,6 +655,7 @@ GUARD screen_addr + RELOC_SPACE
 include "src/display-fx.asm"
 include "src/rocket.asm"
 include "src/tasks.asm"
+include "src/fx-borders.asm"
 
 .main_end
 

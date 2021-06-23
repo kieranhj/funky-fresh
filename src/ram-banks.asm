@@ -176,6 +176,7 @@ GUARD &9000
 .andy_start
 
 .debug_start
+; NB. Currently using 3x pages at blank_addr for when SHADOW is paged in.
 .debug_end
 
 .andy_end

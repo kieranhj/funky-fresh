@@ -112,3 +112,45 @@ MACRO RND16
     eor seed
 }
 ENDMACRO
+
+MACRO ACCCON_MAIN_RAM_WRITEABLE
+{
+	; clear bit 2 to page MAIN at &3000.
+	lda &fe34:and #&fb:sta &fe34
+}
+ENDMACRO
+
+MACRO ACCCON_SHADOW_RAM_WRITEABLE
+{
+	; set bit 2 to page SHADOW at &3000.
+	lda &fe34:ora #&4:sta &fe34
+}
+ENDMACRO
+
+MACRO ACCCON_HAZEL_RAM_WRITEABLE
+{
+	; TODO: Check this as NOVA Invite had set bit 3!
+	; clear bit 3 to page HAZEL at &C000
+    lda &fe34:and #&f7:sta &fe34
+}
+ENDMACRO
+
+MACRO ACCCON_MAIN_RAM_DISPLAYED
+{
+	; clear bit 0 to display MAIN.
+	lda &fe34:and #&fe:sta &fe34
+}
+ENDMACRO
+
+MACRO ACCCON_SHADOW_RAM_DISPLAYED
+{
+	; set bit 0 to display SHADOW.
+	lda &fe34:ora #1:sta &fe34
+}
+ENDMACRO
+
+MACRO SWRAM_SELECT_ANDY
+{
+	lda #128:sta &f4:sta &fe30
+}
+ENDMACRO

@@ -5,3 +5,5 @@ zoom
 x_pos
 y_pos
 anim_time
+top_border
+top_colour

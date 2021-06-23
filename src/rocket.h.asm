@@ -11,12 +11,12 @@ GUARD rocket_zp_reserved
 .rocket_track_zoom			    skip 2
 .rocket_track_x_pos			    skip 2
 .rocket_track_y_pos			    skip 2
-.rocket_track_time			    skip 2
-.rocket_top_border_lines        skip 2
-.rocket_top_border_colour       skip 2
-.rocket_bottom_border_lines     skip 2
-.rocket_bottom_border_colour    skip 2
-.rocket_bg_colour               skip 2
+.rocket_track_anim_time			skip 2
+.rocket_track_top_border        skip 2
+.rocket_track_top_colour        skip 2
+.rocket_track_bottom_border     skip 2
+.rocket_track_bottom_colour     skip 2
+.rocket_track_bg_colour         skip 2
 ROCKET_MAX_TRACKS = 12
 
 .rocket_zp_end
