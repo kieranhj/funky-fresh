@@ -80,18 +80,13 @@
 	\\ If dv == 256 -> 1.0 then 
 	\\ v = centre - y_pos so product = y_pos
 	lda #0:sta product
-	sec
 	lda rocket_track_y_pos+1
-	sbc rocket_track_top_border+1	; border aware
 	sta product+1
 	jmp done_lower
 
 	.just_lower
 	\\ product = y_pos * dv
-	sec
-	lda rocket_track_y_pos+1
-	sbc rocket_track_top_border+1	; border aware
-	tax
+	ldx rocket_track_y_pos+1
 	lda dv
 	jsr standard_multiply_AX
 	.done_lower
@@ -112,8 +107,26 @@
 	lda #119:sta row_count				; 5c
 	
 	\\ This FX supports borders...
+	ldx #LO(fx_vertical_stretch_per_row_calc)
+	ldy #HI(fx_vertical_stretch_per_row_calc)
 	jmp fx_borders_update_top
 }
+
+.fx_vertical_stretch_per_row_calc		; 6c
+{
+	\\ Update v
+	clc									; 2c
+	lda v								; 3c
+	adc fx_vertical_strech_dv_LO+1		; 4c
+	sta v								; 3c
+	lda v+1								; 3c
+	adc fx_vertical_strech_dv_HI+1		; 4c
+	sta v+1								; 3c
+	\\ 22c
+	WAIT_CYCLES 94
+	rts									; 6c
+}
+\\ 128c inc. JSR/RTS overhead.
 
 \\ TODO: Make this comment correct for this framework!
 \ ******************************************************************

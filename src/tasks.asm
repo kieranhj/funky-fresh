@@ -20,8 +20,8 @@ TASK_ID_MAX = 4
     bne try_shadow_task
 
     \\ Check if this is a new task.
-	lda rocket_track_task_id+1
-	ldx rocket_track_task_id+0
+	lda rocket_track_task_1+1
+	ldx rocket_track_task_1+0
     cmp main_task_id
     bne new_main_task
     cpx main_task_data
@@ -58,8 +58,8 @@ TASK_ID_MAX = 4
     bne task_update_return
 
     \\ Check if this is a new task.
-	lda rocket_track_task_data+1
-	ldx rocket_track_task_data+0
+	lda rocket_track_task_2+1
+	ldx rocket_track_task_2+0
     cmp shadow_task_id
     bne new_shadow_task
     cpx shadow_task_data
@@ -132,13 +132,18 @@ rts
 
 .task_wipe_screens
 {
+    cpy #1          ; Y=task track
+    beq is_shadow
+
     \\ Ensure MAIN RAM writeable.
-    lda &fe34:and #&fb:sta &fe34
-    ldy #HI(screen_addr):ldx #HI(SCREEN_SIZE_BYTES)
-    jsr clear_pages
+    ACCCON_MAIN_RAM_WRITEABLE
+    jmp do_wipe
 
     \\ Ensure SHADOW RAM is writeable.
-    lda &fe34:ora #&4:sta &fe34
+    .is_shadow
+    ACCCON_SHADOW_RAM_WRITEABLE
+
+    .do_wipe
     ldy #HI(screen_addr):ldx #HI(SCREEN_SIZE_BYTES)
 }
 \\ Fall through!

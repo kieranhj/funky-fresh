@@ -106,19 +106,33 @@ ENDMACRO
 	lsr yb+1:ror yb+0:ror yb+2
 	lsr yb+1:ror yb+0:ror yb+2
 
-	\\ Holy hackballs! JSR to our inline fn by poking in an RTS.
-	lda twister_calc_rot_rts:pha:lda #&60:sta twister_calc_rot_rts
 	\\ Set up first row of the display.
-	jsr fx_chunky_twister_calc_rot
-	pla:sta twister_calc_rot_rts
+	jsr fx_chunky_twister_per_row_calc
 
 	\\ R6=display 1 row.
 	lda #6:sta &fe00
 	lda #1:sta &fe01
-
 	lda #119:sta row_count
-	rts
+
+	\\ This FX supports borders...
+	ldx #LO(fx_chunky_twister_per_row_calc)
+	ldy #HI(fx_chunky_twister_per_row_calc)
+	jmp fx_borders_update_top
 }
+
+.fx_chunky_twister_per_row_calc				; 6c
+{
+	\\ Holy hackballs! JSR to our inline fn by poking in an RTS.
+	lda twister_calc_rot_rts:pha			; 7c
+	lda #&60:sta twister_calc_rot_rts		; 6c
+	\\ Per row twister calcuation.
+	jsr fx_chunky_twister_calc_rot			; 12c+63c
+	pla:sta twister_calc_rot_rts			; 8c
+	\\ 96c
+	WAIT_CYCLES 20
+	rts										; 6c
+}
+\\ 128c inc. JSR/RTS overhead.
 
 \\ TODO: Make this comment correct for this framework!
 \ ******************************************************************

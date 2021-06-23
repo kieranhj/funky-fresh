@@ -12,13 +12,19 @@ FX_BORDER_MAX=117
 .fx_borders_update_top
 {
     \\ Check we have a top border at all!
-    ldy rocket_track_top_border+1
+    lda rocket_track_top_border+1
     beq return
-    cpy #FX_BORDER_MAX
+    cmp #FX_BORDER_MAX
     bcc ok
-    ldy #FX_BORDER_MAX
+    lda #FX_BORDER_MAX
     .ok
-    sty border_row_count
+    sta border_row_count
+
+    \\ Store per-row callback fn.
+    stx fx_borders_per_row_callback+1
+    sty fx_borders_per_row_callback+2
+
+    tay
 
     \\ Redirect actual FX draw fn to our own.
     lda call_fx_draw_fn+1
@@ -66,7 +72,7 @@ FX_BORDER_MAX=117
 
     \\ To get here border_row_count must be > 0.
     WAIT_SCANLINES_ZERO_X 1
-    WAIT_CYCLES 101
+    WAIT_CYCLES 104
 
     \\ Put actual FX draw fn back!
     lda fx_borders_call_actual_draw_fn+1    ; 4c
@@ -78,11 +84,8 @@ FX_BORDER_MAX=117
     dec row_count                           ; 5c
 
     \\ Tell next draw fn what scanline we finished on.
-    stx prev_scanline                       ; 3c
-
-    \\ Need to count until border_row_count = 0.
-    ldy border_row_count                    ; 3c
-    \\ 27c
+    stz prev_scanline                       ; 3c
+    \\ 24c
 
 	\\ <=== HCC=0 (scanline=0)
 
@@ -99,13 +102,17 @@ FX_BORDER_MAX=117
     {
     	\\ <=== HCC=32 (scanline=even)
 
-	    WAIT_SCANLINES_ZERO_X 1
+        \\ Give caller 128c including JSR/RTS overhead.
+        .*fx_borders_per_row_callback
+        jsr &ffff
+        \\ NB. Does not preserve registers!!
 
         	\\ <=== HCC=32 (scanline=odd)
 
-            WAIT_CYCLES 70
+            WAIT_CYCLES 64
 
-            cpy #2              ; 2c
+            lda border_row_count; 3c
+            cmp #2              ; 2c
             bcs still_colour
             ; 2c
             lda #PAL_black      ; 2c
@@ -115,13 +122,13 @@ FX_BORDER_MAX=117
             ; 3c
             WAIT_CYCLES 8
             .continue
-            \\ 13c
+            \\ 16c
 
             \\ We burnt a row.
             dec row_count       ; 5c
 
-            \\ border_row_count--
-            dey                 ; 2c
+            \\ Need to loop until border_row_count = 0.
+            dec border_row_count; 5c
             beq prepare_final_row
             ; 2c
 
