@@ -255,3 +255,5 @@ If top_border > 0 then redirects draw callback to top border draw.
 At end of FX draw, call 'bottom_border_draw' fn to finish.
   Resets CRTC registers as per default approach.
   
+=> Small challenge in that 0=no border but 1=one line border + 1 line black.
+Means that the number of rows of FX updated is only 1 but display moves down by 2.

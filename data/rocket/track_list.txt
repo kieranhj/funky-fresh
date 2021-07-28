@@ -7,3 +7,5 @@ y_pos
 anim_time
 top_border
 top_colour
+bottom_border
+bottom_colour

@@ -171,8 +171,9 @@ color="ff8850b2">
 	</track>
 	<track name="top_border" folded="0" muteKeyCount="0"
 color="ffb27474">
-		<key row="16" value="0.000000" interpolation="1" />
-		<key row="24" value="15.000000" interpolation="0" />
+		<key row="16" value="0.000000" interpolation="0" />
+		<key row="21" value="10.000000" interpolation="0" />
+		<key row="22" value="10.000000" interpolation="0" />
 		<key row="128" value="15.000000" interpolation="1" />
 		<key row="136" value="0.000000" interpolation="0" />
 		<key row="192" value="0.000000" interpolation="1" />
@@ -190,6 +191,15 @@ color="ffb28050">
 		<key row="18" value="3.000000" interpolation="0" />
 		<key row="19" value="4.000000" interpolation="0" />
 		<key row="20" value="5.000000" interpolation="0" />
+	</track>
+	<track name="bottom_border" folded="0" muteKeyCount="0"
+color="ffb28050">
+		<key row="16" value="0.000000" interpolation="0" />
+		<key row="22" value="10.000000" interpolation="0" />
+	</track>
+	<track name="bottom_colour" folded="0" muteKeyCount="0"
+color="ffa9b250">
+		<key row="22" value="6.000000" interpolation="0" />
 	</track>
 </tracks>
 	</rootElement>

@@ -383,35 +383,10 @@ EQUB &20 + PAL_cyan
 	.done_row_loop
     ;CHECK_SAME_PAGE_AS char_row_loop, TRUE
 
-	\\ Currently at scanline 2+118*2=238, need 312 lines total.
-	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
-	lda #4: sta &FE00
-	lda #36: sta &FE01
-
-	\\ R7 vsync at scanline 272 = 238 + 17*2
-	lda #7:sta &fe00
-	lda #17:sta &fe01
-
-	\\ If prev_scanline=6 then R9=7
-	\\ If prev_scanline=4 then R9=5
-	\\ If prev_scanline=2 then R9=3
-	\\ If prev_scanline=0 then R9=1
-	{
-		lda #9:sta &fe00
-		clc
-		lda #1
-		adc prev_scanline
-		sta &fe01
-	}
-
-	\\ Wait for scanline 240.
-	WAIT_SCANLINES_ZERO_X 2
-
-	\\ R9=1
-	lda #9:sta &fe00
-	lda #1:sta &fe01
-
-	lda #0:sta prev_scanline
+	\\ Set up final rupture with optional bottom border.
+	\\ Remaining scanlines to 312 total with vsync at 272.
+	\\ End with scanline counter at and scanlines per row to 2.
+	jsr fx_borders_draw_bottom
 
 	\\ FX responsible for resetting lower palette.
 	ldx #LO(fx_static_image_default_palette)

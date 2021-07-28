@@ -114,6 +114,7 @@ INCLUDE "lib/vgcplayer.h.asm"
 
 \\ FX borders
 .border_row_count       skip 1
+.bottom_row_count       skip 1
 
 \\ TODO: Local ZP vars?
 .zp_end
