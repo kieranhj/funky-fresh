@@ -361,6 +361,8 @@ GUARD screen_addr + RELOC_SPACE
     lda &0e00
     lda &0e00
     lda &0e00
+    lda &0e00
+    lda &0e00
     PRINT "WARNING: This code only added to avoid branch crossing page boundary."
     ENDIF
 
