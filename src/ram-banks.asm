@@ -83,6 +83,7 @@ include "src/fx-chunky-twister.asm"
 include "src/fx-frequency.asm"
 include "src/fx-stretch-grid.asm"
 include "src/fx-frak-zoomer.asm"
+include "src/fx-checker-zoom.asm"
 \\ ^------ NB. Currently assuming all FX in same SWRAM bank!!
 .fx_end
 

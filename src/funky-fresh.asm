@@ -111,6 +111,11 @@ INCLUDE "lib/vgcplayer.h.asm"
 \\ FX stretch grid
 .grid_row_count         skip 1
 
+\\ FX checker zoom
+.checker_y1             skip 2
+.checker_y2             skip 2
+.checker_y3             skip 2
+
 \\ TODO: Local ZP vars?
 .zp_end
 

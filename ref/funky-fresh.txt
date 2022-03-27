@@ -239,3 +239,6 @@ Zooms down to about 16 texels visible. Presumably has 256 chars per zoom fixed?
 So just prerender all of them then just wrap at 255-80=175
 Or just have 3x screen widths, i.e. 3x80chars = 240 = 480 bytes
 Would give 42 zooms max.
+
+Belated note for 2022:: it's a massive PITA to wrap so just don't do it. Scroll a viewport around
+a limited canvas size, just make the canvas large enough for the effect to be effective!
