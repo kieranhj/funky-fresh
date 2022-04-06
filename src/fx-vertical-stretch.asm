@@ -100,10 +100,19 @@
 	sta v+1
 	ENDIF
 
+	; initial 'normal' CRTC values
+;	LDA #1:STA &FE00:LDA #86:STA &FE01
+;	LDA #2:STA &FE00:LDA #104:STA &FE01
+
 	\\ R6=display 1 row.
 	lda #6:sta &fe00					; 8c
 	lda #1:sta &fe01					; 8c
 	lda #119:sta row_count				; 5c
+
+	; Enable teletext to do blanking on the ULA
+	; (it will be disabled explicitly at the start of each RVI line)
+	LDA #&F6:STA &fe20
+	lda #&f4:sta teletext_disable
 	rts
 }
 
@@ -206,72 +215,92 @@
 
 	\\ <=== HCC=0 (scanline=0)
 
-	stx &fe00								; 6c
-	stz &fe01								; 6c
+	; turn off teletext enable
+	LDA teletext_disable:STA &FE20			; +7 (7)
+
+	stx &fe00								; +5 (12)
+	stz &fe01								; +6 (18)
 
 	\\ Now 2x scanlines per loop.
 	.char_row_loop
 	{
+		\\ <== HCC=18 (even)
+
 		\\ Update v
 		lda v
 		.*fx_vertical_strech_dv_LO
-		adc #0:sta v				; 8c
+		adc #0:sta v						; +8 (26)
 		lda v+1
 		.*fx_vertical_strech_dv_HI
-		adc #0:sta v+1				; 8c
+		adc #0:sta v+1						; +8 (34)
 		\\ 16c
 
 		\\ Row N+1 screen start
-		tax							; 2c
-		lda #13:sta &fe00					; 8c
-		lda fx_stretch_vram_table_LO, X				; 4c
-		sta &fe01							; 6c
-		lda #12:sta &fe00					; 8c
-		lda fx_stretch_vram_table_HI, X				; 4c
-		sta &fe01							; 6c
-		\\ 40c
+		tax									; +2 (36)
+		lda #13:sta &fe00					; +8 (44)
+		lda fx_stretch_vram_table_LO, X		; +4 (48)
+		sta &fe01							; +6 (54)
+		lda #12:sta &fe00					; +8 (62)
+		lda fx_stretch_vram_table_HI, X		; +4 (66)
+		sta &fe01							; +6 (72)
 	
 		\\ NB. Must set R9 before final scanline of the row!
 		\\ Row N+1 scanline
-		lda #9:sta &fe00				; 8c
-		lda v+1:asl a:and #6					; 7c
-		\\ 2-bits * 2
-		tax								; 2c
-		eor #&ff						; 2c
-		sec								; 2c
-		adc #13							; 2c
-		clc								; 2c
-		adc prev_scanline				; 3c
-		sta &fe01						; 6c
-		stx prev_scanline				; 3c
-		\\ 35c
+		lda #9:sta &fe00					; +8 (80)
+		; turn on teletext enable
+		LDA #&F6:STA &FE20					; +6 (86)
 
-		WAIT_CYCLES 15					; jump to black bar version here - oof!
-		\\ <=== HCC=118 (scanline=odd)
-			WAIT_CYCLES 80				; for palette changes.
+		lda v+1:asl a:and #6				; +7 (93)
+		\\ 2-bits * 2
+		tax									; +2 (95)
+		eor #&ff							; +2 (97)
+		sec									; +2 (99)
+		adc #13								; +2 (101)
+		clc									; +2 (103)
+		adc prev_scanline					; +3 (106)
+		sta &fe01							; +6 (112)
+		stx prev_scanline					; +3 (115)
+
+		; jump to black bar version here - oof!
+		WAIT_CYCLES 3						; +3 (118)
+		\\ <=== HCC=118 (even)
+
+		; for palette changes.
+		WAIT_CYCLES 10						; +10 (128)		
+
+			; turn off teletext enable
+			LDA teletext_disable:STA &FE20	; +7 (7)
 
 			\\ Set R0=101 (102c)
-			stz &fe00						; 6c
-			lda #101:sta &fe01				; 8c
+			stz &fe00						; +5 (12)
+			lda #101:sta &fe01				; +8 (20)
 
-			WAIT_CYCLES 10
+			WAIT_CYCLES 60					; +60 (80)		
+
+			; turn on teletext enable
+			LDA #&F6:STA &FE20				; +6 (86)
+
+			WAIT_CYCLES 8					; +8 (94)
 
 			\\ At HCC=102 set R0=1.
-			lda #1:sta &fe01				; 8c
-			\\ <=== HCC=102
+			lda #1:sta &fe01				; +8 (102)
+			\\ <=== HCC=102 (odd)
 
 			\\ Burn R0=1 scanlines.
-			WAIT_CYCLES 18
+			WAIT_CYCLES 18					; +18 (120)
 
 			\\ At HCC=0 set R0=127
-			lda #127:sta &fe01				; 8c
+			lda #127:sta &fe01				; +8 (128)
 
-		\\ <=== HCC=0 (scanline=even)
+		\\ <=== HCC=0 (even)
 
-		clc							; 2c
-		dec row_count				; 5c
-		beq scanline_last			; 2c
-		jmp char_row_loop			; 3c
+		; turn off teletext enable
+		LDA teletext_disable:STA &FE20		; +7 (7)
+
+		clc									; +2 (9)
+		dec row_count						; +5 (14)
+		beq scanline_last					; +2 (16)
+		jmp char_row_loop					; +3 (19)
 	}
 	CHECK_SAME_PAGE_AS char_row_loop, FALSE
 	.scanline_last
@@ -305,6 +334,10 @@
 	lda #1:sta &fe01
 
 	lda #0:sta prev_scanline
+
+	; initial 'normal' CRTC values
+	;LDA #1:STA &FE00:LDA #80:STA &FE01
+	;LDA #2:STA &FE00:LDA #98:STA &FE01
     rts
 }
 
