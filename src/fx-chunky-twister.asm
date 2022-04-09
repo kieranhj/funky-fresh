@@ -187,6 +187,7 @@ EQUB &20 + PAL_cyan
 .fx_chunky_twister_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
+IF 0
 	WAIT_CYCLES 16						; +16 (16)
 
 	\\ R9 must be set before final scanline of the row.
@@ -246,119 +247,139 @@ EQUB &20 + PAL_cyan
 	\\ Set R4=0 (one row per cycle).
 	stx &fe00								; +6 (6)
 	stz &fe01								; +6 (12)
+ELSE
+	\\ Ignore scanline for top character row for now.
+
+	\\ Set R12,R13 + SHADOW for row 0.
+	CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 		; +65 (65)
+
+	\\ Set colours.
+	ldx angle									; +3 (68)
+	ldy angle_to_quadrant, X					; +4 (72)
+	lda twister_quadrant_colour_1,Y:sta &fe21 	; +8 (80)
+	lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (88)
+	lda twister_quadrant_colour_3,Y:sta &fe21	; +8 (96)
+
+	\\ Set SHADOW bit safely in non-visible portion.
+	lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; +13 (109)
+
+	WAIT_CYCLES 17							; +17 (128)
+
+		\\ <=== HCC=0 (scanline=-1)
+		lda #4:sta &fe00					; +8 (8)
+		lda #0:sta &fe01					; +8 (16)
+		\\ Do scanline stuffs here.
+		WAIT_CYCLES	124						; +129 (128 + 17)
+ENDIF
 
 	\\ 2x scanlines per row.
 	.char_row_loop
 	{
-		\\ <=== HCC=12 (even)
-		\\ Y=9 to set R9!
-		sty &fe00							; +6 (18)
+		\\ <=== HCC=17 (even)
 
-		.*fx_chunky_twister_calc_rot
+		.*fx_chunky_twister_calc_rot		; do the twist!
 		{
-			clc								; +2 (20)
+			clc								; +2 (19)
 			\\   rocket_track_y_pos => x offset per row (sin table)    [0-10]  <- makes it curve
-			lda xy							; +3 (23)
+			lda xy							; +3 (22)
 			.*twister_calc_rot_lo
-			adc #0:sta xy					; +5 (28)
+			adc #0:sta xy					; +5 (27)
 
-			lda xy+1						; +3 (31)
+			lda xy+1						; +3 (30)
 			.*twister_calc_rot_hi
-			adc #0:sta xy+1					; +5 (36)
+			adc #0:sta xy+1					; +5 (35)
 
 			\ 4096/4000~=1
-			clc								; +2 (38)
+			clc								; +2 (37)
 			\\   rocket_track_zoom  => rotation per row (cos table)    [0-10]  <- makes it twist
-			lda yb+2						; +3 (41)
+			lda yb+2						; +3 (40)
 			.*twister_calc_rot_zoom_lo
 			;  actually LSB!
-			adc #0:sta yb+2					; +5 (46)
-			lda yb							; +3 (49)
+			adc #0:sta yb+2					; +5 (45)
+			lda yb							; +3 (48)
 			.*twister_calc_rot_zoom_hi
-			adc #0:sta yb					; +5 (54)
-			tay								; +2 (56)
-			lda yb+1						; +3 (59)
+			adc #0:sta yb					; +5 (53)
+			tay								; +2 (55)
+			lda yb+1						; +3 (58)
 			.*twister_calc_rot_sign
-			adc #0							; +2 (61)
-			and #15:sta yb+1				; +5 (66)
-			clc:adc #HI(cos):sta load+2		; +8 (74)
+			adc #0							; +2 (60)
+			and #15:sta yb+1				; +5 (65)
+			clc:adc #HI(cos):sta load+2		; +8 (73)
 
 			.load
-			lda cos,Y						; +4 (78)
-			sta angle						; +3 (81)
+			lda cos,Y						; +4 (77)
+			sta angle						; +3 (80)
 		}
 		.*twister_calc_rot_rts
 
-		\\ 2-bits * 2
-		and #1:asl a						; +4 (85)
-		tay									; +2 (87)
-		eor #&ff							; +2 (89)
-		adc #9								; +2 (91)
-		adc prev_scanline					; +3 (94)
-		sta &fe01							; +6 (100)
-		sty prev_scanline					; +3 (103)
+		; turn on teletext enable
+		; TELETEXT_ENABLE_7					; +7 (87)
+		ldx teletext_enable:stx &fe20		; +7 (87)
 
 			\\ Set R12,R13 + SHADOW for next row.
 			;CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE
 			{
 				; 0-127
-				lda angle						; +3 (106)
-				and #&3E						; +2 (108)
-				lsr a:tay						; +4 (112)
+				;lda angle						; +3
+				and #&3E						; +2 (89)
+				lsr a:tay						; +4 (93)
 
-				lda #13: sta &FE00				; +8 (120)
-				ldx xy+1						; +3 (123)
-				lda x_wibble, X					; +4 (127)
-				lsr a							; +2 (1)
-				\\ <=== HCC=0 (scanline=odd)
-				clc								; +2 (3)
-				adc twister_vram_table_LO, Y	; +4 (7)
-				sta &FE01						; +5 (12)
+				lda #13: sta &FE00				; +7 (100)
+				ldx xy+1						; +3 (103)
+				lda x_wibble, X					; +4 (107)
+				lsr a							; +2 (109)
+				clc								; +2 (111)
+				adc twister_vram_table_LO, Y	; +4 (115)
+				sta &FE01						; +5 (120)
+				lda #12: sta &FE00				; +8 (128)
 
-				lda #12: sta &FE00				; +8 (20)
-				lda twister_vram_table_HI, Y	; +4 (24)
-				adc #0							; +2 (26)
-				sta &FE01						; +6 (32)
+				\\ <=== HCC=0 (odd)
+				TELETEXT_DISABLE_7				; +7 (7)
 
-				lda x_wibble, X					; +4 (36)
-				and #1:sta shadow_bit 			; +5 (41)
+				lda twister_vram_table_HI, Y	; +4 (11)
+				adc #0							; +2 (13)
+				sta &FE01						; +5 (18)
+
+				lda x_wibble, X					; +4 (22)
+				and #1:sta shadow_bit 			; +5 (27)
 			}
 
-			\\ Set R0=103 (104c)
-			stz &fe00							; +5 (46)
-			lda #103:sta &fe01					; +8 (54)
-			WAIT_CYCLES 3						; +3 (57)
-			ldx angle							; +3 (60)
-			ldy angle_to_quadrant, X			; +4 (64)
-			lda twister_quadrant_colour_1,Y:sta &fe21 	; +8 (72)
-			lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (80)
-			ldx twister_quadrant_colour_3,Y				; +4 (84)
+			; Set R9 for the next line.
+			lda #9: sta &fe00					; +7 (34)
+			lda angle:and #1					; +5 (39)
+			tax:asl a							; +4 (43)
+			ora #1								; +2 (45)
+			sta &fe01							; +5 (50)
+			\\ R9 must be set in final scanline of the row for this scheme.
+
+			lda jmptab, X:sta jmpinstruc+1		; +8 (58)
+
+			ldx angle							; +3 (61)
+			ldy angle_to_quadrant, X			; +4 (65)
+			lda twister_quadrant_colour_1,Y		; +4 (69)
+			sta &fe21 							; +4 (73)
+			lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (81)
+
+			TELETEXT_ENABLE_6					; +6 (87)
+
+			lda twister_quadrant_colour_3,Y:sta &fe21	; +8 (95)
 
 			\\ Set SHADOW bit safely in hblank.
-			lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; +13 (97)
+			lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; +13 (108)
 
-			\\ At HCC=104 set R0=1.
-			.here
-			lda #1:sta &fe01					; +7 (104)
-			\\ <=== HCC=104
+			.jmpinstruc JMP scanline0			; +3 (103)
+			.^jmpreturn							;    (122)
 
-			\\ Burn 2c scanlines through to 128c.
-			lda #127							; +2 (106)
-
-			stx &fe21							; +4 (110)
-			WAIT_CYCLES 6						; +6 (116)
-
-			\\ Set R0=0 to blank 6x chars.
-			stz &fe01							; +6 (122)
-
-			\\ At HCC=0 set R0=127
 			sta &fe01							; +6 (128)
 
-		\\ <=== HCC=0 (scanline=even)
-		ldy #9								; +2 (2)
-		dec row_count						; +5 (7)
-		beq done_row_loop					; +2 (9)
-		jmp char_row_loop					; +3 (12)
+		\\ <=== HCC=0 (even)
+
+		; turn off teletext enable
+		TELETEXT_DISABLE_7					; +7 (7)
+
+		dec row_count						; +5 (12)
+		beq done_row_loop					; +2 (14)
+		jmp char_row_loop					; +3 (17)
 	}
 	.done_row_loop
     ;CHECK_SAME_PAGE_AS char_row_loop, TRUE

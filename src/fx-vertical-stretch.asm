@@ -23,7 +23,7 @@
 \ be late and your raster timings will be wrong!
 \ ******************************************************************
 
-MACRO TELETEXT_ENABLE
+MACRO TELETEXT_ENABLE_6
 	LDA #&F6:STA &FE20				; +6
 ENDMACRO
 
@@ -31,7 +31,7 @@ MACRO TELETEXT_ENABLE_7
 	LDA teletext_enable:STA &FE20	; +7
 ENDMACRO
 
-MACRO TELETEXT_DISABLE
+MACRO TELETEXT_DISABLE_6
 	LDA #&F4:STA &FE20				; +6
 ENDMACRO
 
@@ -116,6 +116,8 @@ ENDMACRO
 	sta v+1
 	ENDIF
 
+	; TODO: Move all of the below to display portion before scanline 0?
+
 	\\ This FX always uses screen in MAIN RAM.
 	\\ TODO: Add a data byte to specify MAIN or SHADOW.
 	; clear bit 0 to display MAIN.
@@ -191,33 +193,22 @@ ENDMACRO
 		WAIT_CYCLES 5					; +5 (32)
 		jmp right_in_there				; +3 (35)
 
-		\\ Unreachable!
-IF 0
-	\\ <=== HCC=0 (scanline=0)
-
-	; turn off teletext enable
-	TELETEXT_DISABLE_7						; +7 (7)
-
-	stx &fe00								; +5 (12)
-	stz &fe01								; +6 (18)
-ENDIF
-
 	\\ Now 2x scanlines per loop.
 	.char_row_loop
 	{
-		\\ <== HCC=18 (even)
+		\\ <== HCC=19 (even)
 
 		\\ Update v
 		lda v
 		.*fx_vertical_strech_dv_LO
-		adc #0:sta v						; +8 (26)
+		adc #0:sta v						; +8 (27)
 		lda v+1
 		.*fx_vertical_strech_dv_HI
-		adc #0:sta v+1						; +8 (34)
+		adc #0:sta v+1						; +8 (35)
 
 		\\ Row N+1 screen start
-		tax									; +2 (36)
-		lda #13:sta &fe00					; +8 (44)
+		tax									; +2 (37)
+		lda #13:sta &fe00					; +7 (44)
 		lda fx_stretch_vram_table_LO, X		; +4 (48)
 		sta &fe01							; +6 (54)
 		lda #12:sta &fe00					; +8 (62)
@@ -268,8 +259,8 @@ ENDIF
 		beq scanline_last					; +2 (16)
 		jmp char_row_loop					; +3 (19)
 	}
-	CHECK_SAME_PAGE_AS char_row_loop, FALSE
 	.scanline_last
+	;CHECK_SAME_PAGE_AS char_row_loop, FALSE
 
 	\\ <=== HCC=17 (even) [last visible char row.]
 
