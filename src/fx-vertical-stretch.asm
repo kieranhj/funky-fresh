@@ -232,31 +232,29 @@ ENDIF
 
 			\\ <=== HCC=0 (odd)
 			TELETEXT_DISABLE_7				; +7 (7)
-			WAIT_CYCLES 28					; +28 (80)
+			WAIT_CYCLES 28					; +28 (35)
 
 			.^right_in_there				;    (35)
 
 			; Set R9 for the next line.
-			lda #9: sta &fe00				; +7 (14)
-			txa:asl a						; +4 (18)
-			sta prev_scanline				; +3 (21)
-			ora #1							; +2 (23)
-			sta &fe01						; +5 (28)
+			lda #9: sta &fe00				; +7 (42)
+			txa:asl a						; +4 (46)
+			sta prev_scanline				; +3 (47)
+			ora #1							; +2 (49)
+			sta &fe01						; +5 (54)
 			\\ R9 must be set in final scanline of the row for this scheme.
 
-			lda jmptab, X:sta jmpinstruc+1	; +8 (36)
+			lda jmptab, X:sta jmpinstruc+1	; +8 (64)
 
-			; prepare CRTC R0
-			LDA #0:STA &FE00				; +8 (44)
-			LDA #113:STA &FE01				; +8 (52)
-
+			WAIT_CYCLES 16					; +16 (80)
 			TELETEXT_ENABLE_7				; +7 (87)
 
 			ldy #1							; +2 (89)
-			WAIT_CYCLES 9					; +9 (98)
+			lda #0:sta &fe00				; +7 (96)
+			WAIT_CYCLES 2					; +9 (98)
 
 			.jmpinstruc JMP scanline0		; +3 (101)
-			.*jmpreturn						;    (122)
+			.^jmpreturn						;    (122)
 
 			sta &fe01						; +6 (128)
 
@@ -311,9 +309,6 @@ ENDIF
 	LDA #1:STA &FE00:LDA #80:STA &FE01
 	LDA #2:STA &FE00:LDA #98:STA &FE01
     rts
-}
-
-SKIP 100
 
 ALIGN 4
 .jmptab
@@ -376,6 +371,7 @@ CHECK_SAME_PAGE_AS scanline0, TRUE
 	JMP jmpreturn						; +3 (123)
 
 	;-------------------------------------------------------	
+}
 
 \ ******************************************************************
 \ *	FX DATA
