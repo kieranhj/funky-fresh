@@ -227,8 +227,8 @@ ENDIF
 		txa:and #3:tax						; +6 (78)
 		WAIT_CYCLES 2						; +2 (80)
 		; turn on teletext enable
-		TELETEXT_ENABLE						; +6 (86)
-		WAIT_CYCLES 42						; +42 (128)
+		TELETEXT_ENABLE_7					; +7 (87)
+		WAIT_CYCLES 41						; +41 (128)
 
 			\\ <=== HCC=0 (odd)
 			TELETEXT_DISABLE_7				; +7 (7)
@@ -250,10 +250,10 @@ ENDIF
 			LDA #0:STA &FE00				; +8 (44)
 			LDA #113:STA &FE01				; +8 (52)
 
-			TELETEXT_ENABLE					; +6 (86)
+			TELETEXT_ENABLE_7				; +7 (87)
 
-			ldy #1							; +2 (88)
-			WAIT_CYCLES 10					; +10 (98)
+			ldy #1							; +2 (89)
+			WAIT_CYCLES 9					; +9 (98)
 
 			.jmpinstruc JMP scanline0		; +3 (101)
 			.*jmpreturn						;    (122)
@@ -295,8 +295,8 @@ ENDIF
 
 		WAIT_CYCLES 73						; +73 (80)
 		; turn on teletext enable
-		TELETEXT_ENABLE							; +6 (86)
-		WAIT_CYCLES 42							; +42 (128)
+		TELETEXT_ENABLE_7					; +7 (87)
+		WAIT_CYCLES 41						; +41 (128)
 
 	\\ <=== HCC=0 (off screen)
 	TELETEXT_DISABLE_7						; +7 (7)
