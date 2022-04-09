@@ -23,22 +23,6 @@
 \ be late and your raster timings will be wrong!
 \ ******************************************************************
 
-MACRO TELETEXT_ENABLE_6
-	LDA #&F6:STA &FE20				; +6
-ENDMACRO
-
-MACRO TELETEXT_ENABLE_7
-	LDA teletext_enable:STA &FE20	; +7
-ENDMACRO
-
-MACRO TELETEXT_DISABLE_6
-	LDA #&F4:STA &FE20				; +6
-ENDMACRO
-
-MACRO TELETEXT_DISABLE_7
-	LDA teletext_disable:STA &FE20	; +7
-ENDMACRO
-
 .standard_multiply_AX
 {
 	CPX #0:BEQ zero
@@ -135,9 +119,7 @@ ENDMACRO
 
 	; Enable teletext to do blanking on the ULA
 	; (it will be disabled explicitly at the start of each RVI line)
-	TELETEXT_ENABLE
-	lda #&f4:sta teletext_disable
-	lda #&f6:sta teletext_enable
+	TELETEXT_ENABLE_6
 	rts
 }
 
@@ -275,7 +257,7 @@ ENDMACRO
 
 	WAIT_CYCLES 32							; +32 (80)
 	; turn on teletext enable
-	TELETEXT_ENABLE							; +6 (86)
+	TELETEXT_ENABLE_6							; +6 (86)
 	WAIT_CYCLES 42							; +42 (128)
 
 		\\ We're in the final visible scanline of the screen.

@@ -24,24 +24,24 @@
 MACRO CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE		; 65e/66o
 {
 	; 0-127
-	lda angle:and #&3E				; 5c
-	lsr a:tay						; 4c
+	lda angle:and #&3E				; +5 (5)
+	lsr a:tay						; +4 (9)
 
-	lda #13: sta &FE00				; 8c <= 7e
-	ldx xy+1						; 3c
-	lda x_wibble, X					; 4c
-	lsr a							; 2c
-	clc								; 2c
-	adc twister_vram_table_LO, Y	; 4c
-	sta &FE01						; 6c <= 5c
+	lda #13: sta &FE00				; +7 (16)
+	ldx xy+1						; +3 (19)
+	lda x_wibble, X					; +4 (23)
+	lsr a							; +2 (25)
+	clc								; +2 (27)
+	adc twister_vram_table_LO, Y	; +4 (31)
+	sta &FE01						; +5 (36)
 
-	lda #12: sta &FE00				; 8c
-	lda twister_vram_table_HI, Y	; 4c
-	adc #0							; 2c
-	sta &FE01						; 6c
+	lda #12: sta &FE00				; +8 (44)
+	lda twister_vram_table_HI, Y	; +4 (48)
+	adc #0							; +2 (50)
+	sta &FE01						; +6 (56)
 
-	lda x_wibble, X					; 4c
-	and #1:sta shadow_bit 			; 5c
+	lda x_wibble, X					; +4 (60)
+	and #1:sta shadow_bit 			; +5 (65)
 }
 ENDMACRO
 
@@ -263,13 +263,16 @@ ELSE
 	\\ Set SHADOW bit safely in non-visible portion.
 	lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; +13 (109)
 
-	WAIT_CYCLES 17							; +17 (128)
+	WAIT_CYCLES 19							; +19 (128)
 
 		\\ <=== HCC=0 (scanline=-1)
 		lda #4:sta &fe00					; +8 (8)
 		lda #0:sta &fe01					; +8 (16)
-		\\ Do scanline stuffs here.
-		WAIT_CYCLES	124						; +129 (128 + 17)
+
+		lda #9:sta &fe00					; +8 (24)
+		lda #1:sta &fe01					; +8 (32)
+
+		WAIT_CYCLES	113						; +113 (128 + 17)
 ENDIF
 
 	\\ 2x scanlines per row.
@@ -314,7 +317,8 @@ ENDIF
 
 		; turn on teletext enable
 		; TELETEXT_ENABLE_7					; +7 (87)
-		ldx teletext_enable:stx &fe20		; +7 (87)
+		;ldx teletext_enable:stx &fe20		; +7 (87)
+		WAIT_CYCLES 7
 
 			\\ Set R12,R13 + SHADOW for next row.
 			;CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE
@@ -334,7 +338,8 @@ ENDIF
 				lda #12: sta &FE00				; +8 (128)
 
 				\\ <=== HCC=0 (odd)
-				TELETEXT_DISABLE_7				; +7 (7)
+				;TELETEXT_DISABLE_7				; +7 (7)
+				WAIT_CYCLES 7
 
 				lda twister_vram_table_HI, Y	; +4 (11)
 				adc #0							; +2 (13)
@@ -358,14 +363,17 @@ ENDIF
 			ldy angle_to_quadrant, X			; +4 (65)
 			lda twister_quadrant_colour_1,Y		; +4 (69)
 			sta &fe21 							; +4 (73)
-			lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (81)
+
+			;lda twister_quadrant_colour_2,Y:sta &fe21	; +8
+			;lda twister_quadrant_colour_3,Y:sta &fe21	; +8
+
+			stz &fe00							; +5 (78)
+			WAIT_CYCLES 3						; +3 (81)
 
 			TELETEXT_ENABLE_6					; +6 (87)
 
-			lda twister_quadrant_colour_3,Y:sta &fe21	; +8 (95)
-
 			\\ Set SHADOW bit safely in hblank.
-			lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; +13 (108)
+			lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; +13 (100)
 
 			.jmpinstruc JMP scanline0			; +3 (103)
 			.^jmpreturn							;    (122)
@@ -384,42 +392,109 @@ ENDIF
 	.done_row_loop
     ;CHECK_SAME_PAGE_AS char_row_loop, TRUE
 
-	\\ <=== HCC=10 (even)
+	\\ <=== HCC=15 (even)
 
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
 	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
-	lda #4: sta &FE00						; +8 (18)
-	lda #36: sta &FE01						; +8 (26)
+	lda #4: sta &FE00						; +7 (22)
+	lda #36: sta &FE01						; +8 (30)
 
 	\\ R7 vsync at scanline 272 = 238 + 17*2
-	lda #7:sta &fe00						; +8 (34)
-	lda #17:sta &fe01						; +8 (42)
+	lda #7:sta &fe00						; +8 (38)
+	lda #17:sta &fe01						; +8 (46)
 
-	\\ If prev_scanline=6 then R9=7
-	\\ If prev_scanline=4 then R9=5
-	\\ If prev_scanline=2 then R9=3
-	\\ If prev_scanline=0 then R9=1
-	{
-		lda #9:sta &fe00					; +8 (50)
-		clc									; +2 (52)
-		lda #1								; +2 (54)
-		adc prev_scanline					; +3 (57)
-		sta &fe01							; +5 (62)
-	}
+	WAIT_CYCLES 34							; +34 (80)
+	; turn on teletext enable
+	TELETEXT_ENABLE_6						; +6 (86)
+	WAIT_CYCLES 42							; +42 (128)
 
-	\\ Wait for scanline 240.
-	WAIT_SCANLINES_ZERO_X 2					; +256 (62)
+		\\ We're in the final visible scanline of the screen.
+		\\ <=== HCC=0 (odd)
+		TELETEXT_DISABLE_7					; +7 (7)
 
-	\\ R9=1
-	lda #9:sta &fe00						; +8 (70)
-	lda #1:sta &fe01						; +8 (78)
+		WAIT_CYCLES 73						; +73 (80)
+		; turn on teletext enable
+		TELETEXT_ENABLE_7					; +7 (87)
+		WAIT_CYCLES 41						; +41 (128)
 
-	lda #0:sta prev_scanline				; +5 (83)
+	\\ <=== HCC=0 (off screen)
+	TELETEXT_DISABLE_7						; +7 (7)
+
+	\\ Set R9=1 so all remaining char rows are 2 scanlines each.
+	lda #9:sta &fe00						; +7 (14)
+	lda #1:sta &fe01						; +8 (22)
+
+	lda #0:sta prev_scanline				; +5 (27)
 
 	\\ FX responsible for resetting lower palette.
 	ldx #LO(fx_static_image_default_palette)
 	ldy #HI(fx_static_image_default_palette)
 	jmp fx_static_image_set_palette
+
+ALIGN 4
+.jmptab
+	EQUB LO(scanline0)
+	EQUB LO(scanline2)
+	EQUB LO(scanline4)
+	EQUB LO(scanline6)
+
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 0: R0=127 R9=1                        						| (0...)
+	.scanline0							;    (103)
+	LDA #127:STA &FE01					; +7 (110)
+	WAIT_CYCLES 9						; +9 (119)
+	JMP jmpreturn						; +3 (122)
+	
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 2: R0=119 R9=3 R0=3                           | 0   0   1   1   (2...)
+	.scanline2							;    (103)
+	LDA #119:STA &FE01					; +7 (110)
+	LDA #127							; +2 (112)
+	LDY #3								; +2 (114)
+	STY &FE01							; +6 (120)
+	JMP jmpreturn						; +3 (123)
+	
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 4: R0=119 R9=5                                | 0   1   2   3   (4...)
+	.scanline4							;    (101)
+CHECK_SAME_PAGE_AS scanline0, TRUE
+	LDA #119:STA &FE01					; +7 (108)
+	LDA #127							; +2 (110)
+	LDY #1								; +2 (112)
+	WAIT_CYCLES 2						; +2 (114)
+	STY &FE01							; +6 (120)
+	JMP jmpreturn						; +3 (123)
+
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 6: R0=115 R9=7                        | 0   1   2   3   4   5   (6...)
+	.scanline6							;    (103)
+	LDA #115:STA &FE01					; +7 (110)
+	LDY #1								; +2 (112)
+	STY &FE01							; +6 (118) <= broken should be 116
+	LDA #127							; +2 (120)
+	JMP jmpreturn						; +3 (123)
+	
+	;-------------------------------------------------------	
 }
 
 \ ******************************************************************

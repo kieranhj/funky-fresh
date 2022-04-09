@@ -167,6 +167,9 @@ GUARD screen_addr + RELOC_SPACE
     cpx #zp_max	; TODO: Check if we need to keep SWRAM slots in ZP from Loader.
     bne zp_loop
 
+	lda #&f4:sta teletext_disable
+	lda #&f6:sta teletext_enable
+
     \\ TODO: Load banks and relocate data in a boot loader at &1900?
 	\\ Relocate data to lower RAM
     IF 0
