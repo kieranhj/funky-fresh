@@ -151,30 +151,6 @@ ENDMACRO
 \ A FULL AND VALID 312 line PAL signal before exiting!
 \ ******************************************************************
 
-\\ Limited RVI
-\\ Display 0,2,4,6 scanline offset for 2 scanlines.
-\\ <--- 102c total w/ 80c visible and hsync at 98c ---> <2c> ..13x <2c> = 128c
-\\ Plus one extra for luck! (i.e. we wait for 13 but C9 counts 14 in total.)
-\\ R9 = 13 + current - next
-\\
-\\  Assumes R4=0, i.e. one row per CRTC cycle.
-\\  Scanline 0 has normal R0 width 128c.
-\\  Must set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 0 - 2 = 11
-\\  Set scanline 1 to have width 102c.
-\\  At 102c set R0 width to 2c and skip remaining 26c.
-\\  At 0c reset R0 width to 128c.
-\\
-\\ Select CRTC register 0, i.e. lda #0:sta &fe00
-\\
-\\ cycles -->  94  96  98  100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
-\\             lda.sta..........WAIT_CYCLES 18 ..............................lda..sta ...........|
-\\             #1  &fe01                                                     #127 &fe01
-\\ scanline 1                   2    3    4    5    6    7    8    9    10   11   xx   0    1    2
-\\                                                                                |
-\\                                            --> missed due to end of CRTC frame +
-\\
-\\ NB. There is no additional scanline if this is not the end of the CRTC frame.
-
 ;     disable            enable hsync=101
 ;        v                 v       v
 ;  +-----------------------+ R1=86 
@@ -191,7 +167,7 @@ ENDMACRO
 {
 	\\ <=== HCC=0 (scanline=-2)
 
-	\\ Row 1 screen start
+	\\ Row 0 screen start
 	ldx v+1								; +3 (3)
 	lda #13:sta &fe00					; +7 (10)
 	lda fx_stretch_vram_table_LO, X		; +4 (14)
@@ -200,58 +176,15 @@ ENDMACRO
 	lda fx_stretch_vram_table_HI, X		; +4 (32)
 	sta &fe01							; +6 (38)
 
-IF 1
-	; Fix top row to scanline 0 for now..!
 	WAIT_CYCLES 90						; +90 (128)
 
 		\\ <=== HCC=0 (scanline=-1)
-		lda #9:sta &fe00				; +8 (8)
-		lda #1:sta &fe01				; +8 (16)
-		ldx #4							; +2 (18)
-		WAIT_CYCLES 110					; +118 (128)
-ELSE
-	\\ Set displayed scanline for rasterline 0.
-	lda #9:sta &fe00					; 8c <= 7c
-	lda v+1:asl a:and #6				; 7c
-	\\ 2-bits * 2
-	tax									; 2c
-	eor #&ff							; 2c
-	sec									; 2c
-	adc #13								; 2c
-	clc									; 2c
-	adc prev_scanline					; 3c
-	\\ R9 must be set before final scanline of the row.
-	sta &fe01							; 6c <= 5c
-	stx prev_scanline					; 3c
-	\\ 37c
-
-	\\ This FX always uses screen in MAIN RAM.
-	\\ TODO: Add a data byte to specify MAIN or SHADOW.
-	; clear bit 0 to display MAIN.
-	lda &fe34:and #&fe:sta &fe34		; 10c
-
-	WAIT_CYCLES 43
-
-		\\ <=== HCC=0 (scanline=-1)
-
-		\\ Set R0=101 (102c)
-		lda #0:sta &fe00					; 8c
-		lda #101:sta &fe01					; 8c
-
-		WAIT_CYCLES 78
-
-		\\ At HCC=102 set R0=1.
-		lda #1:sta &fe01					; 8c
-		\\ <=== HCC=102
-
-		\\ Burn R0=1 scanlines.
-		WAIT_CYCLES 14
-		clc									; 2c
-		ldx #4								; 2c
-
-		\\ At HCC=0 set R0=127
-		lda #127:sta &fe01					; 8c
-ENDIF
+		lda #4:sta &fe00				; +8 (8)
+		lda #0:sta &fe01				; +8 (16)
+		txa:and #3:tax					; +6 (22)
+		inc row_count					; +5 (27)
+		WAIT_CYCLES 5					; +5 (32)
+		jmp right_in_there				; +3 (35)
 
 	\\ <=== HCC=0 (scanline=0)
 
@@ -290,9 +223,11 @@ ENDIF
 		WAIT_CYCLES 42						; +42 (128)
 
 			\\ <=== HCC=0 (odd)
-
 			TELETEXT_DISABLE_7				; +7 (7)
-		
+			WAIT_CYCLES 28					; +28 (80)
+
+			.^right_in_there				;    (35)
+
 			; Set R9 for the next line.
 			lda #9: sta &fe00				; +7 (14)
 			txa:asl a						; +4 (18)
@@ -307,7 +242,6 @@ ENDIF
 			LDA #0:STA &FE00				; +8 (44)
 			LDA #113:STA &FE01				; +8 (52)
 
-			WAIT_CYCLES 28					; +28 (80)
 			TELETEXT_ENABLE					; +6 (86)
 
 			ldy #1							; +2 (88)
@@ -367,6 +301,8 @@ ENDIF
     rts
 }
 
+SKIP 100
+
 ALIGN 4
 .jmptab
 	EQUB LO(scanline0)
@@ -380,9 +316,19 @@ ALIGN 4
 	;  +-----------------------+ R1=86 
 	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
 	; |                                    
-	; | next scanline 0: R0=115 R9=1                        | 0   1   X   0   1   X   (0...)
+	; | next scanline 0: R0=127 R9=1                        						| (0...)
+	.scanline0							;    (101)
+	LDA #127:STA &FE01					; +7 (108)
+	WAIT_CYCLES 11						; +11 (119)
+	JMP jmpreturn						; +3 (122)
+	
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
 	; | next scanline 6: R0=115 R9=7                        | 0   1   2   3   4   5   (6...)
-	.scanline0
 	.scanline6							;    (101)
 	LDA #115:STA &FE01					; +7 (108)
 	LDA #127							; +2 (110)
@@ -395,13 +341,22 @@ ALIGN 4
 	;  +-----------------------+ R1=86 
 	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
 	; |                                    
-	; | next scanline 2: R0=113 R9=3                    | 0   1   2   3   X   0   1   (2...)
+	; | next scanline 2: R0=119 R9=3 R0=3                           | 0   0   1   1   (2...)
 	.scanline2							;    (101)
+	IF 1
+	LDA #119:STA &FE01					; +7 (108)
+	LDA #127							; +2 (110)
+	INY:INY								; +4 (114)
+	STY &FE01							; +6 (120)
+	JMP jmpreturn						; +3 (123)
+	ELSE
+	; | next scanline 2: R0=113 R9=3                    | 0   1   2   3   X   0   1   (2...)
 	WAIT_CYCLES 8						; +8 (109)
 	STY &FE01							; +5 (114)
 	LDA #127							; +2 (116)
 	WAIT_CYCLES 3						; +3 (119)
 	JMP jmpreturn						; +3 (122)
+	ENDIF
 	
 	;     disable            enable hsync=101
 	;        v                 v       v
