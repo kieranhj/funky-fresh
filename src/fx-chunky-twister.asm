@@ -282,7 +282,7 @@ ENDIF
 
 		.*fx_chunky_twister_calc_rot		; do the twist!
 		{
-			clc								; +2 (19)
+			;clc								; +2 (19)
 			\\   rocket_track_y_pos => x offset per row (sin table)    [0-10]  <- makes it curve
 			lda xy							; +3 (22)
 			.*twister_calc_rot_lo
@@ -315,60 +315,51 @@ ENDIF
 		}
 		.*twister_calc_rot_rts
 
-		; turn on teletext enable
-		; TELETEXT_ENABLE_7					; +7 (87)
-		;ldx teletext_enable:stx &fe20		; +7 (87)
-		WAIT_CYCLES 7
-
 			\\ Set R12,R13 + SHADOW for next row.
 			;CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE
 			{
 				; 0-127
-				;lda angle						; +3
-				and #&3E						; +2 (89)
-				lsr a:tay						; +4 (93)
+				;A=angle
+				and #&3E						; +2 (82)
+				lsr a:tay						; +4 (86)
 
-				lda #13: sta &FE00				; +7 (100)
-				ldx xy+1						; +3 (103)
-				lda x_wibble, X					; +4 (107)
-				lsr a							; +2 (109)
-				clc								; +2 (111)
-				adc twister_vram_table_LO, Y	; +4 (115)
-				sta &FE01						; +5 (120)
-				lda #12: sta &FE00				; +8 (128)
+				lda #13: sta &FE00				; +8 (94)
+				ldx xy+1						; +3 (97)
+				lda x_wibble, X					; +4 (101)
+				lsr a							; +2 (103)
+				clc								; +2 (105)
+				adc twister_vram_table_LO, Y	; +4 (109)
+				sta &FE01						; +5 (114)
+				lda #12: sta &FE00				; +8 (122)
 
+				lda twister_vram_table_HI, Y	; +4 (126)
+				adc #0							; +2 (128)
 				\\ <=== HCC=0 (odd)
-				;TELETEXT_DISABLE_7				; +7 (7)
-				WAIT_CYCLES 7
+				sta &FE01						; +6 (6)
 
-				lda twister_vram_table_HI, Y	; +4 (11)
-				adc #0							; +2 (13)
-				sta &FE01						; +5 (18)
-
-				lda x_wibble, X					; +4 (22)
-				and #1:sta shadow_bit 			; +5 (27)
+				lda x_wibble, X					; +4 (10)
+				and #1:sta shadow_bit 			; +5 (15)
 			}
 
 			; Set R9 for the next line.
-			lda #9: sta &fe00					; +7 (34)
-			lda angle:and #1					; +5 (39)
-			tax:asl a							; +4 (43)
-			ora #1								; +2 (45)
-			sta &fe01							; +5 (50)
+			lda #9: sta &fe00					; +7 (22)
+			lda angle:and #1					; +5 (27)
+			tax:asl a							; +4 (31)
+			ora #1								; +2 (33)
+			sta &fe01							; +5 (38)
 			\\ R9 must be set in final scanline of the row for this scheme.
 
-			lda jmptab, X:sta jmpinstruc+1		; +8 (58)
+			lda jmptab, X:sta jmpinstruc+1		; +8 (46)
 
-			ldx angle							; +3 (61)
-			ldy angle_to_quadrant, X			; +4 (65)
-			lda twister_quadrant_colour_1,Y		; +4 (69)
-			sta &fe21 							; +4 (73)
+			ldx angle							; +3 (49)
+			ldy angle_to_quadrant, X			; +4 (54)
+			lda twister_quadrant_colour_1,Y		; +4 (58)
+			sta &fe21 							; +4 (62)
 
-			;lda twister_quadrant_colour_2,Y:sta &fe21	; +8
-			;lda twister_quadrant_colour_3,Y:sta &fe21	; +8
-
-			stz &fe00							; +5 (78)
-			WAIT_CYCLES 3						; +3 (81)
+			lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (70)
+			lda twister_quadrant_colour_3,Y:sta &fe21	; +8
+			;WAIT_CYCLES 6						; +6 (76)
+			stz &fe00							; +5 (81)
 
 			TELETEXT_ENABLE_6					; +6 (87)
 
