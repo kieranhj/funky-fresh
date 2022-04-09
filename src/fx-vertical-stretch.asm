@@ -23,6 +23,18 @@
 \ be late and your raster timings will be wrong!
 \ ******************************************************************
 
+MACRO TELETEXT_ENABLE
+	LDA #&F6:STA &FE20				; +6
+ENDMACRO
+
+MACRO TELETEXT_DISABLE
+	LDA #&F4:STA &FE20				; +6
+ENDMACRO
+
+MACRO TELETEXT_DISABLE_7
+	LDA teletext_disable:STA &FE20	; +7
+ENDMACRO
+
 .standard_multiply_AX
 {
 	CPX #0:BEQ zero
@@ -100,9 +112,15 @@
 	sta v+1
 	ENDIF
 
+	\\ This FX always uses screen in MAIN RAM.
+	\\ TODO: Add a data byte to specify MAIN or SHADOW.
+	; clear bit 0 to display MAIN.
+	; Should be OK to do this in update given guaranteed position relative to displayed portion?
+	lda &fe34:and #&fe:sta &fe34		; 10c
+
 	; initial 'normal' CRTC values
-;	LDA #1:STA &FE00:LDA #86:STA &FE01
-;	LDA #2:STA &FE00:LDA #104:STA &FE01
+	LDA #1:STA &FE00:LDA #86:STA &FE01
+	LDA #2:STA &FE00:LDA #104:STA &FE01
 
 	\\ R6=display 1 row.
 	lda #6:sta &fe00					; 8c
@@ -111,7 +129,7 @@
 
 	; Enable teletext to do blanking on the ULA
 	; (it will be disabled explicitly at the start of each RVI line)
-	LDA #&F6:STA &fe20
+	TELETEXT_ENABLE
 	lda #&f4:sta teletext_disable
 	rts
 }
@@ -157,20 +175,41 @@
 \\
 \\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
+;     disable            enable hsync=101
+;        v                 v       v
+;  +-----------------------+ R1=86 
+;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+; |                                    
+; | next scanline 0: R0=115 R9=1                        | 0   1   X   0   1   X   (0...)
+; | next scanline 2: R0=113 R9=3                    | 0   1   2   3   X   0   1   (2...)
+; | next scanline 4: R0=119 R9=5                                | 0   1   2   3   (4...)
+; | next scanline 6: R0=115 R9=7                        | 0   1   2   3   4   5   (6...)
+;
+; Set R9 in final scanline as _don't_ want it to take effect until next cycle/char row.
+
 .fx_vertical_stretch_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
 
 	\\ Row 1 screen start
-	ldx v+1								; 3c
-	lda #13:sta &fe00					; 8c <= 7c
-	lda fx_stretch_vram_table_LO, X		; 4c
-	sta &fe01							; 6c
-	lda #12:sta &fe00					; 8c
-	lda fx_stretch_vram_table_HI, X		; 4c
-	sta &fe01							; 6c
-	\\ 38c
-	
+	ldx v+1								; +3 (3)
+	lda #13:sta &fe00					; +7 (10)
+	lda fx_stretch_vram_table_LO, X		; +4 (14)
+	sta &fe01							; +6 (20)
+	lda #12:sta &fe00					; +8 (28)
+	lda fx_stretch_vram_table_HI, X		; +4 (32)
+	sta &fe01							; +6 (38)
+
+IF 1
+	; Fix top row to scanline 0 for now..!
+	WAIT_CYCLES 90						; +90 (128)
+
+		\\ <=== HCC=0 (scanline=-1)
+		lda #9:sta &fe00				; +8 (8)
+		lda #1:sta &fe01				; +8 (16)
+		ldx #4							; +2 (18)
+		WAIT_CYCLES 110					; +118 (128)
+ELSE
 	\\ Set displayed scanline for rasterline 0.
 	lda #9:sta &fe00					; 8c <= 7c
 	lda v+1:asl a:and #6				; 7c
@@ -212,11 +251,12 @@
 
 		\\ At HCC=0 set R0=127
 		lda #127:sta &fe01					; 8c
+ENDIF
 
 	\\ <=== HCC=0 (scanline=0)
 
 	; turn off teletext enable
-	LDA teletext_disable:STA &FE20			; +7 (7)
+	TELETEXT_DISABLE_7						; +7 (7)
 
 	stx &fe00								; +5 (12)
 	stz &fe01								; +6 (18)
@@ -233,7 +273,6 @@
 		lda v+1
 		.*fx_vertical_strech_dv_HI
 		adc #0:sta v+1						; +8 (34)
-		\\ 16c
 
 		\\ Row N+1 screen start
 		tax									; +2 (36)
@@ -244,58 +283,45 @@
 		lda fx_stretch_vram_table_HI, X		; +4 (66)
 		sta &fe01							; +6 (72)
 	
-		\\ NB. Must set R9 before final scanline of the row!
-		\\ Row N+1 scanline
-		lda #9:sta &fe00					; +8 (80)
+		txa:and #3:tax						; +6 (78)
+		WAIT_CYCLES 2						; +2 (80)
 		; turn on teletext enable
-		LDA #&F6:STA &FE20					; +6 (86)
+		TELETEXT_ENABLE						; +6 (86)
+		WAIT_CYCLES 42						; +42 (128)
 
-		lda v+1:asl a:and #6				; +7 (93)
-		\\ 2-bits * 2
-		tax									; +2 (95)
-		eor #&ff							; +2 (97)
-		sec									; +2 (99)
-		adc #13								; +2 (101)
-		clc									; +2 (103)
-		adc prev_scanline					; +3 (106)
-		sta &fe01							; +6 (112)
-		stx prev_scanline					; +3 (115)
+			\\ <=== HCC=0 (odd)
 
-		; jump to black bar version here - oof!
-		WAIT_CYCLES 3						; +3 (118)
-		\\ <=== HCC=118 (even)
+			TELETEXT_DISABLE_7				; +7 (7)
+		
+			; Set R9 for the next line.
+			lda #9: sta &fe00				; +7 (14)
+			txa:asl a						; +4 (18)
+			sta prev_scanline				; +3 (21)
+			ora #1							; +2 (23)
+			sta &fe01						; +5 (28)
+			\\ R9 must be set in final scanline of the row for this scheme.
 
-		; for palette changes.
-		WAIT_CYCLES 10						; +10 (128)		
+			lda jmptab, X:sta jmpinstruc+1	; +8 (36)
 
-			; turn off teletext enable
-			LDA teletext_disable:STA &FE20	; +7 (7)
+			; prepare CRTC R0
+			LDA #0:STA &FE00				; +8 (44)
+			LDA #113:STA &FE01				; +8 (52)
 
-			\\ Set R0=101 (102c)
-			stz &fe00						; +5 (12)
-			lda #101:sta &fe01				; +8 (20)
+			WAIT_CYCLES 28					; +28 (80)
+			TELETEXT_ENABLE					; +6 (86)
 
-			WAIT_CYCLES 60					; +60 (80)		
+			ldy #1							; +2 (88)
+			WAIT_CYCLES 10					; +10 (98)
 
-			; turn on teletext enable
-			LDA #&F6:STA &FE20				; +6 (86)
+			.jmpinstruc JMP scanline0		; +3 (101)
+			.*jmpreturn						;    (122)
 
-			WAIT_CYCLES 8					; +8 (94)
-
-			\\ At HCC=102 set R0=1.
-			lda #1:sta &fe01				; +8 (102)
-			\\ <=== HCC=102 (odd)
-
-			\\ Burn R0=1 scanlines.
-			WAIT_CYCLES 18					; +18 (120)
-
-			\\ At HCC=0 set R0=127
-			lda #127:sta &fe01				; +8 (128)
+			sta &fe01						; +6 (128)
 
 		\\ <=== HCC=0 (even)
 
 		; turn off teletext enable
-		LDA teletext_disable:STA &FE20		; +7 (7)
+		TELETEXT_DISABLE_7					; +7 (7)
 
 		clc									; +2 (9)
 		dec row_count						; +5 (14)
@@ -305,41 +331,93 @@
 	CHECK_SAME_PAGE_AS char_row_loop, FALSE
 	.scanline_last
 
+	\\ <=== HCC=17 (even) [last visible char row.]
+
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
 	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
-	lda #4: sta &FE00
-	lda #36: sta &FE01
+	lda #4: sta &FE00						; +7 (24)
+	lda #36: sta &FE01						; +8 (32)
 
 	\\ R7 vsync at scanline 272 = 238 + 17*2
-	lda #7:sta &fe00
-	lda #17:sta &fe01
+	lda #7:sta &fe00						; +8 (40)
+	lda #17:sta &fe01						; +8 (48)
 
-	\\ If prev_scanline=6 then R9=7
-	\\ If prev_scanline=4 then R9=5
-	\\ If prev_scanline=2 then R9=3
-	\\ If prev_scanline=0 then R9=1
-	{
-		lda #9:sta &fe00
-		clc
-		lda #1
-		adc prev_scanline
-		sta &fe01
-	}
+	WAIT_CYCLES 32							; +32 (80)
+	; turn on teletext enable
+	TELETEXT_ENABLE							; +6 (86)
+	WAIT_CYCLES 42							; +42 (128)
 
-	\\ Row 31
-	WAIT_SCANLINES_ZERO_X 2
+		\\ <=== HCC=0 (odd)
+		TELETEXT_DISABLE_7					; +7 (7)
 
-	\\ R9=1
-	lda #9:sta &fe00
-	lda #1:sta &fe01
+	WAIT_SCANLINES_ZERO_X 1
 
-	lda #0:sta prev_scanline
+	\\ We're in the final visible scanline of the screen.
+	\\ Set R9=1 so all remaining char rows are 2 scanlines each.
+	lda #9:sta &fe00						; +7 (14)
+	lda #1:sta &fe01						; +8 (22)
+
+	lda #0:sta prev_scanline				; +5 (27)
+
+	WAIT_SCANLINES_ZERO_X 1
 
 	; initial 'normal' CRTC values
-	;LDA #1:STA &FE00:LDA #80:STA &FE01
-	;LDA #2:STA &FE00:LDA #98:STA &FE01
+	LDA #1:STA &FE00:LDA #80:STA &FE01
+	LDA #2:STA &FE00:LDA #98:STA &FE01
     rts
 }
+
+ALIGN 4
+.jmptab
+	EQUB LO(scanline0)
+	EQUB LO(scanline2)
+	EQUB LO(scanline4)
+	EQUB LO(scanline6)
+
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 0: R0=115 R9=1                        | 0   1   X   0   1   X   (0...)
+	; | next scanline 6: R0=115 R9=7                        | 0   1   2   3   4   5   (6...)
+	.scanline0
+	.scanline6							;    (101)
+	LDA #115:STA &FE01					; +7 (108)
+	LDA #127							; +2 (110)
+	STY &FE01							; +6 (116)
+	WAIT_CYCLES 3						; +3 (119)
+	JMP jmpreturn						; +3 (122)
+	
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 2: R0=113 R9=3                    | 0   1   2   3   X   0   1   (2...)
+	.scanline2							;    (101)
+	WAIT_CYCLES 8						; +8 (109)
+	STY &FE01							; +5 (114)
+	LDA #127							; +2 (116)
+	WAIT_CYCLES 3						; +3 (119)
+	JMP jmpreturn						; +3 (122)
+	
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 4: R0=119 R9=5                                | 0   1   2   3   (4...)
+	.scanline4							;    (101)
+CHECK_SAME_PAGE_AS scanline0, TRUE
+	LDA #119:STA &FE01					; +7 (108)
+	LDA #127							; +2 (110)
+	WAIT_CYCLES 4						; +4 (114)
+	STY &FE01							; +6 (120)
+	JMP jmpreturn						; +3 (123)
+
+	;-------------------------------------------------------	
 
 \ ******************************************************************
 \ *	FX DATA
@@ -348,7 +426,7 @@
 PAGE_ALIGN_FOR_SIZE 256
 .fx_stretch_vram_table_LO
 FOR n,0,127,1
-EQUB LO((&3000 + (n DIV 4)*640)/8)
+EQUB LO((&2FD0 + (n DIV 4)*640)/8)
 NEXT
 FOR n,0,127,1
 EQUB LO(&3000/8)
@@ -357,7 +435,7 @@ NEXT
 PAGE_ALIGN_FOR_SIZE 256
 .fx_stretch_vram_table_HI
 FOR n,0,127,1
-EQUB HI((&3000 + (n DIV 4)*640)/8)
+EQUB HI((&2FD0 + (n DIV 4)*640)/8)
 NEXT
 FOR n,0,127,1
 EQUB HI(&3000/8)
