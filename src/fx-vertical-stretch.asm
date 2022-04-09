@@ -27,6 +27,10 @@ MACRO TELETEXT_ENABLE
 	LDA #&F6:STA &FE20				; +6
 ENDMACRO
 
+MACRO TELETEXT_ENABLE_7
+	LDA teletext_enable:STA &FE20	; +7
+ENDMACRO
+
 MACRO TELETEXT_DISABLE
 	LDA #&F4:STA &FE20				; +6
 ENDMACRO
@@ -131,6 +135,7 @@ ENDMACRO
 	; (it will be disabled explicitly at the start of each RVI line)
 	TELETEXT_ENABLE
 	lda #&f4:sta teletext_disable
+	lda #&f6:sta teletext_enable
 	rts
 }
 
@@ -186,6 +191,8 @@ ENDMACRO
 		WAIT_CYCLES 5					; +5 (32)
 		jmp right_in_there				; +3 (35)
 
+		\\ Unreachable!
+IF 0
 	\\ <=== HCC=0 (scanline=0)
 
 	; turn off teletext enable
@@ -193,6 +200,7 @@ ENDMACRO
 
 	stx &fe00								; +5 (12)
 	stz &fe01								; +6 (18)
+ENDIF
 
 	\\ Now 2x scanlines per loop.
 	.char_row_loop
@@ -281,19 +289,23 @@ ENDMACRO
 	TELETEXT_ENABLE							; +6 (86)
 	WAIT_CYCLES 42							; +42 (128)
 
+		\\ We're in the final visible scanline of the screen.
 		\\ <=== HCC=0 (odd)
 		TELETEXT_DISABLE_7					; +7 (7)
 
-	WAIT_SCANLINES_ZERO_X 1
+		WAIT_CYCLES 73						; +73 (80)
+		; turn on teletext enable
+		TELETEXT_ENABLE							; +6 (86)
+		WAIT_CYCLES 42							; +42 (128)
 
-	\\ We're in the final visible scanline of the screen.
+	\\ <=== HCC=0 (off screen)
+	TELETEXT_DISABLE_7						; +7 (7)
+
 	\\ Set R9=1 so all remaining char rows are 2 scanlines each.
 	lda #9:sta &fe00						; +7 (14)
 	lda #1:sta &fe01						; +8 (22)
 
 	lda #0:sta prev_scanline				; +5 (27)
-
-	WAIT_SCANLINES_ZERO_X 1
 
 	; initial 'normal' CRTC values
 	LDA #1:STA &FE00:LDA #80:STA &FE01
@@ -343,20 +355,11 @@ ALIGN 4
 	; |                                    
 	; | next scanline 2: R0=119 R9=3 R0=3                           | 0   0   1   1   (2...)
 	.scanline2							;    (101)
-	IF 1
 	LDA #119:STA &FE01					; +7 (108)
 	LDA #127							; +2 (110)
 	INY:INY								; +4 (114)
 	STY &FE01							; +6 (120)
 	JMP jmpreturn						; +3 (123)
-	ELSE
-	; | next scanline 2: R0=113 R9=3                    | 0   1   2   3   X   0   1   (2...)
-	WAIT_CYCLES 8						; +8 (109)
-	STY &FE01							; +5 (114)
-	LDA #127							; +2 (116)
-	WAIT_CYCLES 3						; +3 (119)
-	JMP jmpreturn						; +3 (122)
-	ENDIF
 	
 	;     disable            enable hsync=101
 	;        v                 v       v
@@ -384,7 +387,7 @@ FOR n,0,127,1
 EQUB LO((&2FD0 + (n DIV 4)*640)/8)
 NEXT
 FOR n,0,127,1
-EQUB LO(&3000/8)
+EQUB LO(&2FD0/8)
 NEXT
 
 PAGE_ALIGN_FOR_SIZE 256
@@ -393,7 +396,7 @@ FOR n,0,127,1
 EQUB HI((&2FD0 + (n DIV 4)*640)/8)
 NEXT
 FOR n,0,127,1
-EQUB HI(&3000/8)
+EQUB HI(&2FD0/8)
 NEXT
 
 PAGE_ALIGN_FOR_SIZE 64

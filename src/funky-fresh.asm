@@ -92,6 +92,7 @@ INCLUDE "lib/vgcplayer.h.asm"
 .product                skip 4
 
 .teletext_disable       skip 1
+.teletext_enable       skip 1
 
 \\ TODO: Move FX ZP vars?
 \\ TODO: Give FX vars proper names!
