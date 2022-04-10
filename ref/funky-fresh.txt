@@ -1,6 +1,24 @@
 Funky Fresh Framework
 ~~~
 
+TODO 2022: Target Field-Fx party 2 June 2022? (9 weeks!!)
+~~~
+- Move to RTW's approach for removing LHS RVI garbage. (1 week - LOL!)
+- Implement checkboard zoom FX. (1 week)
+- Improve Frak zoomer FX. (1 week)
+    - Some additional 'sprites'?
+    - Change bg colour?
+- Need something for displaying text for greets / credits (1 week)
+    - Ideally large moving text, two independently.
+    - Slide and wobble?
+- Simple approach to nice transitions. (1 week)
+    - Perhaps have a transition track and let each FX handle this out/in?
+- Music from Rhino. (2 weeks)
+- Sequencing. (2 weeks)
+- One more FX? (only if time)
+    - Psuedo textured 3D?
+
+
 TODO:
 ~~~
 - Add an Event track to the sequence for loading assets etc. - STARTED
@@ -242,3 +260,13 @@ Would give 42 zooms max.
 
 Belated note for 2022:: it's a massive PITA to wrap so just don't do it. Scroll a viewport around
 a limited canvas size, just make the canvas large enough for the effect to be effective!
+
+2022 Thoughts
+~~~
+Only implement LHS garbage removal if necessary - it's quite expensive but does work!
+
+Suggest focusing on the zoom/scale effects.
+- Checkerboard layers.
+- Full logo zoom or flip with perspective.
+- Sprite made from colour palette changes zoom/cube.
+- A bounce! I need bouncing!

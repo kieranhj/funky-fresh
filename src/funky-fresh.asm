@@ -91,6 +91,9 @@ INCLUDE "lib/vgcplayer.h.asm"
 .temp                   skip 2
 .product                skip 4
 
+.teletext_disable       skip 1
+.teletext_enable       skip 1
+
 \\ TODO: Move FX ZP vars?
 \\ TODO: Give FX vars proper names!
 
@@ -168,6 +171,9 @@ GUARD screen_addr + RELOC_SPACE
     inx
     cpx #zp_max	; TODO: Check if we need to keep SWRAM slots in ZP from Loader.
     bne zp_loop
+
+	lda #&f4:sta teletext_disable
+	lda #&f6:sta teletext_enable
 
     \\ TODO: Load banks and relocate data in a boot loader at &1900?
 	\\ Relocate data to lower RAM

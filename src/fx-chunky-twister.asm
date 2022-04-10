@@ -24,24 +24,24 @@
 MACRO CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE		; 65e/66o
 {
 	; 0-127
-	lda angle:and #&3E				; 5c
-	lsr a:tay						; 4c
+	lda angle:and #&3E				; +5 (5)
+	lsr a:tay						; +4 (9)
 
-	lda #13: sta &FE00				; 8c <= 7e
-	ldx xy+1						; 3c
-	lda x_wibble, X					; 4c
-	lsr a							; 2c
-	clc								; 2c
-	adc twister_vram_table_LO, Y	; 4c
-	sta &FE01						; 6c <= 5c
+	lda #13: sta &FE00				; +7 (16)
+	ldx xy+1						; +3 (19)
+	lda x_wibble, X					; +4 (23)
+	lsr a							; +2 (25)
+	clc								; +2 (27)
+	adc twister_vram_table_LO, Y	; +4 (31)
+	sta &FE01						; +5 (36)
 
-	lda #12: sta &FE00				; 8c
-	lda twister_vram_table_HI, Y	; 4c
-	adc #0							; 2c
-	sta &FE01						; 6c
+	lda #12: sta &FE00				; +8 (44)
+	lda twister_vram_table_HI, Y	; +4 (48)
+	adc #0							; +2 (50)
+	sta &FE01						; +6 (56)
 
-	lda x_wibble, X					; 4c
-	and #1:sta shadow_bit 			; 5c
+	lda x_wibble, X					; +4 (60)
+	and #1:sta shadow_bit 			; +5 (65)
 }
 ENDMACRO
 
@@ -187,222 +187,315 @@ EQUB &20 + PAL_cyan
 .fx_chunky_twister_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
-	WAIT_CYCLES 16
+IF 0
+	WAIT_CYCLES 16						; +16 (16)
 
 	\\ R9 must be set before final scanline of the row.
-	lda #9:sta &fe00					; 8c
+	lda #9:sta &fe00					; +8 (24)
 
 	\\ Row 1 scanline.
-	lda angle							; 3c
+	lda angle							; +3 (27)
 	\\ 2-bits * 2
-	and #1:asl a						; 4c
-	tax									; 2c
-	eor #&ff							; 2c
-	clc									; 2c
-	adc #9								; 2c
-	adc prev_scanline					; 3c
-	sta &fe01							; 6c
-	stx prev_scanline					; 3c
-	\\ 27c
+	and #1:asl a						; +4 (31)
+	tax									; +2 (33)
+	eor #&ff							; +2 (35)
+	clc									; +2 (37)
+	adc #9								; +2 (39)
+	adc prev_scanline					; +3 (42)
+	sta &fe01							; +6 (48)
+	stx prev_scanline					; +3 (51)
 
 	\\ Set R12,R13 + SHADOW for row 0.
-	CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 	; 66o
+	CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 	; +66 (117)
 
-	    WAIT_CYCLES 16
+	    WAIT_CYCLES 16						; +16 (128 + 5)
 
 		\\ Set R0=103 (104c)
-		lda #0:sta &fe00					; 8c <= 7c
-		lda #103:sta &fe01					; 8c
+		lda #0:sta &fe00					; +7 (12)
+		lda #103:sta &fe01					; +8 (20)
 
-		WAIT_CYCLES 32
+		WAIT_CYCLES 32						; +32 (52)
 
-		ldx angle							; 3c
-		ldy angle_to_quadrant, X			; 4c
-		lda twister_quadrant_colour_1,Y:sta &fe21 			; 8c
-		lda twister_quadrant_colour_2,Y:sta &fe21			; 8c
-		lda twister_quadrant_colour_3,Y:sta &fe21			; 8c
-		; 31c
+		ldx angle							; +3 (55)
+		ldy angle_to_quadrant, X			; +4 (59)
+		lda twister_quadrant_colour_1,Y:sta &fe21 	; +8 (67)
+		lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (75)
+		lda twister_quadrant_colour_3,Y:sta &fe21	; +8 (83)
 
 		\\ Set SHADOW bit safely in hblank.
-		lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; 13c
+		lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; +13 (96)
 
 		\\ At HCC=104 set R0=1.
 		.blah
-		lda #1:sta &fe01					; 8c
+		lda #1:sta &fe01					; +8 (104)
 		\\ <=== HCC=104
 
-		WAIT_CYCLES 6
-		ldx #4:ldy #9						; 4c
+		WAIT_CYCLES 6						; +6 (110)
+		ldx #4:ldy #9						; +4 (114)
 
 		\\ Burn R0=1 scanlines.
-		lda #127							; 2c
+		lda #127							; +2 (116)
 
 		\\ Set R0=0 to blank 6x chars.
-		stz &fe01							; 6c
+		stz &fe01							; +6 (122)
 
 		\\ At HCC=0 set R0=127.
-		sta &fe01							; 6c
+		sta &fe01							; +6 (128)
 
 	\\ <=== HCC=0 (scanline=0)
 
 	\\ Set R4=0 (one row per cycle).
-	stx &fe00								; 6c
-	stz &fe01								; 6c	
+	stx &fe00								; +6 (6)
+	stz &fe01								; +6 (12)
+ELSE
+	\\ Ignore scanline for top character row for now.
+
+	\\ Set R12,R13 + SHADOW for row 0.
+	CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 		; +65 (65)
+
+	\\ Set colours.
+	ldx angle									; +3 (68)
+	ldy angle_to_quadrant, X					; +4 (72)
+	lda twister_quadrant_colour_1,Y:sta &fe21 	; +8 (80)
+	lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (88)
+	lda twister_quadrant_colour_3,Y:sta &fe21	; +8 (96)
+
+	\\ Set SHADOW bit safely in non-visible portion.
+	lda &fe34:and #&fe						; +6 (102)
+	sta accon_sm+1							; +4 (106)
+	ora shadow_bit:sta &fe34				; +7 (113)
+
+	WAIT_CYCLES 15							; +15 (128)
+
+		\\ <=== HCC=0 (scanline=-1)
+		lda #4:sta &fe00					; +8 (8)
+		lda #0:sta &fe01					; +8 (16)
+
+		lda #9:sta &fe00					; +8 (24)
+		lda #1:sta &fe01					; +8 (32)
+
+		clc									; +2 (34)
+		WAIT_CYCLES	111						; +111 (128 + 17)
+ENDIF
 
 	\\ 2x scanlines per row.
 	.char_row_loop
 	{
-		\\ Y=9to set R9!
-		sty &fe00							; 6c
+		\\ <=== HCC=17 (even)
 
-		.*fx_chunky_twister_calc_rot
+		.*fx_chunky_twister_calc_rot		; do the twist!
 		{
-			clc								; 2c
+			\\ Assumes C=0.
 			\\   rocket_track_y_pos => x offset per row (sin table)    [0-10]  <- makes it curve
-			lda xy
+			lda xy							; +3 (20)
 			.*twister_calc_rot_lo
-			adc #0:sta xy		; 8c
+			adc #0:sta xy					; +5 (25)
 
-			lda xy+1
+			lda xy+1						; +3 (28)
 			.*twister_calc_rot_hi
-			adc #0:sta xy+1		; 8c
+			adc #0:sta xy+1					; +5 (33)
 
 			\ 4096/4000~=1
-			clc								; 2c
+			clc								; +2 (35)
 			\\   rocket_track_zoom  => rotation per row (cos table)    [0-10]  <- makes it twist
-			lda yb+2
+			lda yb+2						; +3 (38)
 			.*twister_calc_rot_zoom_lo
-			adc #0:sta yb+2		; 8c actually LSB!
-			lda yb
+			;  actually LSB!
+			adc #0:sta yb+2					; +5 (43)
+			lda yb							; +3 (46)
 			.*twister_calc_rot_zoom_hi
-			adc #0:sta yb		; 8c
-			tay					; 2c
-			lda yb+1
-			.*twister_calc_rot_sign	adc #0
-			and #15:sta yb+1				; 10c
-			clc:adc #HI(cos):sta load+2		; 8c
+			adc #0:sta yb					; +5 (51)
+			tay								; +2 (53)
+			lda yb+1						; +3 (56)
+			.*twister_calc_rot_sign
+			adc #0							; +2 (58)
+			and #15:sta yb+1				; +5 (63)
+			clc:adc #HI(cos):sta load+2		; +8 (71)
 
 			.load
-			lda cos,Y						; 4c
-			sta angle						; 3c
+			lda cos,Y						; +4 (75)
+			sta angle						; +3 (78)
 		}
 		.*twister_calc_rot_rts
-		\\ 63c
-
-		\\ 2-bits * 2
-		and #1:asl a						; 4c
-		tay									; 2c
-		eor #&ff							; 2c
-		;clc								; 2c <= can be removed.
-		adc #9								; 2c
-		adc prev_scanline					; 3c
-		sta &fe01							; 6c <= 5c
-		sty prev_scanline					; 3c
-		\\ 21c
-
-		\\ <=== HCC=0 (scanline=odd)
 
 			\\ Set R12,R13 + SHADOW for next row.
-			;CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 	; 66o/67e
+			;CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE
 			{
 				; 0-127
-				lda angle						; 3c
-				and #&3E						; 2c
-				lsr a:tay						; 4c
+				;A=angle
+				and #&3E						; +2 (80)
+				lsr a:tay						; +4 (84)
 
-				lda #13: sta &FE00				; 8c
-				ldx xy+1						; 3c
-				lda x_wibble, X					; 4c
-				lsr a							; 2c
-				clc								; 2c
-				adc twister_vram_table_LO, Y	; 4c
-				sta &FE01						; 6c <= 5c
+				lda #13: sta &FE00				; +8 (92)
+				ldx xy+1						; +3 (95)
+				lda x_wibble, X					; +4 (99)
+				lsr a							; +2 (101)
+				clc								; +2 (103)
+				adc twister_vram_table_LO, Y	; +4 (107)
+				sta &FE01						; +5 (112)
+				lda #12: sta &FE00				; +8 (120)
 
-				lda #12: sta &FE00				; 8c
-				lda twister_vram_table_HI, Y	; 4c
-				adc #0							; 2c
-				sta &FE01						; 6c
+				lda twister_vram_table_HI, Y	; +4 (124)
+				adc #0							; +2 (126)
+				\\ <=== HCC=0 (odd)
+				sta &FE01						; +6 (4)
 
-				lda x_wibble, X					; 4c
-				and #1:sta shadow_bit 			; 5c
+				lda x_wibble, X					; +4 (8)
+				and #1:sta shadow_bit 			; +5 (13)
 			}
 
-			\\ Set R0=103 (104c)
-			stz &fe00							; 6c <= 5c
-			lda #103:sta &fe01					; 8c
+			; Set R9 for the next line.
+			lda #9: sta &fe00					; +7 (20)
+			lda angle:and #1					; +5 (25)
+			tax:asl a							; +4 (29)
+			ora #1								; +2 (31)
+			sta &fe01							; +5 (36)
+			\\ R9 must be set in final scanline of the row for this scheme.
 
-			WAIT_CYCLES 3
+			lda jmptab, X:sta jmpinstruc+1		; +8 (44)
 
-			ldx angle							; 3c
-			ldy angle_to_quadrant, X			; 4c
-			lda twister_quadrant_colour_1,Y:sta &fe21 			; 8c
-			lda twister_quadrant_colour_2,Y:sta &fe21			; 8c
-			ldx twister_quadrant_colour_3,Y						; 4c
-			; 27c
+			ldx angle							; +3 (47)
+			ldy angle_to_quadrant, X			; +4 (52)
+			lda twister_quadrant_colour_1,Y		; +4 (56)
+			sta &fe21 							; +4 (60)
+
+			lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (68)
+			lda twister_quadrant_colour_3,Y:sta &fe21	; +8 (76)
+			stz &fe00							; +5 (81)
+
+			TELETEXT_ENABLE_6					; +6 (87)
 
 			\\ Set SHADOW bit safely in hblank.
-			lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; 13c
+			.^accon_sm
+			lda #0:ora shadow_bit:sta &fe34		; +9 (96)
+			WAIT_CYCLES 4						; +4 (100)
 
-			\\ At HCC=104 set R0=1.
-			.here
-			lda #1:sta &fe01					; 8c <= 7c
-			\\ <=== HCC=104
+			.jmpinstruc JMP scanline0			; +3 (103)
+			.^jmpreturn							;    (122)
+			; duplicating end of loop saves 3 (remove jmpreturn)
+			; double size of twister_vram_table_LO to save 2 (remove lsr)
+			; change TELETEXT_DISABLE_7 to 6 maybe?
+			; need 12 cycles total
+			;  plus palette changes are visible. :S
+			;  and scanline 6 fn is broken! :SS
 
-			\\ Burn 2c scanlines through to 128c.
-			lda #127							; 2c
+			sta &fe01							; +6 (128)
 
-			stx &fe21							; 4c
-			WAIT_CYCLES 6
+		\\ <=== HCC=0 (even)
 
-			\\ Set R0=0 to blank 6x chars.
-			stz &fe01							; 6c
+		; turn off teletext enable
+		TELETEXT_DISABLE_7					; +7 (7)
 
-			\\ At HCC=0 set R0=127
-			sta &fe01							; 6c
-
-		\\ <=== HCC=0 (scanline=even)
-		ldy #9								; 2c
-		dec row_count						; 5c
-		beq done_row_loop					; 2c
-		jmp char_row_loop					; 3c
+		dec row_count						; +5 (12)
+		beq done_row_loop					; +2 (14)
+		jmp char_row_loop					; +3 (17)
 	}
 	.done_row_loop
     ;CHECK_SAME_PAGE_AS char_row_loop, TRUE
 
+	\\ <=== HCC=15 (even)
+
 	\\ Currently at scanline 2+118*2=238, need 312 lines total.
 	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
-	lda #4: sta &FE00
-	lda #36: sta &FE01
+	lda #4: sta &FE00						; +7 (22)
+	lda #36: sta &FE01						; +8 (30)
 
 	\\ R7 vsync at scanline 272 = 238 + 17*2
-	lda #7:sta &fe00
-	lda #17:sta &fe01
+	lda #7:sta &fe00						; +8 (38)
+	lda #17:sta &fe01						; +8 (46)
 
-	\\ If prev_scanline=6 then R9=7
-	\\ If prev_scanline=4 then R9=5
-	\\ If prev_scanline=2 then R9=3
-	\\ If prev_scanline=0 then R9=1
-	{
-		lda #9:sta &fe00
-		clc
-		lda #1
-		adc prev_scanline
-		sta &fe01
-	}
+	WAIT_CYCLES 34							; +34 (80)
+	; turn on teletext enable
+	TELETEXT_ENABLE_6						; +6 (86)
+	WAIT_CYCLES 42							; +42 (128)
 
-	\\ Wait for scanline 240.
-	WAIT_SCANLINES_ZERO_X 2
+		\\ We're in the final visible scanline of the screen.
+		\\ <=== HCC=0 (odd)
+		TELETEXT_DISABLE_7					; +7 (7)
 
-	\\ R9=1
-	lda #9:sta &fe00
-	lda #1:sta &fe01
+		WAIT_CYCLES 73						; +73 (80)
+		; turn on teletext enable
+		TELETEXT_ENABLE_7					; +7 (87)
+		WAIT_CYCLES 41						; +41 (128)
 
-	lda #0:sta prev_scanline
+	\\ <=== HCC=0 (off screen)
+	TELETEXT_DISABLE_7						; +7 (7)
+
+	\\ Set R9=1 so all remaining char rows are 2 scanlines each.
+	lda #9:sta &fe00						; +7 (14)
+	lda #1:sta &fe01						; +8 (22)
+
+	lda #0:sta prev_scanline				; +5 (27)
 
 	\\ FX responsible for resetting lower palette.
 	ldx #LO(fx_static_image_default_palette)
 	ldy #HI(fx_static_image_default_palette)
 	jmp fx_static_image_set_palette
+
+ALIGN 4
+.jmptab
+	EQUB LO(scanline0)
+	EQUB LO(scanline2)
+	EQUB LO(scanline4)
+	EQUB LO(scanline6)
+
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 0: R0=127 R9=1                        						| (0...)
+	.scanline0							;    (103)
+	LDA #127:STA &FE01					; +7 (110)
+	WAIT_CYCLES 9						; +9 (119)
+	JMP jmpreturn						; +3 (122)
+	
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 2: R0=119 R9=3 R0=3                           | 0   0   1   1   (2...)
+	.scanline2							;    (103)
+	LDA #119:STA &FE01					; +7 (110)
+	LDA #127							; +2 (112)
+	LDY #3								; +2 (114)
+	STY &FE01							; +6 (120)
+	JMP jmpreturn						; +3 (123)
+	
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 4: R0=119 R9=5                                | 0   1   2   3   (4...)
+	.scanline4							;    (101)
+	LDA #119:STA &FE01					; +7 (108)
+	LDA #127							; +2 (110)
+	LDY #1								; +2 (112)
+	WAIT_CYCLES 2						; +2 (114)
+	STY &FE01							; +6 (120)
+	JMP jmpreturn						; +3 (123)
+
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 6: R0=115 R9=7                        | 0   1   2   3   4   5   (6...)
+	.scanline6							;    (103)
+CHECK_SAME_PAGE_AS scanline0, TRUE
+	LDA #115:STA &FE01					; +7 (110)
+	LDY #1								; +2 (112)
+	STY &FE01							; +6 (118) <= broken should be 116
+	LDA #127							; +2 (120)
+	JMP jmpreturn						; +3 (123)
+	
+	;-------------------------------------------------------	
 }
 
 \ ******************************************************************
