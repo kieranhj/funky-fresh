@@ -3,7 +3,7 @@ Funky Fresh Framework
 
 TODO 2022: Target Field-Fx party 2 June 2022? (9 weeks!!)
 ~~~
-- Move to RTW's approach for removing LHS RVI garbage. (1 week)
+- Move to RTW's approach for removing LHS RVI garbage. (1 week - LOL!)
 - Implement checkboard zoom FX. (1 week)
 - Improve Frak zoomer FX. (1 week)
     - Some additional 'sprites'?
@@ -257,3 +257,14 @@ Zooms down to about 16 texels visible. Presumably has 256 chars per zoom fixed?
 So just prerender all of them then just wrap at 255-80=175
 Or just have 3x screen widths, i.e. 3x80chars = 240 = 480 bytes
 Would give 42 zooms max.
+
+2022 Thoughts
+~~~
+Only implement LHS garbage removal if necessary - it's quite expensive but does work!
+
+Suggest focusing on the zoom/scale effects.
+- Checkerboard layers.
+- Full logo zoom or flip with perspective.
+- Sprite made from colour palette changes zoom/cube.
+- A bounce! I need bouncing!
+
