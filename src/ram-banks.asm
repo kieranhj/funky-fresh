@@ -50,6 +50,12 @@ INCBIN "build/logo-with-stripes-mode2.exo"
 .exo_asset_zoom
 INCBIN "build/zoom-screen.exo"
 
+.exo_asset_checks_1
+INCBIN "build/checks-bitmask-0-to-3.exo"
+
+.exo_asset_checks_2
+INCBIN "build/checks-bitmask-4-to-7.exo"
+
 .bank1_end
 
 SAVE "build/BANK1", bank1_start, bank1_end, bank1_start

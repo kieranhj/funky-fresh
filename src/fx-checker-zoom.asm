@@ -3,6 +3,8 @@
 \ *	ZOOMING CHECKERBOARD
 \ ******************************************************************
 
+FX_CHECKER_ZOOM_MAX = 32
+
 \\ Describe the track values used:
 \\   rocket_track_zoom  => depth of top layer  [0-31]
 
@@ -30,32 +32,55 @@
 {
     \\ Compute the starting Y value for each layer at depth
     \\ in rocket_track_zoom. Determine starting parity for each layer.
-    lda #0
-    sta checker_y1:sta checker_y1+1
-    sta checker_y2:sta checker_y2+1
-    sta checker_y3:sta checker_y3+1
+    lda rocket_track_x_pos:sta checker_y1
+    lda rocket_track_x_pos+1:sta checker_y1+1
+
+    lda rocket_track_y_pos:sta checker_y2
+    lda rocket_track_y_pos+1:sta checker_y2+1
+
+    lda rocket_track_time:sta checker_y3
+    lda rocket_track_time+1:sta checker_y3+1
 
     \\ Parity is the top bit of the top byte of check Y value...
 
     \\ Compute the DY values for each layer at those depth.
     \\ This can be a table as only 32 depths, each with 3 layers.
     ldx rocket_track_zoom+1
-    lda fx_checker_zoom_dy3_LO, X
-    ;sta
-    lda fx_checker_zoom_dy3_HI, X
-    ;sta
-    lda fx_checker_zoom_dy2_LO, X
-    ;sta
-    lda fx_checker_zoom_dy2_HI, X
-    ;sta
-    lda fx_checker_zoom_dy1_LO, X
-    ;sta
-    lda fx_checker_zoom_dy1_HI, X
-    ;sta
 
-    \\ As the layers are fixed, look up address of screen rows
-    \\ that correspond to this depth, and write into draw fn.
-    
+    \\ Defend against bad data in debug!
+    IF _DEBUG
+    {
+        cpx #FX_CHECKER_ZOOM_MAX
+        bcc ok
+        ldx #FX_CHECKER_ZOOM_MAX-1
+        .ok
+    }
+    ENDIF
+
+    \\ Preload the dy values and self-mod into the display fn for speed.
+    lda fx_checker_zoom_dy3_LO, X
+    sta fx_checker_zoom_dy3_LO_sm+1
+    lda fx_checker_zoom_dy3_HI, X
+    sta fx_checker_zoom_dy3_HI_sm+1
+
+    lda fx_checker_zoom_dy2_LO, X
+    sta fx_checker_zoom_dy2_LO_sm+1
+    lda fx_checker_zoom_dy2_HI, X
+    sta fx_checker_zoom_dy2_HI_sm+1
+
+    lda fx_checker_zoom_dy1_LO, X
+    sta fx_checker_zoom_dy1_LO_sm+1
+    lda fx_checker_zoom_dy1_HI, X
+    sta fx_checker_zoom_dy1_HI_sm+1
+
+    \\ Can also use the depth value to set the CRTC screen address once.
+	lda #13:sta &fe00					; +7 (10)
+	lda fx_checker_zoom_vram_table_LO, X		; +4 (14)
+	sta &fe01							; +6 (20)
+	lda #12:sta &fe00					; +8 (28)
+	lda fx_checker_zoom_vram_table_HI, X		; +4 (32)
+	sta &fe01							; +6 (38)
+
 	\\ R6=display 1 row.
 	lda #6:sta &fe00					; 8c
 	lda #1:sta &fe01					; 8c
@@ -90,100 +115,202 @@
 \ stablise the display for RVI. For the current framework this is
 \ typically 6 for an 8 Scanlines per Row setup or 0 for 2 /row.
 \
+\ TODO: Update the above for new RTW RVI approach...
+\
 \ ******************************************************************
-
-\\ Limited RVI
-\\ Display 0,2,4,6 scanline offset for 2 scanlines.
-\\ <--- 102c total w/ 80c visible and hsync at 98c ---> <2c> ..13x <2c> = 128c
-\\ Plus one extra for luck! (i.e. we wait for 13 but C9 counts 14 in total.)
-\\ R9 = 13 + current - next
-\\
-\\  Assumes R4=0, i.e. one row per CRTC cycle.
-\\  Scanline 0 has normal R0 width 128c.
-\\  Must set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 0 - 2 = 11
-\\  Set scanline 1 to have width 102c.
-\\  At 102c set R0 width to 2c and skip remaining 26c.
-\\  At 0c reset R0 width to 128c.
-\\
-\\ Select CRTC register 0, i.e. lda #0:sta &fe00
-\\
-\\ cycles -->  94  96  98  100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
-\\             lda.sta..........WAIT_CYCLES 18 ..............................lda..sta ...........|
-\\             #1  &fe01                                                     #127 &fe01
-\\ scanline 1                   2    3    4    5    6    7    8    9    10   11   xx   0    1    2
-\\                                                                                |
-\\                                            --> missed due to end of CRTC frame +
-\\
-\\ NB. There is no additional scanline if this is not the end of the CRTC frame.
 
 .fx_checker_zoom_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
 
-    \\ Calculate bitmask from parity byte.
-    \\ Parity is the top bit of each layer's Y value.
-    \\ Top layer goes bit 7 -> bit 2 of the mask.
-    lda checker_y3+1                        ; 3c
-    lsr a:lsr a:lsr a: lsr a:lsr a          ; 10c <- EEK!
-    sta temp                                ; 3c
+    \\ Ignore top character row to begin with.
 
-    lda checker_y2+1                        ; 3c
-    lsr a:lsr a:lsr a: lsr a:lsr a:lsr a    ; 12c <- EEK!
-    ora temp                                ; 3c
-    sta temp                                ; 3c
+    WAIT_SCANLINES_ZERO_X 1             ; +128 (128)
 
-    lda checker_y1+1                            ; 3c
-    lsr a:lsr a:lsr a: lsr a:lsr a:lsr a:lsr a  ; 14c <- EEK!
-    ora temp                                ; 3c
-    tax                                     ; 2c
-    \\ 59c
+   		\\ <=== HCC=0 (scanline=-1)
+		lda #4:sta &fe00				; +8 (8)
+		lda #0:sta &fe01				; +8 (16)
 
-    \\ ARGH! Forgot limitation that can only use first 6 scanlines with 
-    \\ this approach. Need to move to RTW's better solution...
+		lda #9:sta &fe00				; +8 (24)
+		lda #1:sta &fe01				; +8 (32)
 
-    \\ But something like.
-    \\ Set R9 before final scanline of the row starts.
-    \\ 27c
+        WAIT_CYCLES 106                 ; +106 (128 + 10)
 
-    \\ Set the CRTC screen start address for our depth value.
-    ldy rocket_track_zoom
-    lda #13: sta &FE00				; 8c
-    lda fx_checker_zoom_vram_table_LO, Y
-    sta &fe01
+    .char_row_loop
+    {
+        \\ <=== HCC=10 (even)           ; (10) assumed
 
-    lda #12: sta &FE00				; 8c
-    lda fx_checker_zoom_vram_table_HIs, Y
-    sta &fe01
+        \\ Update y value for top layer.
+        clc                                 ; +2 (12)
+        lda checker_y3                      ; +3 (15)
+        .*fx_checker_zoom_dy3_LO_sm
+        adc #0                              ; +2 (17)
+        sta checker_y3                      ; +3 (20)
+        lda checker_y3+1                    ; +3 (23)
+        .*fx_checker_zoom_dy3_HI_sm
+        adc #0                              ; +2 (25)
+        sta checker_y3+1                    ; +3 (28)
 
-    \\ Set SHADOW bit safely in hblank.
-	lda &fe34:and #&fe:ora fx_check_zoom_bitmask_to_shadow,X:sta &fe34	; 13c
+        \\ Top layer goes bit 7 -> bit 2 of the mask.
+        and #128                            ; +2 (30)
+        lsr a:lsr a:lsr a: lsr a:lsr a      ; +10 (40)
+        sta temp                            ; +3 (43)
 
-        \\ NB. NONE OF THIS HAS BEEN CYCLE COUNTED YET.
+        \\ Update y value for middle layer.
+        clc                                 ; +2 (45)
+        lda checker_y2                      ; +3 (48)
+        .*fx_checker_zoom_dy2_LO_sm
+        adc #0                              ; +2 (50)
+        sta checker_y2                      ; +3 (53)
+        lda checker_y2+1                    ; +3 (56)
+        .*fx_checker_zoom_dy2_HI_sm
+        adc #0                              ; +2 (58)
+        sta checker_y2+1                    ; +3 (61)
 
-		\\ At HCC=104 set R0=1.
-		.blah
-		lda #1:sta &fe01					; 8c
-		\\ <=== HCC=104
+        \\ Middle layer goes bit 7 -> bit 1 of the mask.
+        and #128                            ; +2 (63)
+        lsr a:lsr a:lsr a: lsr a:lsr a:lsr a; +12 (75)
+        ora temp                            ; +3 (78)
+        sta temp                            ; +3 (81)
 
-		WAIT_CYCLES 6
-		ldx #4:ldy #9						; 4c
+        \\ Update y value for bottom layer.
+        clc                                 ; +2 (83)
+        lda checker_y1                      ; +3 (86)
+        .*fx_checker_zoom_dy1_LO_sm
+        adc #0                              ; +2 (88)
+        sta checker_y1                      ; +3 (91)
+        lda checker_y1+1                    ; +3 (94)
+        .*fx_checker_zoom_dy1_HI_sm
+        adc #0                              ; +2 (96)
+        sta checker_y1+1                    ; +3 (99)
 
-		\\ Burn R0=1 scanlines.
-		lda #127							; 2c
+        \\ Bottom layer goes bit 7 -> bit 0 of the mask.
+        lsr a:lsr a:lsr a: lsr a:lsr a:lsr a:lsr a ; +14 (113)
+        ora temp                            ; +3 (116)
+        tax                                 ; +2 (118)
+        \\ X=layer bitmask.
 
-		\\ Set R0=0 to blank 6x chars.
-		stz &fe01							; 6c
+        WAIT_CYCLES 10                      ; +10 (118)
 
-		\\ At HCC=0 set R0=127.
-		sta &fe01							; 6c
+			\\ <=== HCC=0 (odd)
 
-	\\ <=== HCC=0 (scanline=0)
+    		; Set R9 for the next line.
+	    	lda #9: sta &fe00				    ; +8 (8)
+            lda fx_check_zoom_bitmask_to_R9, X  ; +4 (12)
+		    sta &fe01						    ; +4 (16)
+		    \\ R9 must be set in final scanline of the row for this scheme.
 
-    \\ For each slice.
-    \\ Update Y values and parity of each layer.
-    \\ Determine which screen address and scanline to use for next slice.
-    \\ Do RVI shizzle.
+			lda jmptab, X:sta jmpinstruc+1	    ; +8 (24)
 
+			ldy #1							    ; +2 (26)
+			lda #0:sta &fe00				    ; +8 (34)
+
+            WAIT_CYCLES 47                      ; +47 (81)
+
+            \\ Set SHADOW bit safely in hblank.
+	        lda &fe34:and #&fe                      ; +6 (87)
+            ora fx_check_zoom_bitmask_to_shadow,X   ; +4 (93)
+            sta &fe34	                            ; +4 (97)
+
+			.jmpinstruc JMP scanline0		; +3 (101)
+			.^jmpreturn						;    (122)
+
+			sta &fe01						; +6 (128)
+
+		\\ <=== HCC=0 (even)
+		dec row_count						; +5 (14)
+		beq scanline_last					; +2 (16)
+		jmp char_row_loop					; +3 (19)
+	}
+	.scanline_last
+	;CHECK_SAME_PAGE_AS char_row_loop, FALSE
+
+    \\ <=== HCC=8 (even) [last visible char row.]
+	\\ Currently at scanline 2+118*2=238, need 312 lines total.
+	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
+	lda #4: sta &FE00						; +8 (16)
+	lda #36: sta &FE01						; +8 (24)
+
+	\\ R7 vsync at scanline 272 = 238 + 17*2
+	lda #7:sta &fe00						; +8 (32)
+	lda #17:sta &fe01						; +8 (40)
+
+    WAIT_SCANLINES_ZERO_X 2
+
+   	\\ Set R9=1 so all remaining char rows are 2 scanlines each.
+	lda #9:sta &fe00						; +7 (14)
+	lda #1:sta &fe01						; +8 (22)
+
+	lda #0:sta prev_scanline				; +5 (27)
+    rts
+
+SKIP 40 ; // TODO: Remove unnecessary padding!
+
+PAGE_ALIGN_FOR_SIZE 8
+.jmptab
+	EQUB LO(scanline0)
+	EQUB LO(scanline2)
+	EQUB LO(scanline4)
+	EQUB LO(scanline6)
+	EQUB LO(scanline0)
+	EQUB LO(scanline2)
+	EQUB LO(scanline4)
+	EQUB LO(scanline6)
+	
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 0: R0=127 R9=1                        						| (0...)
+	.scanline0							;    (101)
+	LDA #127:STA &FE01					; +7 (108)
+	WAIT_CYCLES 11						; +11 (119)
+	JMP jmpreturn						; +3 (122)
+	
+	;-------------------------------------------------------	
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 2: R0=119 R9=3 R0=3                           | 0   0   1   1   (2...)
+	.scanline2							;    (101)
+	LDA #119:STA &FE01					; +7 (108)
+	LDA #127							; +2 (110)
+	INY:INY								; +4 (114)
+	STY &FE01							; +6 (120)
+	JMP jmpreturn						; +3 (123)
+	
+	;-------------------------------------------------------	
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 4: R0=119 R9=5                                | 0   1   2   3   (4...)
+	.scanline4							;    (101)
+	LDA #119:STA &FE01					; +7 (108)
+	LDA #127							; +2 (110)
+	WAIT_CYCLES 4						; +4 (114)
+	STY &FE01							; +6 (120)
+	JMP jmpreturn						; +3 (123)
+
+	;-------------------------------------------------------
+	;     disable            enable hsync=101
+	;        v                 v       v
+	;  +-----------------------+ R1=86 
+	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+	; |                                    
+	; | next scanline 6: R0=115 R9=7                        | 0   1   2   3   4   5   (6...)
+	.scanline6							;    (101)
+CHECK_SAME_PAGE_AS scanline0, TRUE
+	LDA #115:STA &FE01					; +7 (108)
+	LDA #127							; +2 (110)
+	STY &FE01							; +6 (116)
+	WAIT_CYCLES 3						; +3 (119)
+	JMP jmpreturn						; +3 (122)
 }
 
 PAGE_ALIGN_FOR_SIZE 32
@@ -199,16 +326,15 @@ EQUB HI((&3000 + n*640)/8)
 NEXT
 
 PAGE_ALIGN_FOR_SIZE 8
-.fx_check_zoom_bitmask_to_scanline
+.fx_check_zoom_bitmask_to_R9
 ; ideally would have been 0,1,2,3,4,5,6,7
-EQUB 0,2,4,6,0,2,4,6
+EQUB 1,3,5,7,1,3,5,7
 
 PAGE_ALIGN_FOR_SIZE 8
 .fx_check_zoom_bitmask_to_shadow
-EQUB 0,0,0,0,4,4,4,4    ; this is not true!
-; But might be easier this way as could set the screen start address
-; just once per frame for the depth, then toggle between main & SHADOW
-; to select from the 8 possible combinations of layers.
+EQUB 0,0,0,0,1,1,1,1
+; Set the screen start address just once per frame for the depth, then toggle
+; between main & SHADOW to select from the 8 possible combinations of layers.
 
 VPW=160:SX=128:CX=0:CZ=-160:Z=0:DZ=8
 PAGE_ALIGN_FOR_SIZE 32
@@ -253,6 +379,17 @@ dy2=SX/(VPW*(SX-CX)/(z2-CZ))
 z1=Z+n*DZ+64*DZ
 PRINT z2,dy2
 EQUB HI(dy2 * 256 * 2)
+NEXT
+
+PAGE_ALIGN_FOR_SIZE 32
+.fx_checker_zoom_dy1_LO    ; bottom layer
+FOR n,0,31,1
+z3=Z+n*DZ
+z2=Z+n*DZ+32*DZ
+z1=Z+n*DZ+64*DZ
+dy1=SX/(VPW*(SX-CX)/(z1-CZ))
+PRINT z1,dy1
+EQUB LO(dy1 * 256 * 2)
 NEXT
 
 PAGE_ALIGN_FOR_SIZE 32
