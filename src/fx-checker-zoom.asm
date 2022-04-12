@@ -5,6 +5,10 @@
 
 FX_CHECKER_ZOOM_MAX = 32
 
+FX_CHECKER_ZOOM_COLOUR_3 = PAL_blue
+FX_CHECKER_ZOOM_COLOUR_2 = PAL_cyan
+FX_CHECKER_ZOOM_COLOUR_1 = PAL_yellow
+
 \\ Describe the track values used:
 \\   rocket_track_zoom  => depth of top layer  [0-31]
 
@@ -41,21 +45,22 @@ FX_CHECKER_ZOOM_MAX = 32
     lda rocket_track_time:sta checker_y3
     lda rocket_track_time+1:sta checker_y3+1
 
-    \\ Parity is the top bit of the top byte of check Y value...
+    \\ Parity is the top bit of the top byte of each check's Y value...
+
+    \\ Cycle colours for more depth.
+    lda rocket_track_zoom+1
+    lsr a:lsr a:lsr a:lsr a:lsr a
+    tax
+
+    lda layer3_colour, X:sta &fe21
+    lda layer2_colour, X:sta &fe21
+    lda layer1_colour, X:sta &fe21
 
     \\ Compute the DY values for each layer at those depth.
     \\ This can be a table as only 32 depths, each with 3 layers.
-    ldx rocket_track_zoom+1
-
-    \\ Defend against bad data in debug!
-    IF _DEBUG
-    {
-        cpx #FX_CHECKER_ZOOM_MAX
-        bcc ok
-        ldx #FX_CHECKER_ZOOM_MAX-1
-        .ok
-    }
-    ENDIF
+    lda rocket_track_zoom+1
+    and #FX_CHECKER_ZOOM_MAX-1
+    tax
 
     \\ Preload the dy values and self-mod into the display fn for speed.
     lda fx_checker_zoom_dy3_LO, X
@@ -118,6 +123,16 @@ FX_CHECKER_ZOOM_MAX = 32
 \ TODO: Update the above for new RTW RVI approach...
 \
 \ ******************************************************************
+
+\\ Notes:
+\\   Could compress all 8x bitmasks into one character row by using
+\\   the extra bit of colour => the top layer would ORA bits 2 & 3
+\\   in the pre-rendered screen, then would need to set 4x palette
+\\   values per displayed row depending on the parity of the top
+\\   layer. Make %10xx or %01xx opaque or transparent.
+\\   Would require a minimum of 4x8=32c. Could be possible?
+\\   What could we do with the second buffer? Sideway movement?
+\\   Sequence demo effect to show different movements one at a time?
 
 .fx_checker_zoom_draw
 {
@@ -242,7 +257,10 @@ FX_CHECKER_ZOOM_MAX = 32
 	lda #1:sta &fe01						; +8 (22)
 
 	lda #0:sta prev_scanline				; +5 (27)
-    rts
+	\\ FX responsible for resetting lower palette.
+	ldx #LO(fx_static_image_default_palette)
+	ldy #HI(fx_static_image_default_palette)
+	jmp fx_static_image_set_palette
 
 SKIP 40 ; // TODO: Remove unnecessary padding!
 
@@ -402,3 +420,36 @@ dy1=SX/(VPW*(SX-CX)/(z1-CZ))
 PRINT z1,dy1
 EQUB HI(dy1 * 256 * 2)
 NEXT
+
+.layer3_colour
+EQUB &40 + FX_CHECKER_ZOOM_COLOUR_3
+EQUB &40 + FX_CHECKER_ZOOM_COLOUR_1
+EQUB &40 + FX_CHECKER_ZOOM_COLOUR_2
+EQUB &40 + FX_CHECKER_ZOOM_COLOUR_3
+EQUB &40 + FX_CHECKER_ZOOM_COLOUR_1
+EQUB &40 + FX_CHECKER_ZOOM_COLOUR_2
+EQUB &40 + FX_CHECKER_ZOOM_COLOUR_3
+EQUB &40 + FX_CHECKER_ZOOM_COLOUR_1
+EQUB &40 + FX_CHECKER_ZOOM_COLOUR_2
+
+.layer2_colour
+EQUB &20 + FX_CHECKER_ZOOM_COLOUR_2
+EQUB &20 + FX_CHECKER_ZOOM_COLOUR_3
+EQUB &20 + FX_CHECKER_ZOOM_COLOUR_1
+EQUB &20 + FX_CHECKER_ZOOM_COLOUR_2
+EQUB &20 + FX_CHECKER_ZOOM_COLOUR_3
+EQUB &20 + FX_CHECKER_ZOOM_COLOUR_1
+EQUB &20 + FX_CHECKER_ZOOM_COLOUR_2
+EQUB &20 + FX_CHECKER_ZOOM_COLOUR_3
+EQUB &20 + FX_CHECKER_ZOOM_COLOUR_1
+
+.layer1_colour
+EQUB &10 + FX_CHECKER_ZOOM_COLOUR_1
+EQUB &10 + FX_CHECKER_ZOOM_COLOUR_2
+EQUB &10 + FX_CHECKER_ZOOM_COLOUR_3
+EQUB &10 + FX_CHECKER_ZOOM_COLOUR_1
+EQUB &10 + FX_CHECKER_ZOOM_COLOUR_2
+EQUB &10 + FX_CHECKER_ZOOM_COLOUR_3
+EQUB &10 + FX_CHECKER_ZOOM_COLOUR_1
+EQUB &10 + FX_CHECKER_ZOOM_COLOUR_2
+EQUB &10 + FX_CHECKER_ZOOM_COLOUR_3
