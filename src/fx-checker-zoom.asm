@@ -258,9 +258,7 @@ FX_CHECKER_ZOOM_COLOUR_1 = PAL_yellow
 
 	lda #0:sta prev_scanline				; +5 (27)
 	\\ FX responsible for resetting lower palette.
-	ldx #LO(fx_static_image_default_palette)
-	ldy #HI(fx_static_image_default_palette)
-	jmp fx_static_image_set_palette
+	jmp fx_static_image_set_default_palette
 
 SKIP 40 ; // TODO: Remove unnecessary padding!
 

@@ -14,6 +14,7 @@
     equw exo_asset_zoom,            SLOT_BANK1       ; &06
     equw exo_asset_checks_1,        SLOT_BANK1       ; &07
     equw exo_asset_checks_2,        SLOT_BANK1       ; &08
+    equw exo_asset_diagonals,       SLOT_BANK1       ; &09
     ; v--------------------------------------------- ; update ASSET_ID_MAX!
 }
-ASSET_ID_MAX = 9
+ASSET_ID_MAX = 10

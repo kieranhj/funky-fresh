@@ -56,3 +56,17 @@ RVI
 \\                               hpos                                 --> missed due to end of CRTC cycle +
 \\
 \\ NB. There is no additional scanline if this is not the end of the CRTC cycle.
+
+
+RTW's version of RVI:
+
+;     enable            disable hsync=101
+;        v                 v       v
+;  +-----------------------+ R1=86 
+;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+; |                                    
+; | next scanline 0: R0=115 R9=1                        | 0   1   X   0   1   X   (0...)
+; | next scanline 2: R0=113 R9=3                    | 0   1   2   3   X   0   1   (2...)
+; | next scanline 4: R0=119 R9=5                                | 0   1   2   3   (4...)
+; | next scanline 6: R0=115 R9=7                        | 0   1   2   3   4   5   (6...)
+

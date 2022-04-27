@@ -120,7 +120,7 @@
 	; Enable teletext to do blanking on the ULA
 	; (it will be disabled explicitly at the start of each RVI line)
 	TELETEXT_ENABLE_6
-	rts
+	jmp fx_static_image_set_default_palette
 }
 
 \\ TODO: Make this comment correct for this framework!

@@ -46,6 +46,9 @@ VBlankDisplayPeriod =  54*64	; -2
 \ Need to fudge the two periods otherwise stabler raster NOP slide
 \ requires more than the bottom 3 bits of the Timer 1 low counter.
 
+\\ TODO: Can VisibleDisplayPeriod be 242 or thereabouts as we're only
+\\       using 240 visible scanlines now?
+
 \ UNUSED.
 \KEY_PAUSE_INKEY = -56           ; 'P'
 \KEY_STEP_FRAME_INKEY = -68      ; 'F'
@@ -80,9 +83,10 @@ INCLUDE "lib/vgcplayer.h.asm"
 .shadow_task_id			skip 1
 .shadow_task_data		skip 1
 .display_fx				skip 1
-\\ TODO: Is delta_vsync actually needed?
+IF _DEBUG
 .prev_vsync             skip 2
-.delta_vsync            skip 1
+ENDIF
+.display_fx_init        skip 1
 
 \\ FX general ZP vars.
 .row_count				skip 1
@@ -118,6 +122,11 @@ INCLUDE "lib/vgcplayer.h.asm"
 .checker_y1             skip 2
 .checker_y2             skip 2
 .checker_y3             skip 2
+
+\\ FX palette wipe
+.wipe_from              skip 1
+.wipe_counter           skip 1
+.wipe_index             skip 1
 
 \\ TODO: Local ZP vars?
 .zp_end
@@ -491,12 +500,10 @@ GUARD screen_addr + RELOC_SPACE
         sbc prev_vsync+1
         lda rocket_vsync_count:tax
         sbc prev_vsync
-        sta delta_vsync
+        \\ A=delta_vsync
         stx prev_vsync
         sty prev_vsync+1
     }
-    ELSE
-    lda #1:sta delta_vsync
     ENDIF
     \\ New frame effectively starts here!
 

@@ -45,7 +45,7 @@ assets: ./build/logo-with-stripes-mode2.exo ./build/logo-mode2.exo \
 		./build/funky-sequence.bin ./build/stripes-mode2.exo \
 		./build/zoom-2by160-mode2.exo ./build/frak-sprite.bin \
 		./build/zoom-screen.exo ./build/checks-bitmask-0-to-3.exo \
-		./build/checks-bitmask-4-to-7.exo
+		./build/checks-bitmask-4-to-7.exo ./build/diagonals-16.exo
 
 ##########################################################################
 ##########################################################################
@@ -131,6 +131,10 @@ clean:
 ./build/checks-bitmask-4-to-7.bin: ./data/raw/checks-bitmask-4-to-7.bin
 	$(MKDIR_P) "./build"
 	$(COPY) .\data\raw\checks-bitmask-4-to-7.bin build
+
+./build/diagonals-16.bin: ./data/raw/diagonals-16.bin
+	$(MKDIR_P) "./build"
+	$(COPY) .\data\raw\diagonals-16.bin build
 
 ##########################################################################
 ##########################################################################

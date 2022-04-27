@@ -56,6 +56,9 @@ INCBIN "build/checks-bitmask-0-to-3.exo"
 .exo_asset_checks_2
 INCBIN "build/checks-bitmask-4-to-7.exo"
 
+.exo_asset_diagonals
+INCBIN "build/diagonals-16.exo"
+
 .bank1_end
 
 SAVE "build/BANK1", bank1_start, bank1_end, bank1_start
@@ -90,6 +93,7 @@ include "src/fx-frequency.asm"
 include "src/fx-stretch-grid.asm"
 include "src/fx-frak-zoomer.asm"
 include "src/fx-checker-zoom.asm"
+include "src/fx-palette-wipe.asm"
 \\ ^------ NB. Currently assuming all FX in same SWRAM bank!!
 .fx_end
 

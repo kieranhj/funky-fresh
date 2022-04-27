@@ -15,12 +15,15 @@
 	equw fx_stretch_grid_update,	   		fx_stretch_grid_draw,		SLOT_BANK2	; &06
 	equw fx_frak_zoomer_update,	   			fx_frak_zoomer_draw,		SLOT_BANK2	; &07
 	equw fx_checker_zoom_update,	   		fx_checker_zoom_draw,		SLOT_BANK2	; &08
+	equw fx_palette_wipe_update,   			fx_static_image_draw,		SLOT_BANK2	; &09
     ; v---------------------------------------------------------------------------- ; update DISPLAY_FX_MAX!
 }
-DISPLAY_FX_MAX = 9
+DISPLAY_FX_MAX = 10
 
 .display_fx_update
 {
+	stz display_fx_init
+
 	lda rocket_track_display_fx+1
 	cmp display_fx
 	beq return
@@ -50,6 +53,8 @@ DISPLAY_FX_MAX = 9
 	lda display_fx_table+4, X
 	sta call_fx_update_slot+1
 	sta call_fx_draw_slot+1
+
+	lda #&ff:sta display_fx_init
 
 	.return
 	rts

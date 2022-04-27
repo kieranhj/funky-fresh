@@ -1,20 +1,20 @@
 Funky Fresh Framework
 ~~~
 
-TODO 2022: Target Field-Fx party 2 June 2022? (9 weeks!!)
+TODO 2022: Target NOVA 12 August 2022.
 ~~~
-- Move to RTW's approach for removing LHS RVI garbage. (1 week - LOL!)
-- Implement checkboard zoom FX. (1 week)
-- Improve Frak zoomer FX. (1 week)
+- Move to RTW's approach for removing LHS RVI garbage. - DONE
+- Implement checkboard zoom FX. - STARTED
+- Improve Frak zoomer FX.
     - Some additional 'sprites'?
     - Change bg colour?
-- Need something for displaying text for greets / credits (1 week)
+- Need something for displaying text for greets / credits
     - Ideally large moving text, two independently.
     - Slide and wobble?
-- Simple approach to nice transitions. (1 week)
+- Simple approach to nice transitions.
     - Perhaps have a transition track and let each FX handle this out/in?
-- Music from Rhino. (2 weeks)
-- Sequencing. (2 weeks)
+- Music from Rhino.
+- Sequencing.
 - One more FX? (only if time)
     - Psuedo textured 3D?
 
@@ -270,3 +270,51 @@ Suggest focusing on the zoom/scale effects.
 - Full logo zoom or flip with perspective.
 - Sprite made from colour palette changes zoom/cube.
 - A bounce! I need bouncing!
+
+More thoughts:
+- Stop overcomplicating things!!!!
+    - Scrubbing is cool but not essential (see NOVA Invite)
+    - Everything doesn't have to be 160x120 double scanlines.
+    - Particularly with RTW's RVI technique.
+- Have lots of effects already - need transitions as a priority!
+- Prototype transitions in Owlet?
+    - Wipe with 8 or 16 colours in different directions
+    - Horizontal, vertical, diagonal.
+- In Rocket everything is too linear at the moment
+    - Use Rocket as a trigger where necessary, rather than driving the effect.
+    - Use non-linear motion wherever possible - movement, energy!
+- Use Rocket for what it's good at:
+    - Gives us fine control over what is loaded & displayed when
+    - Switching between effects that look the same but are driven differently (transitions)
+    - Too many Rocket tracks isn't going to scale at runtime (NOVA had just 4x effect commands...)
+        => per frame runtime cost is 33c per track to interpolate
+        => plus XXc per key updated on that frame.
+- Edge of Disgrace energy level!
+    - Get some art to inspire.
+    - Get Rhino onboard sooner.
+
+Wipes
+~~~
+Just changing the colour palette looks v boring and coarse even at 16 colours.
+Perhaps use the Twisted Brain vertical blind effect instead?
+Use a single (or double) scanline repeated across the whole screen
+- saves screen RAM for loading other assets
+- have N vertical strips, make them thinner from both sides
+- could also do horizontal strips in a different way
+- can't do diagonal wipes.
+    - possibly could by shifting pixels every N.n scanlines but probably not worth it!
+- also annoyingly can't yield the draw region to the bg task.
+- need a rough interrupt somewhere on the last line to setup vsync.
+
+Thoughts:
+- Triggers work OK but a little funky
+- Need to know when is the first frame of a new FX.
+- How do we want to handle palette changes in general?
+   - Is this a separate track to define the palette?
+   - Could set individual colours as LOGICAL.physical bytes?
+   - Not a task but maybe an events track?!
+   - By extension would then end up with multiple event tracks? (cf. NOVA)
+   - If we didn't use linear interpolated tracks then could save the cycles?
+   - Or have a convention where the first N tracks are events and the next M are linear?
+ 
+ List the events? (Inspiration from NOVA?)
