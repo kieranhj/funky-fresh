@@ -88,6 +88,7 @@ Ponder.
     - Takes 104 tracker rows = 416 vsyncs = 8.32s
     - Perhaps just need to temper the pace of the demo?
     => Check timing if reclaiming 16 scanlines from the visible screen.
+    => Use transitions of static screens where possible to gain cycles.
 
 - Scrubbing plus task loading ends up with the start of the demo not being realistic from a load-time POV.
     - Once MAIN & SHADOW RAM are initialised, you can't uninitialise them.
@@ -141,8 +142,9 @@ BUGS:
 Rocket Run time
 ~~~
 - Always do 16-bit add for each track.
+    => Optimise by removing interpolation for fixed key tracks.
 - Perhaps step keys should just be single byte?
-- Or find some way of encoding two bytes values in a float. BCD-ish? 99.99
+- Or find some way of encoding two bytes values in a float. BCD-ish? 99.99 - DONE
 
 Borders
 ~~~
@@ -281,11 +283,13 @@ More thoughts:
     - Wipe with 8 or 16 colours in different directions
     - Horizontal, vertical, diagonal.
 - In Rocket everything is too linear at the moment
-    - Use Rocket as a trigger where necessary, rather than driving the effect.
-    - Use non-linear motion wherever possible - movement, energy!
+    - Use Rocket as a trigger where necessary, rather than driving the effect at runtime.
+    - Use non-linear motion wherever possible - movement, energy! => tables!
 - Use Rocket for what it's good at:
     - Gives us fine control over what is loaded & displayed when
     - Switching between effects that look the same but are driven differently (transitions)
+    - Rocket tracks very handy when prototyping and discovering / testing parameters.
+    - But once established drive anim sequences from code / tables.
     - Too many Rocket tracks isn't going to scale at runtime (NOVA had just 4x effect commands...)
         => per frame runtime cost is 33c per track to interpolate
         => plus XXc per key updated on that frame.
@@ -305,16 +309,20 @@ Use a single (or double) scanline repeated across the whole screen
     - possibly could by shifting pixels every N.n scanlines but probably not worth it!
 - also annoyingly can't yield the draw region to the bg task.
 - need a rough interrupt somewhere on the last line to setup vsync.
+=> Stop overcomplicating things, as ever!
 
 Thoughts:
 - Triggers work OK but a little funky
-- Need to know when is the first frame of a new FX.
+- Need to know when is the first frame of a new FX. - DONE
 - How do we want to handle palette changes in general?
    - Is this a separate track to define the palette?
    - Could set individual colours as LOGICAL.physical bytes?
    - Not a task but maybe an events track?!
    - By extension would then end up with multiple event tracks? (cf. NOVA)
-   - If we didn't use linear interpolated tracks then could save the cycles?
+   - If we didn't use linear interpolated tracks then could save the cycles? - TODO
    - Or have a convention where the first N tracks are events and the next M are linear?
- 
- List the events? (Inspiration from NOVA?)
+   => No, multiple event tracks would be a PITA.
+
+Horizontal Twisty Bar!
+~~~
+- Next FX.

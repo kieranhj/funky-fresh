@@ -16,9 +16,10 @@
 	equw fx_frak_zoomer_update,	   			fx_frak_zoomer_draw,		SLOT_BANK2	; &07
 	equw fx_checker_zoom_update,	   		fx_checker_zoom_draw,		SLOT_BANK2	; &08
 	equw fx_palette_wipe_update,   			fx_static_image_draw,		SLOT_BANK2	; &09
+	equw fx_spin_bar_update,   				fx_spin_bar_draw,			SLOT_BANK2	; &0A
     ; v---------------------------------------------------------------------------- ; update DISPLAY_FX_MAX!
 }
-DISPLAY_FX_MAX = 10
+DISPLAY_FX_MAX = 11
 
 .display_fx_update
 {

@@ -5,6 +5,7 @@
 CLEAR rocket_zp_start, zp_max
 ORG rocket_zp_start
 GUARD rocket_zp_reserved
+\\ TODO: Remove interpolation overhead from trigger-only tracks (first three).
 .rocket_track_task_id		    skip 2
 .rocket_track_task_data		    skip 2
 .rocket_track_display_fx	    skip 2
@@ -12,6 +13,7 @@ GUARD rocket_zp_reserved
 .rocket_track_x_pos			    skip 2
 .rocket_track_y_pos			    skip 2
 .rocket_track_time			    skip 2
+\\ TODO: Remove unused tracks (below).
 .rocket_top_border_lines        skip 2
 .rocket_top_border_colour       skip 2
 .rocket_bottom_border_lines     skip 2

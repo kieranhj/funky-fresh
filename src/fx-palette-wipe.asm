@@ -24,7 +24,7 @@
 
 .fx_palette_wipe_update
 {
-	\\ This FX always uses whatever screen was last disaplyed.
+	\\ This FX always uses whatever screen was last displayed.
 	\\ TODO: Add a data byte to specify MAIN or SHADOW.
 
 	lda display_fx_init

@@ -96,7 +96,7 @@ ENDIF
 .product                skip 4
 
 .teletext_disable       skip 1
-.teletext_enable       skip 1
+.teletext_enable        skip 1
 
 \\ TODO: Move FX ZP vars?
 \\ TODO: Give FX vars proper names!
@@ -127,6 +127,11 @@ ENDIF
 .wipe_from              skip 1
 .wipe_counter           skip 1
 .wipe_index             skip 1
+
+\\ Spin Bar
+.bar_y_corners          skip 4
+.bar_y_rasters          skip 4
+.bar_y_colours          skip 4
 
 \\ TODO: Local ZP vars?
 .zp_end

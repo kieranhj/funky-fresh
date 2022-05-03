@@ -93,6 +93,7 @@ include "src/fx-frequency.asm"
 include "src/fx-stretch-grid.asm"
 include "src/fx-frak-zoomer.asm"
 include "src/fx-checker-zoom.asm"
+include "src/fx-spin-bar.asm"
 include "src/fx-palette-wipe.asm"
 \\ ^------ NB. Currently assuming all FX in same SWRAM bank!!
 .fx_end
