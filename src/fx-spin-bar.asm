@@ -3,6 +3,10 @@
 \ *	SPINNING HORIZONTAL BAR
 \ ******************************************************************
 
+FX_SPIN_BAR_BG_COL 		= PAL_blue
+FX_SPIN_BAR_EDGE_COL 	= PAL_black
+FX_SPIN_BAR_EDGE_SIZE 	= 2
+
 \\ Describe the track values used:
 \\   rocket_track_zoom  => size on screen.
 \\   rocket_track_x_pos  => bar size?
@@ -56,6 +60,7 @@ ELSE
 	lda rocket_track_time+1
 	sta angle	; in brads
 ENDIF
+	\\ TODO: Use zoom track as size of the bar (need fast multiply).
 
 	\\ Bar centred at y_pos.
 	\\        R
@@ -69,6 +74,7 @@ ENDIF
 	\\ y3'=x3*sin(a)+y3*cos(a) = x1*sin(a)-y1*cos(a)
 	\\ y4'=x4*sin(a)+y4*cos(a) = -x1*sin(a)+-y1*cos(a)
 
+	\\ Rotate corners of the box by angle.
 	tay
 	lda rocket_track_y_pos+1
 	sec
@@ -103,36 +109,72 @@ ENDIF
 	\\ [64-127] = x3->x1, x1->x2
 	\\ [128-191] = x4->x3, x3->x1
 	\\ [192-256] = x2->x4, x4->x3
+
+	\\ Calculate raster lines for the visible faces.
 	lda angle_to_quadrant, Y
 	asl a:asl a:tax
 
 	ldy quadrant_to_indices, X
-	lda bar_y_corners, Y:sta bar_y_rasters+0
+	lda bar_y_corners, Y
+	sta bar_y_rasters+0			; top edge
+	clc:adc #FX_SPIN_BAR_EDGE_SIZE
+	sta bar_y_rasters+1			; top face
+
 	inx
 	ldy quadrant_to_indices, X
-	lda bar_y_corners, Y:sta bar_y_rasters+1
+	lda bar_y_corners, Y
+	sta bar_y_rasters+2			; middle edge
+	clc:adc #FX_SPIN_BAR_EDGE_SIZE
+	sta bar_y_rasters+3			; bottom face
+
 	inx
 	ldy quadrant_to_indices, X
-	lda bar_y_corners, Y:sta bar_y_rasters+2
+	lda bar_y_corners, Y
+	sta bar_y_rasters+4			; bottom edge
+	clc:adc #FX_SPIN_BAR_EDGE_SIZE
+	sta bar_y_rasters+5			; background
 
-	lda #255:sta bar_y_rasters+3
+	lda #255
+	sta bar_y_rasters+6			; end of screen!
 
-	\\ xy should now contain raster lines for colour changes.
+	\\ Reset colours.
+	lda #FX_SPIN_BAR_EDGE_COL
+	sta bar_y_colours+1
+	sta bar_y_colours+3
+	sta bar_y_colours+5
+
+	\\ Calculate colour changes for each raster line.
 	ldy angle
 	lda angle_to_quadrant, Y
 	asl a:tax
 
-	lda #&00 + PAL_blue
-	sta bar_y_colours+0:sta &fe21
+	lda bar_y_colours+0:sta &fe21
 
 	lda quadrant_to_colour, X
-	sta bar_y_colours+1
+	sta bar_y_colours+2			; top face
 	inx
 	lda quadrant_to_colour, X
-	sta bar_y_colours+2
+	sta bar_y_colours+4			; bottom face
 
-	lda #&00 + PAL_blue
-	sta bar_y_colours+3
+	\\ Remove edge on faces.
+	lda bar_y_rasters+0
+	cmp bar_y_rasters+2
+	bne top_visible
+
+	\\ Remove entries 1 & 2 for top face & edge.
+	{
+		ldx #0
+		.loop
+		lda bar_y_rasters+3, X
+		sta bar_y_rasters+1, X
+		lda bar_y_colours+4, X
+		sta bar_y_colours+2, X
+		inx
+		cpx #4
+		bcc loop
+	}
+	.top_visible
+
 	rts
 }
 
@@ -168,9 +210,7 @@ ENDIF
 
 .fx_spin_bar_draw
 {
-	\\ At rasterline xy+0 set palette to ta+0.
-	\\ At rasterline xy+1 set palette to ta+1.
-	\\ At rasterline xy+2 set palette to PAL_blue.
+	\\ At rasterline bar_y_rasters+0 set palette to bar_y_colours+0. Etc.
 
 	; Set R12/R13 for full screen.
 	lda #12:sta &fe00								; +8 (8)
@@ -228,6 +268,20 @@ ENDIF
 	rts
 }
 
+.bar_y_corners          skip 4
+
+\\ Raster colour changes.
+.bar_y_colours
+EQUB FX_SPIN_BAR_BG_COL		; [0] background
+EQUB FX_SPIN_BAR_EDGE_COL	; [1] top edge
+EQUB PAL_white				; [2] top face
+EQUB FX_SPIN_BAR_EDGE_COL	; [3] middle edge
+EQUB PAL_white				; [4] bottom face
+EQUB FX_SPIN_BAR_EDGE_COL	; [5] bottom edge
+EQUB FX_SPIN_BAR_BG_COL		; [6] background
+
+.bar_y_rasters
+skip 8
 
 .quadrant_to_indices
 EQUB 0,1,3,&FF
