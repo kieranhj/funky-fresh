@@ -93,6 +93,8 @@ ENDIF
 .prev_scanline			skip 1
 .next_scanline          skip 1
 .temp                   skip 2
+.num1                   skip 1
+.num2                   skip 1
 .product                skip 4
 
 .teletext_disable       skip 1
@@ -661,6 +663,7 @@ include "lib/disksys.asm"
 ;include "lib/screen.asm"
 include "lib/exo.asm"
 include "lib/cycles.asm"
+include "lib/multiply.asm"
 .library_end
 
 \ ******************************************************************

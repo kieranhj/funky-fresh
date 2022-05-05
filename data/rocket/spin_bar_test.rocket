@@ -3,8 +3,7 @@
 <tracks rows="10000" startRow="0" endRow="10000" rowsPerBeat="8"
 beatsPerMin="125">
 	<track name="task_1" folded="0" muteKeyCount="0" color="ffb28050">
-		<key row="0" value="3.000000" interpolation="0" />
-		<key row="9" value="3.000000" interpolation="0" />
+		<key row="29" value="1.000000" interpolation="0" />
 		<key row="136" value="1.020000" interpolation="0" />
 		<key row="168" value="1.030000" interpolation="0" />
 		<key row="280" value="1.050000" interpolation="0" />
@@ -13,19 +12,17 @@ beatsPerMin="125">
 		<key row="1208" value="1.070000" interpolation="0" />
 	</track>
 	<track name="task_2" folded="0" muteKeyCount="0" color="ffa9b250">
-		<key row="0" value="0.000000" interpolation="0" />
-		<key row="8" value="2.090000" interpolation="0" />
-		<key row="29" value="2.010000" interpolation="0" />
+		<key row="0" value="3.000000" interpolation="0" />
+		<key row="48" value="2.010000" interpolation="0" />
 		<key row="152" value="2.040000" interpolation="0" />
 		<key row="636" value="2.040000" interpolation="0" />
 		<key row="1208" value="2.080000" interpolation="0" />
 	</track>
 	<track name="display_fx" folded="0" muteKeyCount="0"
 color="ff60b250">
-		<key row="0" value="1.000000" interpolation="0" />
+		<key row="0" value="2.000000" interpolation="0" />
 		<key row="12" value="10.000000" interpolation="0" />
-		<key row="16" value="9.000000" interpolation="0" />
-		<key row="29" value="3.000000" interpolation="0" />
+		<key row="64" value="3.000000" interpolation="0" />
 		<key row="136" value="2.000000" interpolation="0" />
 		<key row="152" value="1.000000" interpolation="0" />
 		<key row="168" value="2.000000" interpolation="0" />
@@ -42,8 +39,10 @@ color="ff60b250">
 		<key row="1216" value="8.000000" interpolation="0" />
 	</track>
 	<track name="zoom" folded="0" muteKeyCount="0" color="ffb27474">
-		<key row="16" value="1.000000" interpolation="0" />
-		<key row="29" value="0.000000" interpolation="0" />
+		<key row="12" value="10.000000" interpolation="1" />
+		<key row="32" value="100.000000" interpolation="1" />
+		<key row="40" value="10.000000" interpolation="1" />
+		<key row="48" value="60.000000" interpolation="0" />
 		<key row="64" value="0.000000" interpolation="1" />
 		<key row="80" value="63.000000" interpolation="1" />
 		<key row="96" value="0.000000" interpolation="1" />
@@ -104,9 +103,6 @@ color="ff60b250">
 		<key row="1336" value="0.000000" interpolation="0" />
 	</track>
 	<track name="x_pos" folded="0" muteKeyCount="0" color="ff4fb292">
-		<key row="16" value="4.000000" interpolation="0" />
-		<key row="20" value="6.000000" interpolation="0" />
-		<key row="24" value="4.000000" interpolation="0" />
 		<key row="192" value="0.000000" interpolation="1" />
 		<key row="280" value="255.000000" interpolation="0" />
 		<key row="640" value="0.000000" interpolation="0" />
@@ -122,12 +118,11 @@ color="ff60b250">
 		<key row="1216" value="0.000000" interpolation="0" />
 	</track>
 	<track name="y_pos" folded="0" muteKeyCount="0" color="ff4f71b2">
-		<key row="12" value="100.000000" interpolation="0" />
-		<key row="16" value="6.000000" interpolation="0" />
-		<key row="20" value="4.000000" interpolation="0" />
-		<key row="24" value="0.000000" interpolation="0" />
-		<key row="29" value="160.000000" interpolation="1" />
-		<key row="64" value="60.000000" interpolation="0" />
+		<key row="12" value="0.000000" interpolation="1" />
+		<key row="32" value="119.000000" interpolation="0" />
+		<key row="48" value="119.000000" interpolation="1" />
+		<key row="63" value="240.000000" interpolation="0" />
+		<key row="64" value="59.000000" interpolation="0" />
 		<key row="112" value="60.000000" interpolation="1" />
 		<key row="116" value="20.000000" interpolation="1" />
 		<key row="120" value="60.000000" interpolation="1" />
@@ -173,7 +168,10 @@ color="ff60b250">
 	</track>
 	<track name="anim_time" folded="0" muteKeyCount="0"
 color="ff8850b2">
-		<key row="12" value="64.000000" interpolation="0" />
+		<key row="12" value="0.000000" interpolation="1" />
+		<key row="32" value="256.000000" interpolation="1" />
+		<key row="48" value="0.000000" interpolation="1" />
+		<key row="64" value="256.000000" interpolation="0" />
 		<key row="192" value="0.000000" interpolation="1" />
 		<key row="280" value="128.000000" interpolation="0" />
 		<key row="640" value="0.000000" interpolation="1" />

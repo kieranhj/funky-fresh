@@ -23,27 +23,6 @@
 \ be late and your raster timings will be wrong!
 \ ******************************************************************
 
-.standard_multiply_AX
-{
-	CPX #0:BEQ zero
-	DEX:STX product+1
-	LSR A:STA product
-	LDA #0
-	BCC s1:ADC product+1:.s1 ROR A:ROR product
-	BCC s2:ADC product+1:.s2 ROR A:ROR product
-	BCC s3:ADC product+1:.s3 ROR A:ROR product
-	BCC s4:ADC product+1:.s4 ROR A:ROR product
-	BCC s5:ADC product+1:.s5 ROR A:ROR product
-	BCC s6:ADC product+1:.s6 ROR A:ROR product
-	BCC s7:ADC product+1:.s7 ROR A:ROR product
-	BCC s8:ADC product+1:.s8 ROR A:ROR product
-	STA product+1
-	RTS
-	.zero
-	STX product:STX product+1
-	RTS
-}
-
 .fx_vertical_stretch_update
 {
 	ldx rocket_track_zoom+1

@@ -60,8 +60,6 @@ ELSE
 	lda rocket_track_time+1
 	sta angle	; in brads
 ENDIF
-	\\ TODO: Use zoom track as size of the bar (need fast multiply).
-
 	\\ Bar centred at y_pos.
 	\\        R
 	\\   x1 +--+ x2  =>  x3 +--+ x1  =>  x4 +--+ x3  =>  x2 +--+ x4
@@ -69,39 +67,52 @@ ENDIF
 	\\   x3 +--+ x4      x4 +--+ x2      x2 +--+ x1      x1 +--+ x3
 	\\       G
 	\\
-	\\ y1'=x1*sin(a)+y1*cos(a) = x1*sin(a)+y1*cos(a)
-	\\ y2'=x1*sin(a)+y2*cos(a) = -x1*sin(a)+y1*cos(a)
-	\\ y3'=x3*sin(a)+y3*cos(a) = x1*sin(a)-y1*cos(a)
-	\\ y4'=x4*sin(a)+y4*cos(a) = -x1*sin(a)+-y1*cos(a)
+
+	tay
+	ldx rocket_track_zoom+1
+	lda spin_x_sin_a, Y
+	jsr fast_multiply_signedAX		; product = sin(angle)*zoom
+	lda product+1
+	sta spin_r_sin_a
+
+	ldx rocket_track_zoom+1
+	ldy angle
+	lda spin_y_cos_a, Y
+	jsr fast_multiply_signedAX		; product = cos(angle)*zoom
+	lda product+1
+	sta spin_r_cos_a
 
 	\\ Rotate corners of the box by angle.
-	tay
+	\\ y1'=x1*sin(a)+y1*cos(a) = x1*sin(a)+y1*cos(a)
 	lda rocket_track_y_pos+1
 	sec
-	sbc spin_x_sin_a, Y
+	sbc spin_r_sin_a
 	sec
-	sbc spin_y_cos_a, Y
+	sbc spin_r_cos_a
 	sta bar_y_corners+0
 
+	\\ y2'=x1*sin(a)+y2*cos(a) = -x1*sin(a)+y1*cos(a)
 	lda rocket_track_y_pos+1
 	clc
-	adc spin_x_sin_a, Y
+	adc spin_r_sin_a
 	sec
-	sbc spin_y_cos_a, Y
+	sbc spin_r_cos_a
 	sta bar_y_corners+1
 
+	\\ y3'=x3*sin(a)+y3*cos(a) = x1*sin(a)-y1*cos(a)
 	lda rocket_track_y_pos+1
 	sec 
-	sbc spin_x_sin_a, Y
+	sbc spin_r_sin_a
 	clc
-	adc spin_y_cos_a, Y
+	adc spin_r_cos_a
 	sta bar_y_corners+2
 
+	\\ y4'=x4*sin(a)+y4*cos(a) = -x1*sin(a)+-y1*cos(a)
 	lda rocket_track_y_pos+1
 	clc
-	adc spin_x_sin_a, Y
+	adc spin_r_sin_a
 	clc
-	adc spin_y_cos_a, Y
+	adc spin_r_cos_a
 	sta bar_y_corners+3
 
 	\\ Quadrant tells us which faces we can see.
@@ -111,7 +122,8 @@ ENDIF
 	\\ [192-256] = x2->x4, x4->x3
 
 	\\ Calculate raster lines for the visible faces.
-	lda angle_to_quadrant, Y
+	ldy angle
+	lda angle_to_quadrant, Y	; could replace this with and:lsr.
 	asl a:asl a:tax
 
 	ldy quadrant_to_indices, X
@@ -161,7 +173,7 @@ ENDIF
 	cmp bar_y_rasters+2
 	bne top_visible
 
-	\\ Remove entries 1 & 2 for top face & edge.
+	\\ Remove entries 1 & 2 for top face & edge if not visible.
 	{
 		ldx #0
 		.loop
@@ -177,6 +189,9 @@ ENDIF
 
 	rts
 }
+
+.spin_r_sin_a	skip 1
+.spin_r_cos_a	skip 1
 
 \ ******************************************************************
 \ Draw FX
@@ -260,17 +275,23 @@ ENDIF
 		WAIT_CYCLES 101			; +101 (95)
 
 		iny						; +2 (97)
+		\\ TODO: Terminate loop early once at bottom of the bar?
+		\\       This would return cycles to the main task loop.
 		cpy #240				; +2 (99)
 		bne scanline_loop		; +3 (102)
 	}
 	.done_scanlines
 	CHECK_SAME_PAGE_AS scanline_loop, TRUE
+
+	\\ Technically should set palette 0 back to PAL_black.
+
 	rts
 }
 
 .bar_y_corners          skip 4
 
 \\ Raster colour changes.
+PAGE_ALIGN_FOR_SIZE 8
 .bar_y_colours
 EQUB FX_SPIN_BAR_BG_COL		; [0] background
 EQUB FX_SPIN_BAR_EDGE_COL	; [1] top edge
@@ -280,6 +301,7 @@ EQUB PAL_white				; [4] bottom face
 EQUB FX_SPIN_BAR_EDGE_COL	; [5] bottom edge
 EQUB FX_SPIN_BAR_BG_COL		; [6] background
 
+PAGE_ALIGN_FOR_SIZE 8
 .bar_y_rasters
 skip 8
 
@@ -299,11 +321,11 @@ EQUB &00 + PAL_yellow,	&00 + PAL_cyan
 PAGE_ALIGN
 .spin_x_sin_a
 FOR n,0,255,1
-EQUB 40*SIN(2*PI*n/256)
+EQUB 127*SIN(2*PI*n/256)
 NEXT
 
 PAGE_ALIGN
 .spin_y_cos_a
 FOR n,0,255,1
-EQUB 40*COS(2*PI*n/256)
+EQUB 127*COS(2*PI*n/256)
 NEXT
