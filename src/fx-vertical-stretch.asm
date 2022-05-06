@@ -3,6 +3,14 @@
 \ *	VERTICAL STRETCH FX
 \ ******************************************************************
 
+_FX_VERT_STRETCH_REMOVE_RVI = FALSE
+
+IF _FX_VERT_STRETCH_REMOVE_RVI
+_FX_VERT_STRETCH_SCR_ADDR = &2FD0
+ELSE
+_FX_VERT_STRETCH_SCR_ADDR = &3000
+ENDIF
+
 \\ TODO: Describe the FX and requirements.
 \\ Describe the track values used:
 \\   rocket_track_zoom  => zoom factor               [0-63]  <- 1x to 10x height
@@ -66,7 +74,7 @@
 	\\ product = y_pos * dv
 	lda dv
 	ldx rocket_track_y_pos+1
-	jsr standard_multiply_AX
+	jsr fast_multiply_AX
 	.done_lower
 
 	\\ v = centre - y_pos * dv
@@ -88,8 +96,10 @@
 	lda &fe34:and #&fe:sta &fe34		; 10c
 
 	; initial 'normal' CRTC values
+	IF _FX_VERT_STRETCH_REMOVE_RVI
 	LDA #1:STA &FE00:LDA #86:STA &FE01
 	LDA #2:STA &FE00:LDA #104:STA &FE01
+	ENDIF
 
 	\\ R6=display 1 row.
 	lda #6:sta &fe00					; 8c
@@ -98,7 +108,11 @@
 
 	; Enable teletext to do blanking on the ULA
 	; (it will be disabled explicitly at the start of each RVI line)
+	IF _FX_VERT_STRETCH_REMOVE_RVI
 	TELETEXT_ENABLE_6
+	ENDIF
+
+	; This is here in case a wipe has cleared the palette.
 	jmp fx_static_image_set_default_palette
 }
 
@@ -178,12 +192,20 @@
 	
 		txa:and #3:tax						; +6 (78)
 		WAIT_CYCLES 2						; +2 (80)
+		IF _FX_VERT_STRETCH_REMOVE_RVI
 		; turn on teletext enable
 		TELETEXT_ENABLE_7					; +7 (87)
+		ELSE
+		WAIT_CYCLES 7
+		ENDIF
 		WAIT_CYCLES 41						; +41 (128)
 
 			\\ <=== HCC=0 (odd)
+			IF _FX_VERT_STRETCH_REMOVE_RVI
 			TELETEXT_DISABLE_7				; +7 (7)
+			ELSE
+			WAIT_CYCLES 7
+			ENDIF
 			WAIT_CYCLES 28					; +28 (35)
 
 			.^right_in_there				;    (35)
@@ -199,7 +221,11 @@
 			lda jmptab, X:sta jmpinstruc+1	; +8 (64)
 
 			WAIT_CYCLES 16					; +16 (80)
+			IF _FX_VERT_STRETCH_REMOVE_RVI
 			TELETEXT_ENABLE_7				; +7 (87)
+			ELSE
+			WAIT_CYCLES 7
+			ENDIF
 
 			ldy #1							; +2 (89)
 			lda #0:sta &fe00				; +7 (96)
@@ -213,7 +239,11 @@
 		\\ <=== HCC=0 (even)
 
 		; turn off teletext enable
+		IF _FX_VERT_STRETCH_REMOVE_RVI
 		TELETEXT_DISABLE_7					; +7 (7)
+		ELSE
+		WAIT_CYCLES 7
+		ENDIF
 
 		clc									; +2 (9)
 		dec row_count						; +5 (14)
@@ -236,16 +266,28 @@
 
 	WAIT_CYCLES 32							; +32 (80)
 	; turn on teletext enable
+	IF _FX_VERT_STRETCH_REMOVE_RVI
 	TELETEXT_ENABLE_6							; +6 (86)
+	ELSE
+	WAIT_CYCLES 6
+	ENDIF
 	WAIT_CYCLES 42							; +42 (128)
 
 		\\ We're in the final visible scanline of the screen.
 		\\ <=== HCC=0 (odd)
+		IF _FX_VERT_STRETCH_REMOVE_RVI
 		TELETEXT_DISABLE_7					; +7 (7)
+		ELSE
+		WAIT_CYCLES 7
+		ENDIF
 
 		WAIT_CYCLES 73						; +73 (80)
 		; turn on teletext enable
+		IF _FX_VERT_STRETCH_REMOVE_RVI
 		TELETEXT_ENABLE_7					; +7 (87)
+		ELSE
+		WAIT_CYCLES 7
+		ENDIF
 		WAIT_CYCLES 41						; +41 (128)
 
 	\\ <=== HCC=0 (off screen)
@@ -332,19 +374,19 @@ CHECK_SAME_PAGE_AS scanline0, TRUE
 PAGE_ALIGN_FOR_SIZE 256
 .fx_stretch_vram_table_LO
 FOR n,0,127,1
-EQUB LO((&2FD0 + (n DIV 4)*640)/8)
+EQUB LO((_FX_VERT_STRETCH_SCR_ADDR + (n DIV 4)*640)/8)
 NEXT
 FOR n,0,127,1
-EQUB LO(&2FD0/8)
+EQUB LO(_FX_VERT_STRETCH_SCR_ADDR/8)
 NEXT
 
 PAGE_ALIGN_FOR_SIZE 256
 .fx_stretch_vram_table_HI
 FOR n,0,127,1
-EQUB HI((&2FD0 + (n DIV 4)*640)/8)
+EQUB HI((_FX_VERT_STRETCH_SCR_ADDR + (n DIV 4)*640)/8)
 NEXT
 FOR n,0,127,1
-EQUB HI(&2FD0/8)
+EQUB HI(_FX_VERT_STRETCH_SCR_ADDR/8)
 NEXT
 
 PAGE_ALIGN_FOR_SIZE 64
