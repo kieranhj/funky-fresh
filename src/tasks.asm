@@ -3,6 +3,12 @@
 \ *	TASKS MODULE
 \ ******************************************************************
 
+\\ On entry to task function:
+\\   A=task data converted to int.
+\\   X=only defined if task has been set up outside of track.
+\\   Y=0 for main task
+\\   Y=1 for shadow task.
+
 .tasks_fn_table
 {
 	equw do_nothing						    ; &00
@@ -93,6 +99,11 @@ TASK_ID_MAX = 4
 .task_update_return
 rts
 
+\\ On entry:
+\\   A=task data converted to int.
+\\   X=only defined if task has been set up outside of track.
+\\   Y=0 for main task
+\\   Y=1 for shadow task.
 .task_decrunch_asset_to_main
 {
     asl a:asl a:tax
@@ -120,6 +131,11 @@ rts
     \\ TODO: Save/restore SWRAM slot?
 }
 
+\\ On entry:
+\\   A=task data converted to int.
+\\   X=only defined if task has been set up outside of track.
+\\   Y=0 for main task
+\\   Y=1 for shadow task.
 .task_decrunch_asset_to_shadow
 {
     asl a:asl a:tax
@@ -130,13 +146,23 @@ rts
     jmp task_decrunch_asset_X
 }
 
+\\ On entry:
+\\   A=task data converted to int.
+\\   X=only defined if task has been set up outside of track.
+\\   Y=0 for main task
+\\   Y=1 for shadow task.
 .task_wipe_screens
 {
+    \\ TODO: Be able to specify which screen separately.
+    cmp #2
+    beq clear_shadow
+
     \\ Ensure MAIN RAM writeable.
     lda &fe34:and #&fb:sta &fe34
     ldy #HI(screen_addr):ldx #HI(SCREEN_SIZE_BYTES)
-    jsr clear_pages
+    jmp clear_pages
 
+    .clear_shadow
     \\ Ensure SHADOW RAM is writeable.
     lda &fe34:ora #&4:sta &fe34
     ldy #HI(screen_addr):ldx #HI(SCREEN_SIZE_BYTES)

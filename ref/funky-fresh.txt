@@ -5,6 +5,8 @@ TODO 2022: Target NOVA 12 August 2022.
 ~~~
 - Move to RTW's approach for removing LHS RVI garbage. - DONE
 - Implement checkboard zoom FX. - STARTED
+- Tidy up all FX and decide which need garbage removal.
+- Check on real hw including PVM if possible.
 - Improve Frak zoomer FX.
     - Some additional 'sprites'?
     - Change bg colour?
@@ -17,6 +19,7 @@ TODO 2022: Target NOVA 12 August 2022.
 - Sequencing.
 - One more FX? (only if time)
     - Psuedo textured 3D?
+
 
 
 TODO:
@@ -271,9 +274,11 @@ Suggest focusing on the zoom/scale effects.
 - Checkerboard layers.
 - Full logo zoom or flip with perspective.
 - Sprite made from colour palette changes zoom/cube.
-- A bounce! I need bouncing!
+- Scrolltext with bounce / stretch.
+- 
 
 More thoughts:
+- A bounce! I need bouncing!
 - Stop overcomplicating things!!!!
     - Scrubbing is cool but not essential (see NOVA Invite)
     - Everything doesn't have to be 160x120 double scanlines.
@@ -325,4 +330,13 @@ Thoughts:
 
 Horizontal Twisty Bar!
 ~~~
-- Next FX.
+- Done.
+- Would be better to combine with other FX (plenty of cycle time per rasterline).
+  - Scroller?
+
+More ideas for wipes/transitions
+~~~
+- Use the frequency grid for blocky wipes with colour ripple.
+- Have the spinning bar fill the screen (watch out for overflow) and then swap to another wipe.
+- Could animate large 'convex raster shapes' from prefilled scanlines, make these move then fill the screen.
+- 

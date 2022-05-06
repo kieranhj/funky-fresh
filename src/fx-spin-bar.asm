@@ -34,6 +34,7 @@ FX_SPIN_BAR_EDGE_SIZE 	= 2
 {
 	\\ This FX always uses whatever screen was last displayed.
 	\\ TODO: Add a data byte to specify MAIN or SHADOW.
+	\\ TODO: Have a 'bounce' mode and potentially 'autospin'.
 IF 0
 	\\   rocket_track_time  => rotation of top row (cos table) [0-255] <- makes it spin
 	lda #0:sta yb+0	; actually LSB
