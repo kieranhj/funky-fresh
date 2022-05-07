@@ -291,7 +291,11 @@ ENDIF
 		WAIT_CYCLES 41						; +41 (128)
 
 	\\ <=== HCC=0 (off screen)
+	IF _FX_VERT_STRETCH_REMOVE_RVI
 	TELETEXT_DISABLE_7						; +7 (7)
+	ELSE
+	WAIT_CYCLES 7
+	ENDIF
 
 	\\ Set R9=1 so all remaining char rows are 2 scanlines each.
 	lda #9:sta &fe00						; +7 (14)
@@ -299,9 +303,11 @@ ENDIF
 
 	lda #0:sta prev_scanline				; +5 (27)
 
+IF _FX_VERT_STRETCH_REMOVE_RVI
 	; initial 'normal' CRTC values
 	LDA #1:STA &FE00:LDA #80:STA &FE01
 	LDA #2:STA &FE00:LDA #98:STA &FE01
+ENDIF
     rts
 
 ALIGN 4

@@ -187,68 +187,6 @@ EQUB &20 + PAL_cyan
 .fx_chunky_twister_draw
 {
 	\\ <=== HCC=0 (scanline=-2)
-IF 0
-	WAIT_CYCLES 16						; +16 (16)
-
-	\\ R9 must be set before final scanline of the row.
-	lda #9:sta &fe00					; +8 (24)
-
-	\\ Row 1 scanline.
-	lda angle							; +3 (27)
-	\\ 2-bits * 2
-	and #1:asl a						; +4 (31)
-	tax									; +2 (33)
-	eor #&ff							; +2 (35)
-	clc									; +2 (37)
-	adc #9								; +2 (39)
-	adc prev_scanline					; +3 (42)
-	sta &fe01							; +6 (48)
-	stx prev_scanline					; +3 (51)
-
-	\\ Set R12,R13 + SHADOW for row 0.
-	CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 	; +66 (117)
-
-	    WAIT_CYCLES 16						; +16 (128 + 5)
-
-		\\ Set R0=103 (104c)
-		lda #0:sta &fe00					; +7 (12)
-		lda #103:sta &fe01					; +8 (20)
-
-		WAIT_CYCLES 32						; +32 (52)
-
-		ldx angle							; +3 (55)
-		ldy angle_to_quadrant, X			; +4 (59)
-		lda twister_quadrant_colour_1,Y:sta &fe21 	; +8 (67)
-		lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (75)
-		lda twister_quadrant_colour_3,Y:sta &fe21	; +8 (83)
-
-		\\ Set SHADOW bit safely in hblank.
-		lda &fe34:and #&fe:ora shadow_bit:sta &fe34	; +13 (96)
-
-		\\ At HCC=104 set R0=1.
-		.blah
-		lda #1:sta &fe01					; +8 (104)
-		\\ <=== HCC=104
-
-		WAIT_CYCLES 6						; +6 (110)
-		ldx #4:ldy #9						; +4 (114)
-
-		\\ Burn R0=1 scanlines.
-		lda #127							; +2 (116)
-
-		\\ Set R0=0 to blank 6x chars.
-		stz &fe01							; +6 (122)
-
-		\\ At HCC=0 set R0=127.
-		sta &fe01							; +6 (128)
-
-	\\ <=== HCC=0 (scanline=0)
-
-	\\ Set R4=0 (one row per cycle).
-	stx &fe00								; +6 (6)
-	stz &fe01								; +6 (12)
-ELSE
-	\\ Ignore scanline for top character row for now.
 
 	\\ Set R12,R13 + SHADOW for row 0.
 	CHUNKY_TWISTER_SET_CRTC_FROM_ANGLE 		; +65 (65)
@@ -275,8 +213,10 @@ ELSE
 		lda #1:sta &fe01					; +8 (32)
 
 		clc									; +2 (34)
+
+		\\ Ignore scanline for top character row for now.
+		\\ Otherwise jump into char_row_loop.
 		WAIT_CYCLES	111						; +111 (128 + 17)
-ENDIF
 
 	\\ 2x scanlines per row.
 	.char_row_loop
