@@ -6,6 +6,8 @@
 \\ TODO: Make sure this RAM is reserved properly.
 FX_PATH_ZOOM_SCR_ADDR = &2D80
 
+\\ NOTE THAT TILE SIZE IS HARD-CODED TO BE 64x64 TEXELS.
+
 \\ Describe the track values used:
 \\   rocket_track_anim  => frame no. [0-255]
 
@@ -33,9 +35,13 @@ FX_PATH_ZOOM_SCR_ADDR = &2D80
 
 	lda rocket_track_y_pos+0
 	sta v
-	ldy rocket_track_y_pos+1
-	lda frak_mod_sprite_height, Y
+	lda rocket_track_y_pos+1
+	and #63
 	sta v+1
+	cmp #FRAK_SPRITE_HEIGHT
+	bcc ok
+	lda #FRAK_SPRITE_HEIGHT-1
+	.ok
 
 	\\ Hi byte of V * 16
 	clc
@@ -159,28 +165,31 @@ CODE_ALIGN 32
 		lda v+1					; +3 (45)
 		.*path_zoom_add_dv_HI
 		adc #0					; +2 (47)
-		cmp #FRAK_SPRITE_HEIGHT	; +2 (49)
+		and #63					; +2 (49)
+		sta v+1					; +3 (52)
+
+		\\ NEXT: Store v AND 63 but clamp lookup to FRAK_SPRITE_HEIGHT.
+
+		cmp #FRAK_SPRITE_HEIGHT	; +2 (54)
 
 		bcc ok					; ----------+
-		;						; +2 (51)	|
-		sbc #FRAK_SPRITE_HEIGHT	; +2 (53)	|
-		jmp store				; +3 (56)	|
+		;						; +2 (56)	|
+		lda #FRAK_SPRITE_HEIGHT-1; +2 (58)	|
+		jmp store				; +3 (61)	|
 		.ok						; 			V
-		;						;		 +3 (52)
-		WAIT_CYCLES 4			;		 +4 (56)
+		;						;		 +3 (57)
+		WAIT_CYCLES 4			;		 +4 (61)
 
 		.store
-		sta v+1					; +3 (59)
-
-		tax						; +2 (61)
-		lda frak_lines_LO, X	; +4 (65)
-		sta set_palette+1		; +4 (69)
-		lda frak_lines_HI, X	; +4 (73)
-		sta set_palette+2		; +4 (77)
+		tax						; +2 (63)
+		lda frak_lines_LO, X	; +4 (67)
+		sta set_palette+1		; +4 (71)
+		lda frak_lines_HI, X	; +4 (75)
+		sta set_palette+2		; +4 (79)
 
 		.set_palette
-		jsr frak_line0			; +60 (9)
-		WAIT_CYCLES 15			; +15 (24)
+		jsr frak_line0			; +60 (11)
+		WAIT_CYCLES 13			; +13 (24)
 
 		dec row_count			; +5 (29)
 		bne scanline_loop		; +3 (32)
@@ -256,3 +265,12 @@ NEXT
 PAGE_ALIGN
 .path_zoom_dy_table
 INCBIN "data/raw/path-zoom-dy-table.bin"
+\\ TODO: Could just compute this table from the path equation.
+IF 0
+FOR n,0,255,1
+cz=-90-80*COS(2*PI*n/256)
+dx=-cz/160
+dy=128*dx
+EQUB dy
+NEXT
+ENDIF
