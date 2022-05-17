@@ -11,7 +11,7 @@ FX_SPIN_BAR_EDGE_SIZE 	= 2
 \\   rocket_track_zoom  => size on screen.
 \\   rocket_track_x_pos  => bar size?
 \\   rocket_track_y_pos  => y position on screen.
-\\   rocket_track_anim  => rotation (cos table)
+\\   rocket_track_time  => rotation (cos table)
 
 \\ Want to get to:
 \\ a = SIN(t * a + y * b)

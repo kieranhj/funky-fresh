@@ -5,6 +5,7 @@
 
 \ Multiplies A*X, and stores product in product/product+1.
 
+IF 0        ; here for reference.
 .standard_multiply_AX
 {
 	CPX #0:BEQ zero
@@ -25,6 +26,7 @@
 	STX product:STX product+1
 	RTS
 }
+ENDIF
 
 \ This completes in an average of 113 cycles (excluding the multiply by zero special case) - not bad, but it's possible to do better, provided you're happy to set aside some space for some tables...
 
@@ -102,6 +104,51 @@
 	sta product+1                          
     .positiveA
     rts
+}
+
+\\ TODO: Replace the below with a sum of 4x fast_multiply.
+\\       AB * CD = (256*A+B)*(256*C+D)
+\\               = 65536*A*C + 256*A*D + 256*B*C + B*D
+\\               = (A*C)<<16 + (A*D)<<8 + (B*C)<<8 + (B*D)
+
+;When you start, one 16-bit number will be in product+0-product+1, low byte first as usual for 6502
+;and the other 16-bit number will be in product+2-product+3, same way. When you're done,
+;the 32-bit answer will take all four bytes, with the high cell first.
+;IOW, $12345678 will be in the order 34 12 78 56.
+;Addresses temp+0 and temp+1 will be used as a scratchpad.
+.multiply_16_by_16
+{
+   	LDA  product+2    ; Get the multiplicand and
+    STA  temp+0       ; put it in the scratchpad.
+    LDA  product+3
+    STA  temp+1
+    STZ  product+2    ; Zero-out the original multiplicand area.
+    STZ  product+3
+
+    LDY  #16		  ; We'll loop 16 times.
+.loop1
+	ASL  product+2    ; Shift the entire 32 bits over one bit position.
+    ROL  product+3
+    ROL  product+0
+    ROL  product+1
+    BCC  loop2 ; Skip the adding-in to the result if
+               ; the high bit shifted out was 0.
+    CLC        ; Else, add multiplier to intermediate result.
+    LDA  temp+0
+    ADC  product+2
+    STA  product+2
+    LDA  temp+1
+    ADC  product+3
+    STA  product+3
+
+    LDA  #0    ; If C=1, incr lo byte of hi cell.
+    ADC  product+0
+    STA  product+0
+
+.loop2
+	DEY        	  ; If we haven't done 16 iterations yet,
+    BNE  loop1    ; then go around again.
+    RTS
 }
 
 PAGE_ALIGN

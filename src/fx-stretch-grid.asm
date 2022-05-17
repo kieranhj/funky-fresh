@@ -52,29 +52,17 @@
 \ A FULL AND VALID 312 line PAL signal before exiting!
 \ ******************************************************************
 
-\\ Limited RVI
-\\ Display 0,2,4,6 scanline offset for 2 scanlines.
-\\ <--- 102c total w/ 80c visible and hsync at 98c ---> <2c> ..13x <2c> = 128c
-\\ Plus one extra for luck! (i.e. we wait for 13 but C9 counts 14 in total.)
-\\ R9 = 13 + current - next
-\\
-\\  Assumes R4=0, i.e. one row per CRTC cycle.
-\\  Scanline 0 has normal R0 width 128c.
-\\  Must set R9 before final scanline to 13 + current - next. eg. R9 = 13 + 0 - 2 = 11
-\\  Set scanline 1 to have width 102c.
-\\  At 102c set R0 width to 2c and skip remaining 26c.
-\\  At 0c reset R0 width to 128c.
-\\
-\\ Select CRTC register 0, i.e. lda #0:sta &fe00
-\\
-\\ cycles -->  94  96  98  100  102  104  106  108  110  112  114  116  118  120  122  124  126  0
-\\             lda.sta..........WAIT_CYCLES 18 ..............................lda..sta ...........|
-\\             #1  &fe01                                                     #127 &fe01
-\\ scanline 1                   2    3    4    5    6    7    8    9    10   11   xx   0    1    2
-\\                                                                                |
-\\                                            --> missed due to end of CRTC frame +
-\\
-\\ NB. There is no additional scanline if this is not the end of the CRTC frame.
+;     disable            enable hsync=101
+;        v                 v       v
+;  +-----------------------+ R1=86 
+;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
+; |                                    
+; | next scanline 0: R0=115 R9=1                        | 0   1   X   0   1   X   (0...)
+; | next scanline 2: R0=113 R9=3                    | 0   1   2   3   X   0   1   (2...)
+; | next scanline 4: R0=119 R9=5                                | 0   1   2   3   (4...)
+; | next scanline 6: R0=115 R9=7                        | 0   1   2   3   4   5   (6...)
+;
+; Set R9 in final scanline as _don't_ want it to take effect until next cycle/char row.
 
 .fx_stretch_grid_draw
 {

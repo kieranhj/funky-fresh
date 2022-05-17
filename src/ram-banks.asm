@@ -95,6 +95,7 @@ include "src/fx-frak-zoomer.asm"
 include "src/fx-checker-zoom.asm"
 include "src/fx-spin-bar.asm"
 include "src/fx-palette-wipe.asm"
+include "src/fx-path-zoom.asm"
 \\ ^------ NB. Currently assuming all FX in same SWRAM bank!!
 .fx_end
 
@@ -122,6 +123,9 @@ GUARD &C000
 .music_start
 include "src/music.asm"
 .music_end
+
+.exo_asset_path_zoom
+INCBIN "build/path-zoom-256.exo"
 
 .bank3_end
 

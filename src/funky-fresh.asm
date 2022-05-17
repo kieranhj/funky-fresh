@@ -71,7 +71,7 @@ INCLUDE "lib/exo.h.asm"
 INCLUDE "lib/vgcplayer.h.asm"
 
 \\ System ZP vars.
-;.readptr                skip 2
+.readptr                skip 2
 ;.writeptr               skip 2
 ;.seed                   skip 2
 

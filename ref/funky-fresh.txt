@@ -263,8 +263,20 @@ So just prerender all of them then just wrap at 255-80=175
 Or just have 3x screen widths, i.e. 3x80chars = 240 = 480 bytes
 Would give 42 zooms max.
 
-Belated note for 2022:: it's a massive PITA to wrap so just don't do it. Scroll a viewport around
+Belated note for 2022: it's a massive PITA to wrap so just don't do it. Scroll a viewport around
 a limited canvas size, just make the canvas large enough for the effect to be effective!
+
+Further thoughts: we only need one scanline repeated, so don't need to do RVI to select scanlines -
+it would be simpler to just use a Kefrens setup to duplicate the same line. Blit 80 bytes into the
+screen buffer in update. This then gives us all 20K of RAM for the zooming canvas, say 320 bytes wide
+per zoom provides 50 zoom levels for 16K (assume these are Amstrad figures).
+Need to offset the viewport for each zoom so the panning works... still can't quite figure out how to
+decouple the zoom from the X offset.
+
+I wonder if the X animation is baked into the zoom & wobble, so 320 frames of anim x 80 bytes 
+=25K. This would then make it pixel smooth horizontally, with vertical motion separated to make
+a sequence that can be repeated but looks different.
+
 
 2022 Thoughts
 ~~~

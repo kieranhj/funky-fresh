@@ -10,6 +10,7 @@ beatsPerMin="125">
 		<key row="632" value="1.030000" interpolation="0" />
 		<key row="960" value="1.060000" interpolation="0" />
 		<key row="1208" value="1.070000" interpolation="0" />
+		<key row="1344" value="1.100000" interpolation="0" />
 	</track>
 	<track name="task_2" folded="0" muteKeyCount="0" color="ffa9b250">
 		<key row="0" value="3.000000" interpolation="0" />
@@ -37,6 +38,8 @@ color="ff60b250">
 		<key row="1208" value="1.000000" interpolation="0" />
 		<key row="1212" value="2.000000" interpolation="0" />
 		<key row="1216" value="8.000000" interpolation="0" />
+		<key row="1344" value="1.000000" interpolation="0" />
+		<key row="1348" value="11.000000" interpolation="0" />
 	</track>
 	<track name="zoom" folded="0" muteKeyCount="0" color="ffb27474">
 		<key row="12" value="10.000000" interpolation="1" />
@@ -182,6 +185,9 @@ color="ff8850b2">
 		<key row="1216" value="0.000000" interpolation="1" />
 		<key row="1240" value="512.000000" interpolation="1" />
 		<key row="1264" value="0.000000" interpolation="0" />
+		<key row="1344" value="0.000000" interpolation="0" />
+		<key row="1348" value="0.000000" interpolation="1" />
+		<key row="1424" value="255.000000" interpolation="1" />
 	</track>
 	<track name="speed" folded="0" muteKeyCount="0" color="ff8850b2" />
 </tracks>
