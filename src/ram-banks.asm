@@ -127,6 +127,9 @@ include "src/music.asm"
 .exo_asset_path_zoom
 INCBIN "build/path-zoom-256.exo"
 
+.exo_asset_cube_widths
+INCBIN "build/cube-widths-128.exo"
+
 .bank3_end
 
 \ ******************************************************************

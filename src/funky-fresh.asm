@@ -90,8 +90,8 @@ ENDIF
 
 \\ FX general ZP vars.
 .row_count				skip 1
-.prev_scanline			skip 1
-.next_scanline          skip 1
+.prev_scanline			skip 1  ; TODO: Remove.
+.next_scanline          skip 1  ; TODO: Remove?
 .temp                   skip 2
 .num1                   skip 1
 .num2                   skip 1
@@ -102,6 +102,7 @@ ENDIF
 
 \\ TODO: Move FX ZP vars?
 \\ TODO: Give FX vars proper names!
+\\ TODO: These can all be overlaid.
 
 \\ FX vertical stretch.
 .v						skip 2
@@ -130,6 +131,11 @@ ENDIF
 .wipe_counter           skip 1
 .wipe_index             skip 1
 
+\\ FX Textured cube
+.w                      skip 2
+.dw                     skip 2
+.face_rows              skip 1
+
 \\ TODO: Local ZP vars?
 .zp_end
 
@@ -150,7 +156,7 @@ GUARD &D00
 \ ******************************************************************
 
 ORG &E00
-GUARD screen_addr + RELOC_SPACE
+GUARD &2D80 + RELOC_SPACE        ; leave one character row free.
 
 .start
 .main_start
@@ -651,6 +657,9 @@ GUARD screen_addr + RELOC_SPACE
 include "src/display-fx.asm"
 include "src/rocket.asm"
 include "src/tasks.asm"
+
+\\ TODO: Sort out RAM usage for FX.
+include "src/fx-texture-cube.asm"
 
 .main_end
 

@@ -46,7 +46,7 @@ assets: ./build/logo-with-stripes-mode2.exo ./build/logo-mode2.exo \
 		./build/zoom-2by160-mode2.exo ./build/frak-sprite.bin \
 		./build/zoom-screen.exo ./build/checks-bitmask-0-to-3.exo \
 		./build/checks-bitmask-4-to-7.exo ./build/diagonals-16.exo \
-		./build/path-zoom-256.exo
+		./build/path-zoom-256.exo ./build/cube-widths-128.exo
 
 ##########################################################################
 ##########################################################################
@@ -140,6 +140,10 @@ clean:
 ./build/path-zoom-256.bin: ./data/raw/path-zoom-256.bin
 	$(MKDIR_P) "./build"
 	$(COPY) .\data\raw\path-zoom-256.bin build
+
+./build/cube-widths-128.bin: ./data/raw/cube-widths-128.bin
+	$(MKDIR_P) "./build"
+	$(COPY) .\data\raw\cube-widths-128.bin build
 
 ##########################################################################
 ##########################################################################

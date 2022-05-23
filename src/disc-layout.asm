@@ -19,7 +19,5 @@ PUTFILE "build/BANK2", "BANK2", SWRAM_ADDRESS, SWRAM_ADDRESS
 \PUTTEXT "data/readme.txt", "README", &FFFFFF, 0
 
 \ TODO: Remove for final build!
-PUTFILE "ref/MakeChecks.bas.bin", "MAKCHK3", &FF0E00, &FF802B
-PUTFILE "ref/Zoomer160by2.bas.bin", "ZOOM1", &FF0E00, &FF802B
-PUTFILE "ref/ZoomWithWrap.bas.bin", "ZOOM2", &FF0E00, &FF802B
 PUTFILE "ref/PATHZ-ALT.bas.bin", "PATHZA", &FF0E00, &FF802B
+PUTFILE "ref/MAKCUBE.bas.bin", "MAKCUBE", &FF0E00, &FF802B
