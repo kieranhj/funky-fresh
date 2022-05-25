@@ -351,4 +351,16 @@ More ideas for wipes/transitions
 - Use the frequency grid for blocky wipes with colour ripple.
 - Have the spinning bar fill the screen (watch out for overflow) and then swap to another wipe.
 - Could animate large 'convex raster shapes' from prefilled scanlines, make these move then fill the screen.
-- 
+
+Textured Cube
+~~~
+- Not enough cycles for all the interpolations and switching between faces.
+- Perhaps instead have 4x loops for the 4x sections (top bg, top face, bottom face, bottom bg)
+- Data:
+    - dy0 rows to top edge (1b)
+    - w1 width of top edge of face (1b)
+    - dy1 number of rows for this face (1b)
+    - dw1 delta to middle edge (2b)
+    - dy2 number of rows for this face (or 0) (1b)
+    - dw2 delta to bottom edge
+    - dy3 number of rows for remainder of screen (can compute this?)
