@@ -54,16 +54,26 @@ FX_TEXTURE_CUBE_BLANK_SL=0
 	iny:lda (readptr), Y			; [4] dw1_HI
 	sta texture_cube_loop1_rows_dw_HI+1
 
-	iny:lda (readptr), Y			; [5] w2
+	iny:lda (readptr), Y			; [5] dv1_LO
+	sta texture_cube_loop1_rows_dv_LO+1
+	iny:lda (readptr), Y			; [6] dv1_HI
+	sta texture_cube_loop1_rows_dv_HI+1
+
+	iny:lda (readptr), Y			; [7] w2
 	sta texture_cube_loop2_w+1
 
-	iny:lda (readptr), Y			; [6] dy2
+	iny:lda (readptr), Y			; [8] dy2
 	sta texture_cube_loop2_rows+1
 
-	iny:lda (readptr), Y			; [7] dw2_LO
+	iny:lda (readptr), Y			; [9] dw2_LO
 	sta texture_cube_loop2_rows_dw_LO+1
-	iny:lda (readptr), Y			; [8] dw2_HI
+	iny:lda (readptr), Y			; [10] dw2_HI
 	sta texture_cube_loop2_rows_dw_HI+1
+
+	iny:lda (readptr), Y			; [11] dv2_LO
+	sta texture_cube_loop2_rows_dv_LO+1
+	iny:lda (readptr), Y			; [12] dv2_HI
+	sta texture_cube_loop2_rows_dv_HI+1
 
 	\\ Calculate size of final loop.
 	sec
@@ -150,7 +160,12 @@ FX_TEXTURE_CUBE_BLANK_SL=0
 		lda #12:sta &fe00				; +8 (36)
 		lda fx_stretch_vram_table_HI	; +4 (40)
 		sta &fe01						; +6 (46)
-		WAIT_CYCLES 82					; +82 (0)
+
+		lda #0							; +2 (48)
+		sta v							; +3 (51)
+		sta v+1							; +3 (54)
+
+		WAIT_CYCLES 74					; +74 (0)
 
 			\\ <=== HCC=0 (odd)
 
@@ -173,39 +188,58 @@ FX_TEXTURE_CUBE_BLANK_SL=0
 	{
 		\\ <=== HCC=10 (scanline=even)
 
+		ldx v+1							; +3 (13)
+		lda v_to_frak_line, X			; +4 (17)
+		tax								; +2 (19)
+		lda frak_lines_LO, X			; +4 (23)
+		sta set_palette+1				; +4 (27)
+		lda frak_lines_HI, X			; +4 (31)
+		sta set_palette+2				; +4 (35)
+
 		\\ Set screen start for next row.
-		ldx w+1							; +3 (13)
-		lda #13:sta &fe00				; +7 (20)
-		lda fx_stretch_vram_table_LO, X	; +4 (24)
-		sta &fe01						; +6 (30)
-		lda #12:sta &fe00				; +8 (38)
-		lda fx_stretch_vram_table_HI, X	; +4 (42)
-		sta &fe01						; +6 (48)
+		ldx w+1							; +3 (38)
+		lda #13:sta &fe00				; +8 (46)
+		lda fx_stretch_vram_table_LO, X	; +4 (50)
+		sta &fe01						; +6 (56)
+		lda #12:sta &fe00				; +8 (64)
+		lda fx_stretch_vram_table_HI, X	; +4 (68)
+		sta &fe01						; +6 (74)
 
-		\\ NEED 60 CYCLES SOMEWHERE FOR PALETTE CHANGES EVENTUALLY!!
-		WAIT_CYCLES 80					; +80 (0)
+		.set_palette
+		jsr frak_line0					; +60 (6)
 
-			\\ <=== HCC=0 (odd)
+			\\ <=== HCC=6 (odd)
 
 			; Set R9 for the next line.
-			lda #9: sta &fe00				; +8 (8)
-			txa:and #3:tax					; +6 (14)
-			asl a:ora #1					; +4 (18)
-			sta &fe01						; +6 (24)
+			lda #9: sta &fe00				; +8 (14)
+			txa:and #3:tax					; +6 (20)
+			asl a:ora #1					; +4 (24)
+			sta &fe01						; +6 (30)
 			\\ R9 must be set in final scanline of the row for this scheme.
 
 			\\ Update w += dw for next row.
-			clc								; +2 (26)
-			lda w							; +3 (29)
+			clc								; +2 (32)
+			lda w							; +3 (35)
 			.*texture_cube_loop1_rows_dw_LO
-			adc #0							; +2 (31)
-			sta w+0							; +3 (34)
-			lda w+1							; +3 (37)
+			adc #0							; +2 (37)
+			sta w+0							; +3 (40)
+			lda w+1							; +3 (43)
 			.*texture_cube_loop1_rows_dw_HI
-			adc #0							; +2 (39)
-			sta w+1							; +3 (42)
+			adc #0							; +2 (45)
+			sta w+1							; +3 (48)
 
-			WAIT_CYCLES 38					; +38 (80)
+			\\ Update v += dv for next row.
+			clc								; +2 (50)
+			lda v							; +3 (53)
+			.*texture_cube_loop1_rows_dv_LO
+			adc #0							; +2 (55)
+			sta v							; +3 (58)
+			lda v+1							; +3 (61)
+			.*texture_cube_loop1_rows_dv_HI
+			adc #0							; +2 (63)
+			sta v+1							; +3 (66)
+
+			WAIT_CYCLES 14					; +14 (80)
 
 			lda jmptab1, X:sta jmpinstruc1+1	; +8 (88)
 
@@ -230,110 +264,130 @@ FX_TEXTURE_CUBE_BLANK_SL=0
 	lda #0								; +2 (10)
 	sta w+1								; +3 (13)
 	stz w+0								; +3 (16)
+	stz v								; +3 (19)
+	stz v+1								; +3 (22)
 
 	.^texture_cube_loop2_rows
-	ldy #0								; +2 (18)
+	ldy #0								; +2 (24)
 	beq skip_loop2						;					----+
-										; +2 (20)				|
+										; +2 (26)				|
 	.loop2
 	{
-		\\ <=== HCC=20 (scanline=even)
+		\\ <=== HCC=26 (scanline=even)
+
+		ldx v+1							; +3 (29)
+		lda v_to_frak_line, X			; +4 (33)
+		tax								; +2 (35)
+		lda frak_lines_LO, X			; +4 (39)
+		sta set_palette+1				; +4 (43)
+		lda frak_lines_HI, X			; +4 (47)
+		sta set_palette+2				; +4 (51)
+
 
 		\\ Set screen start for next row.
-		ldx w+1							; +3 (23)
-		lda #13:sta &fe00				; +7 (30)
-		lda fx_stretch_vram_table_LO, X	; +4 (34)
-		sta &fe01						; +6 (40)
-		lda #12:sta &fe00				; +8 (48)
-		lda fx_stretch_vram_table_HI, X	; +4 (52)
-		sta &fe01						; +6 (58)
+		ldx w+1							; +3 (54)
+		lda #13:sta &fe00				; +8 (62)
+		lda fx_stretch_vram_table_LO, X	; +4 (66)
+		sta &fe01						; +6 (72)
+		lda #12:sta &fe00				; +8 (80)
+		lda fx_stretch_vram_table_HI, X	; +4 (84)
+		sta &fe01						; +6 (90)
 
-		\\ NEED 60 CYCLES SOMEWHERE FOR PALETTE CHANGES EVENTUALLY!!
-		WAIT_CYCLES 70					; +70 (0)
+		.set_palette
+		jsr frak_line0					; +60 (22)
 
-			\\ <=== HCC=0 (odd)
+			\\ <=== HCC=22 (odd)
 
 			; Set R9 for the next line.
-			lda #9: sta &fe00				; +8 (8)
-			txa:and #3:tax					; +6 (14)
-			asl a:ora #1					; +4 (18)
-			sta &fe01						; +6 (24)
+			lda #9: sta &fe00				; +8 (30)
+			txa:and #3:tax					; +6 (36)
+			asl a:ora #1					; +4 (40)
+			sta &fe01						; +6 (46)
 			\\ R9 must be set in final scanline of the row for this scheme.
 
 			\\ Update w += dw for next row.
-			clc								; +2 (26)
-			lda w							; +3 (29)
+			clc								; +2 (48)
+			lda w							; +3 (51)
 			.*texture_cube_loop2_rows_dw_LO
-			adc #0							; +2 (31)
-			sta w							; +3 (34)
-			lda w+1							; +3 (37)
+			adc #0							; +2 (53)
+			sta w							; +3 (55)
+			lda w+1							; +3 (59)
 			.*texture_cube_loop2_rows_dw_HI
-			adc #0							; +2 (39)
-			sta w+1							; +3 (42)
+			adc #0							; +2 (61)
+			sta w+1							; +3 (64)
 
-			WAIT_CYCLES 38					; +38 (80)
+			\\ Update v += dv for next row.
+			clc								; +2 (66)
+			lda v							; +3 (69)
+			.*texture_cube_loop2_rows_dv_LO
+			adc #0							; +2 (71)
+			sta v							; +3 (74)
+			lda v+1							; +3 (77)
+			.*texture_cube_loop2_rows_dv_HI
+			adc #0							; +2 (79)
+			sta v+1							; +3 (82)
 
-			lda jmptab2, X:sta jmpinstruc2+1	; +8 (88)
+			lda jmptab2, X:sta jmpinstruc2+1	; +8 (90)
 
-			ldx #1							; +2 (90)
-			lda #0:sta &fe00				; +8 (98)
+			ldx #1							; +2 (92)
+			stz &fe00						; +6 (98)
 			.jmpinstruc2 JMP jmptab2		; +3 (101)
 			.^jmpreturn2					;    (122)
 			sta &fe01						; +6 (128)
 
 		\\ <=== HCC=0 (even)
-		WAIT_CYCLES 13					; +13 (13)
+		WAIT_CYCLES 19					; +19 (19)
 
-		dey								; +2 (15)
-		beq done_loop2					; +2 (17)
-		jmp loop2						; +3 (20)
+		dey								; +2 (21)
+		beq done_loop2					; +2 (23)
+		jmp loop2						; +3 (26)
 	}
 	.done_loop2
-	;									; +3 (18)
-	\\ <=== HCC=18 (even)										|
-	WAIT_CYCLES 3						; +3 (21)				v
-	.skip_loop2											  ; +3 (21)
+	;									; +3 (24)
+	\\ <=== HCC=24 (even)										|
+	WAIT_CYCLES 3						; +3 (27)				v
+	.skip_loop2											  ; +3 (27)
 	CHECK_SAME_PAGE_AS loop2, TRUE
 
-	\\ <=== HCC=21 (even)
+	\\ <=== HCC=27 (even)
 
 	.^texture_cube_loop3_rows
-	ldy #0								; +2 (23)
+	ldy #0								; +2 (29)
 	.loop3
 	{
-		\\ <=== HCC=23 (scanline=even)
+		\\ <=== HCC=29 (scanline=even)
 
 		\\ Always blank (width 0).
-		lda #13:sta &fe00				; +7 (30)
-		lda fx_stretch_vram_table_LO	; +4 (34)
-		sta &fe01						; +6 (40)
-		lda #12:sta &fe00				; +8 (48)
-		lda fx_stretch_vram_table_HI	; +4 (52)
-		sta &fe01						; +6 (58)
-		WAIT_CYCLES 70					; +70 (0)
+		lda #13:sta &fe00				; +7 (36)
+		lda fx_stretch_vram_table_LO	; +4 (40)
+		sta &fe01						; +6 (46)
+		lda #12:sta &fe00				; +8 (54)
+		lda fx_stretch_vram_table_HI	; +4 (58)
+		sta &fe01						; +6 (64)
+		WAIT_CYCLES 64					; +64 (0)
 
 			\\ <=== HCC=0 (odd)
 
 			; Set R9 for the next line.
 			lda #9: sta &fe00			; +8 (8)
 			lda #1: sta &fe01			; +8 (16)
-			WAIT_CYCLES 128				; +128 (16)
-			dey							; +2 (18)
-			beq done_loop3				; +2 (20)
-			jmp loop3					; +3 (23)
+			WAIT_CYCLES 134				; +134 (22)
+			dey							; +2 (24)
+			beq done_loop3				; +2 (26)
+			jmp loop3					; +3 (29)
 	}
 	.done_loop3
 	
-	\\ <=== HCC=21 (even) [last visible char row.]
+	\\ <=== HCC=27 (even) [last visible char row.]
 
 	\\ Currently at scanline 119*2=238, need 312 lines total.
 	\\ Remaining scanlines = 74 = 37 rows * 2 scanlines.
-	lda #4: sta &FE00						; +7 (28)
-	lda #36: sta &FE01						; +8 (36)
+	lda #4: sta &FE00						; +7 (34)
+	lda #36: sta &FE01						; +8 (42)
 
 	\\ R7 vsync at scanline 272 = 238 + 17*2
-	lda #7:sta &fe00						; +8 (44)
-	lda #17:sta &fe01						; +8 (52)
+	lda #7:sta &fe00						; +8 (50)
+	lda #17:sta &fe01						; +8 (58)
 
 	lda #0:sta prev_scanline
 
@@ -622,12 +676,12 @@ ENDIF
 
 .texture_cube_table_LO
 FOR n,0,63,1
-EQUB LO(texture_cube_rotations+9*n)
+EQUB LO(texture_cube_rotations+13*n)
 NEXT
 
 .texture_cube_table_HI
 FOR n,0,63,1
-EQUB HI(texture_cube_rotations+9*n)
+EQUB HI(texture_cube_rotations+13*n)
 NEXT
 
 PAGE_ALIGN
@@ -641,7 +695,14 @@ FOR n,0,127,1
 EQUB HI((&3000 + (n DIV 4)*640)/8)
 NEXT
 
-\\ TODO:
-\\  Load ptr to table in update.
-\\  Display appropriate scanline double on appropriate raster lines.
-\\  
+PAGE_ALIGN_FOR_SIZE 64
+.v_to_frak_line
+FOR n,0,9,1
+EQUB 42
+NEXT
+FOR n,0,42,1		; FRAK_SPRITE_HEIGHT=43
+EQUB n
+NEXT
+FOR n,0,10,1
+EQUB 42
+NEXT
