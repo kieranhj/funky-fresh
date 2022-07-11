@@ -46,7 +46,8 @@ assets: ./build/logo-with-stripes-mode2.exo ./build/logo-mode2.exo \
 		./build/zoom-2by160-mode2.exo ./build/frak-sprite.bin \
 		./build/zoom-screen.exo ./build/checks-bitmask-0-to-3.exo \
 		./build/checks-bitmask-4-to-7.exo ./build/diagonals-16.exo \
-		./build/path-zoom-256.exo ./build/cube-widths-128.exo
+		./build/path-zoom-256.exo ./build/cube-widths-128.exo \
+		./build/scroller-font.bin
 
 ##########################################################################
 ##########################################################################
@@ -68,18 +69,22 @@ clean:
 ##########################################################################
 
 ./build/doom-screen.exo: ./build/doom-screen.bin
-./build/doom-screen.bin: ./data/gfx/Doom.png
+./build/doom-screen.bin: ./data/gfx/Doom.png $(PNG2BBC_DEPS)
 	$(MKDIR_P) "./build"
 	$(PYTHON2) $(PNG2BBC) -q -o $@ $< --160 2
 
 ./build/scr-screen.exo: ./build/scr-screen.bin
-./build/scr-screen.bin: ./data/gfx/TitleScreen_BBC.png
+./build/scr-screen.bin: ./data/gfx/TitleScreen_BBC.png $(PNG2BBC_DEPS)
 	$(MKDIR_P) "./build"
 	$(PYTHON2) $(PNG2BBC) -q -o $@ $< --160 2
 
-./build/frak-sprite.bin: ./data/gfx/frak-sprite.png
+./build/frak-sprite.bin: ./data/gfx/frak-sprite.png ./bin/png2bbc_pal.py ./bin/bbc.py
 	$(MKDIR_P) "./build"
-	$(PYTHON3) bin/png2bbcpal.py -o $@ -c ./build/frak-lines.asm $< 2
+	$(PYTHON3) bin/png2bbc_pal.py -o $@ -c ./build/frak-lines.asm $< 2
+
+./build/scroller-font.bin: ./data/gfx/Charset_1Bitplan.png ./bin/png2bbc_font.py ./bin/bbc.py
+	$(MKDIR_P) "./build"
+	$(PYTHON2) bin/png2bbc_font.py -o $@ --glyph-dim 16 15 --max-glyphs 55 --column -q $< 2
 
 ##########################################################################
 ##########################################################################

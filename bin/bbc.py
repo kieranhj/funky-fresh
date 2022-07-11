@@ -12,6 +12,25 @@ rgbs=[(255 if (i&1)!=0 else 0,
        255 if (i&2)!=0 else 0,
        255 if (i&4)!=0 else 0) for i in range(8)]
 
+fixed_16_colours=[
+    [0, 0, 0],
+    [255, 0, 0],
+    [0, 255, 0],
+    [255, 255, 0],
+    [0, 0, 255],
+    [255, 0, 255],
+    [0, 255, 255],
+    [255, 255, 255],
+    [64, 64, 64],
+    [128, 0, 0],
+    [0, 128, 0],
+    [128, 128, 0],
+    [0, 0, 128],
+    [128, 0, 128],
+    [0, 128, 128],
+    [128, 128, 128],
+]
+
 ##########################################################################
 ##########################################################################
 
@@ -36,6 +55,27 @@ def find_closest_rgb(p):
         if best_dist_sq is None or dist_sq<best_dist_sq:
             best_dist_sq=dist_sq
             best=rgb
+
+    return best
+
+def find_closest_fixed(p):
+    assert p[0]>=0 and p[0]<=255
+    assert p[1]>=0 and p[1]<=255
+    assert p[2]>=0 and p[2]<=255
+    
+    best=None
+    best_dist_sq=None
+    
+    for i in range(16):
+        dr=p[0]-fixed_16_colours[i][0]
+        dg=p[1]-fixed_16_colours[i][1]
+        db=p[2]-fixed_16_colours[i][2]
+        #dist_sq=dr*dr+dg*dg+db*db
+        dist_sq=abs(dr)+abs(dg)+abs(db)
+
+        if best_dist_sq is None or dist_sq<best_dist_sq:
+            best_dist_sq=dist_sq
+            best=i
 
     return best
 
@@ -99,35 +139,13 @@ def pack_1bpp(pixels):
 ##########################################################################
 ##########################################################################
 
-def pack_image(image,bpp):
-    if bpp==1: pack_fn=pack_1bpp
-    elif bpp==2: pack_fn=pack_2bpp
-    elif bpp==4: pack_fn=pack_4bpp
-    else: raise RuntimeError('invalid bpp')
-
-    bypp=8//bpp
-    
-    assert len(image)%8==0
-    for y in range(len(image)):
-        if y>0: assert len(image[y])==len(image[y-1])
-        assert len(image[y])%bypp==0
-    data=[]
-    for row in range(len(image)//8):
-        for x in range(0,len(image[0]),bypp):
-            for scanline in range(8):
-                byte=pack_fn(image[row*8+scanline][x:x+bypp])
-                data.append(byte)
-    return data
-    
-##########################################################################
-##########################################################################
-
 def load_png(path,
              mode,
              halve_width=False,
              transparent_physical_index=None,
              transparent_rgb=None,
-             print_warnings=True):
+             print_warnings=True,
+             use_fixed_16=False):
     '''loads PATH, a PNG representing a BBC screen in mode MODE, returning
     a 2d array of BBC physical colour indexes for the caller to disentangle.
 
@@ -153,10 +171,10 @@ transparent.
         good=True
         for y in range(len(pixels)):
             row=[]
-            for x in range(0,len(pixels[y]),2):
+            for x in range(0,len(pixels[y]),4):
                 if pixels[y][x+0]!=pixels[y][x+1]:
                     print>>sys.stderr,'pixel at (%d,%d) is different from pixel at (%d,%d)'%(x+0,y,x+1,y)
-                    good=False
+                    #good=False
 
                 row.append(pixels[y][x+0])
 
@@ -175,9 +193,19 @@ transparent.
                             p[1]==transparent_rgb[1] and
                             p[2]==transparent_rgb[2]):
                 if transparent_physical_index is None:
-                    raise ValueError('invalid transparency')
+                    if print_warnings:
+                        print>>sys.stderr,'invalid transparency'
+                    pidx=-1
+                    #raise ValueError('invalid transparency')
+                else:
+                    pidx=transparent_physical_index
+            elif use_fixed_16:
+                pidx=find_closest_fixed(p)
+                if pidx is None:
+                    if print_warnings:
+                        print>>sys.stderr,'failed to match fixed_16 for RGB (%d,%d,%d)'%(p[0],p[1],p[2])
+                    pidx=0
 
-                pidx=transparent_physical_index
             else:
                 for i in range(3):
                     if p[i]!=0 and p[i]!=255:
@@ -194,4 +222,3 @@ transparent.
         assert len(pixels[y])==len(pixels[y-1])
 
     return pidxs
-                            
