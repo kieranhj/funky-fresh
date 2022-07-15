@@ -173,6 +173,10 @@ CLEAR &C000, &E000
 ORG HAZEL_START
 GUARD HAZEL_TOP
 .hazel_start
+
+.scroller_font
+INCBIN "build/scroller-font.bin"
+
 .hazel_end
 
 SAVE "build/HAZEL", hazel_start, hazel_end

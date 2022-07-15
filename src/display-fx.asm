@@ -18,7 +18,9 @@
 	equw fx_palette_wipe_update,   			fx_static_image_draw,		SLOT_BANK2	; &09
 	equw fx_spin_bar_update,   				fx_spin_bar_draw,			SLOT_BANK2	; &0A
 	equw fx_path_zoom_update,   			fx_path_zoom_draw,			SLOT_BANK2	; &0B
-	equw fx_texture_cube_update,   			fx_texture_cube_draw,		SLOT_BANK2	; &0C
+\\ NOTE: Unfinished FX has been removed but reserve control code.
+\\	equw fx_texture_cube_update,   			fx_texture_cube_draw,		SLOT_BANK2	; &0C
+	equw do_nothing,   						fx_static_image_draw,		SLOT_BANK2	; &0C
     ; v---------------------------------------------------------------------------- ; update DISPLAY_FX_MAX!
 }
 DISPLAY_FX_MAX = 13

@@ -246,7 +246,6 @@ GUARD &2D80 + RELOC_SPACE        ; leave one character row free.
     }
 
     \\ Load HAZEL last as it trashes the FS workspace.
-    IF 0
     {
         \\ Ensure HAZEL RAM is writeable.
         lda &fe34:ora #&8:sta &fe34
@@ -256,7 +255,6 @@ GUARD &2D80 + RELOC_SPACE        ; leave one character row free.
         lda #HI(hazel_start)
         jsr disksys_load_file
     }
-    ENDIF
 
     \\ Set MODE w/out using MOS.
     \\ NB: This was done to avoid the flicker & garbage associated with MOS MODE change.
@@ -265,22 +263,22 @@ GUARD &2D80 + RELOC_SPACE        ; leave one character row free.
     lda #22:jsr oswrch
     lda #2:jsr oswrch
 
-	\\ Turn off cursor
-	lda #10: sta &fe00
-	lda #32: sta &fe01
+    \\ Set custom CRTC registers.
+    {
+        ldx #0
+        .loop
+        lda funky_crtc_regs, X
+        bmi done
+        sta &fe00
+        inx
+        lda funky_crtc_regs, X
+        sta &fe01
+        inx
+        bne loop
+        .done
+    }
 
-	\\ Turn off interlace
-	lda #8:sta &fe00
-	lda #0:sta &fe01
-
-    \\ Reduce screen to 240 lines.
-    lda #6:sta &fe00
-    lda #30:sta &fe01
-
-    \\ Adjust vsync pos for 240 lines.
-    lda #7:sta &fe00
-    lda #34:sta &fe01
-
+    \\ Wait for two vsyncs.
     {
         ldx #2
         lda #2
@@ -394,7 +392,7 @@ GUARD &2D80 + RELOC_SPACE        ; leave one character row free.
 		bit &fe4D       ; 6
 		bne syncloop    ; 3 (total = 39920+6+6+3 = 39935, one cycle less than a frame!)
 		IF HI(syncloop) <> HI(P%)
-		ERROR "This loop must execute within the same page"
+		ERROR "This loop must execute within the same page."
 		ENDIF
 	}
     ; We are synced precisely with VSync!
@@ -659,7 +657,8 @@ include "src/rocket.asm"
 include "src/tasks.asm"
 
 \\ TODO: Sort out RAM usage for FX.
-include "src/fx-texture-cube.asm"
+\\ NOTE: Unfinished FX has been removed.
+\\include "src/fx-texture-cube.asm"
 
 .main_end
 
@@ -707,6 +706,24 @@ IF 0
 	EQUB 8					; R11 cursor end
 	EQUB HI(screen_addr/8)	; R12 screen start address, high
 	EQUB LO(screen_addr/8)	; R13 screen start address, low
+}
+ELSE
+.funky_crtc_regs
+{
+	\\ Turn off cursor
+    EQUB 10, 32
+
+	\\ Turn off interlace
+    EQUB 8, 0
+
+    \\ Reduce screen to 240 lines.
+    EQUB 6, 30
+
+    \\ Adjust vsync pos for 240 lines.
+    EQUB 7, 34
+
+    \\ END.
+    EQUB 255
 }
 ENDIF
 
