@@ -1,5 +1,5 @@
 \ ******************************************************************
-\ *	BANK 0:
+\ *	BANK 0: SCREENS
 \ ******************************************************************
 
 CLEAR &8000, &C000
@@ -18,7 +18,7 @@ INCBIN "build/scr-screen.exo"
 SAVE "build/BANK0", bank0_start, bank0_end, bank0_start
 
 PRINT "------"
-PRINT "BANK 0"
+PRINT "BANK 0: SCREENS"
 PRINT "------"
 PRINT "SIZE =", ~bank0_end-bank0_start
 PRINT "HIGH WATERMARK =", ~P%
@@ -26,7 +26,7 @@ PRINT "FREE =", ~&C000-P%
 PRINT "------"
 
 \ ******************************************************************
-\ *	BANK 1:
+\ *	BANK 1: ASSETS
 \ ******************************************************************
 
 CLEAR &8000, &c000
@@ -64,7 +64,7 @@ INCBIN "build/diagonals-16.exo"
 SAVE "build/BANK1", bank1_start, bank1_end, bank1_start
 
 PRINT "------"
-PRINT "BANK 1"
+PRINT "BANK 1: ASSETS"
 PRINT "------"
 PRINT "SIZE =", ~bank1_end-bank1_start
 PRINT "HIGH WATERMARK =", ~P%
@@ -72,7 +72,7 @@ PRINT "FREE =", ~&C000-P%
 PRINT "------"
 
 \ ******************************************************************
-\ *	BANK 2: 
+\ *	BANK 2: FX CODE AND TABLES
 \ ******************************************************************
 
 CLEAR &8000, &C000
@@ -104,7 +104,7 @@ include "src/fx-path-zoom.asm"
 SAVE "build/BANK2", bank2_start, bank2_end, bank2_start
 
 PRINT "------"
-PRINT "BANK 2"
+PRINT "BANK 2: DEMO MODULES"
 PRINT "------"
 PRINT "FX size =", ~fx_end-fx_start
 PRINT "SIZE =", ~bank2_end-bank2_start
@@ -113,7 +113,7 @@ PRINT "FREE =", ~&C000-P%
 PRINT "------"
 
 \ ******************************************************************
-\ *	BANK 3: MUSIC
+\ *	BANK 3: MUSIC AND ASSETS
 \ ******************************************************************
 
 CLEAR &8000, &C000
@@ -155,7 +155,7 @@ PAGE_ALIGN
 SAVE "build/MUSIC", bank3_start, bank3_end, bank3_start
 
 PRINT "------"
-PRINT "BANK 3"
+PRINT "BANK 3: MUSIC & ASSETS"
 PRINT "------"
 PRINT "MUSIC size =", ~music_end-music_start
 PRINT "HIGH WATERMARK =", ~P%
@@ -163,7 +163,7 @@ PRINT "FREE =", ~&C000-P%
 PRINT "------"
 
 \ ******************************************************************
-\ *	EVENTS DATA - NOW MASTER ONLY! PANIC USE OF HAZEL
+\ * HAZEL: SCROLLER FONT
 \ ******************************************************************
 
 HAZEL_START=&C300       ; looks like first two pages are DFS catalog + scratch
@@ -182,7 +182,7 @@ INCBIN "build/scroller-font.bin"
 SAVE "build/HAZEL", hazel_start, hazel_end
 
 PRINT "------"
-PRINT "HAZEL"
+PRINT "HAZEL: SCROLLER FONT"
 PRINT "------"
 PRINT "SIZE =", ~hazel_end-hazel_start
 PRINT "HIGH WATERMARK =", ~P%
@@ -190,7 +190,7 @@ PRINT "FREE =", ~HAZEL_TOP-hazel_end
 PRINT "------"
 
 \ ******************************************************************
-\ *	ANDY: DEBUG ONLY
+\ *	ANDY: UNUSED FOR NOW / DEBUG ONLY?
 \ ******************************************************************
 
 CLEAR &8000, &9000
@@ -206,7 +206,7 @@ GUARD &9000
 SAVE "build/DEBUG", andy_start, andy_end, andy_start
 
 PRINT "----"
-PRINT "ANDY"
+PRINT "ANDY: UNUSED / DEBUG"
 PRINT "----"
 PRINT "SIZE =", ~andy_end-andy_start
 PRINT "DEBUG CODE size =",~debug_end-debug_start
