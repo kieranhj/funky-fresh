@@ -364,3 +364,108 @@ Textured Cube
     - dy2 number of rows for this face (or 0) (1b)
     - dw2 delta to bottom edge
     - dy3 number of rows for remainder of screen (can compute this?)
+
+
+Three layer checkerboard
+~~~
+Could we use this approach [Sarah's 2^N combo] for the Beeb using RVI? Assume 3 layers with fixed distance between them.
+Pre-render the 8 combinations of the 3 layers into 8 scanlines at depths: d64, d32, d0
+Pre-render 31 more strips at depths: d97,d63,d31 .. d65,d33,d1
+This gives us a 32 frame zoom with fixed X values. <= or bake X movement into the zoom.
+We can either generate the scanline selection from a counter, or if there isn't time to do this
+for 256 entries (each one would be a 16-bit add then modulo) then use a table instead.
+16-bit add: clc:lda:adc:sta:lda:adc:sta:and:asl:ora ~=26c * 3 * 256 = 19,968c nopes.
+Could probably do this during screen rendering using two-line RVI.
+
+As an aside, if the colour bits for each layer are OR'd together, we can add and subtract the layers.
+So layer 0 is bit 0, layer 1 is bit 1, etc. Define palette accordingly.
+
+x' = vpw * (sx - cx) / (z - cz)
+z = (160 * 128 / x') - 160
+
+For Beeb, say want top layer to be x=128
+z = (160 * 128 / 16) - 160 = 1120
+z+=35 per step in 32 steps.
+No! Because we only need to have d96 be 16 pixels, say.
+
+Doh! Seems like we can just increment our dx value linearly to get
+the distance perspective calculation.
+E.g. dx=1 at z=0 (so for each screen pixel we step one texel)
+Then dx=1.05 at z=8 when sx=128 (this is a not whole number of screen pixels of course.)
+
+dx = sx/x' = sx / ((160 * sx) / (z + 160))
+   = sx * (z + 160) / (160 * sx) = z + 160 / 160.
+
+Or dx = 1 + z/160. That's a bit simpler, eh? %)
+But only because vpw=-cz!
+
+
+Thoughts on Returning in 2024...
+~~~
+The good:
+- Some good effects, particularly Frak zoomer and stretch grid - both have legs!
+- Overall FX framework is good, including background tasks, IRQ handling etc.
+- Specification for draw fn is clear and consistent, arriving at scanline=-2(310), HCC=0.
+- Using 240 line screen is a fair compromise to get some cycles back.
+- Decent documentation, including the cycle counts for register changes is a huge help!
+
+The bad:
+- Trying to drive everything in complete real-time using Rocket feels like it was more work than necessary.
+- Blanking the RVI garbage is somewhat of a fools errand. There isn't a one size fits all approach.
+- Cycle counting isn't bad per-se for the FX, but definitely impacts the ability to prototype rapidly.
+- Using Rocket lerp makes things feel very linear & stiff, not flowing. Ideally want to export custom tables from <somewhere>.
+- Seem to be always trying to solve the general case (doing maths at runtime!) - just bake shit out. :)
+- BASIC code to generate pre-rendered screens is in binary format. :S
+
+The ugly:
+- Don't mind the 160x120 chunky look as such but lack of colour hurts a lot.
+- E.g. slanted twister good but comes across as basic. (cf. MODE 0 Twister which looks sweet)
+- The three layer checkerboard is janky at low-res, needs to be high-res and smooth!
+- Prefer dithering and hi-res where possible? Ideally hi-res with > 4 colours.
+
+Thoughts:
+- Make stuff that's Beeb specific.
+- Keeping 240 lines is fine but junk sticking to MODE 2.
+- Use single lines, not double lines, where possible.
+- Prefer higher-res with dithering over chunky where possible.
+- How to get more stuff 'behind' at higher res?
+
+Ponder for track values etc.
+- Designate ZP addresses as tracks cf. Rocket
+- Attach pre-calculated tables to track numbers.
+    E.g. track 0 is 'x_pos' - attach table '50_sin_a' to x_pos track, where 50_sin_a = 50*sin(brad) [0, 255]
+- Gives ability to reuse tables across FX.
+- Assume all tables are fixed size (256).
+- Could specify start index and/or step speed.
+- Perhaps the more general version of this is
+    track_val_0 = fn(a,b,c)
+    Where a,b,c are defined by the fn. E.g. track_val_0=table_lookup(base=50_sin_a,index=i,step=1)
+    Need some state.
+- How is this better than just baking the exact tables needed into each FX? :|
+
+
+Conclusion:
+- ST energy demo cf. SMFX and Tom's work.
+    - Is this Twisted Brain 2? :)
+- Pick maybe five effects and run with them.
+    - Frak Zoomer
+    - Stretch grid
+- Other candidates
+    - Tom's animated sprite boxes with strips moving in different directions
+    - Candiru X rotators (high-res MODE 1 with dithering)
+    - MODE 0 twister (if Paul doesn't want to use it) w/ more colours
+    - MODE 1 logo X,Y wibbler
+- Desiderata:
+    - Prototype by just writing arbitrary code that sets character address used per line.
+    - In some high-level language.
+    - With some easy way to generate the pre-rendered screens.
+
+Would a simpler proof of concept be something like:
+    - Create a generic RVI draw loop that reads char address + char line + shadow bit from a 16-bit table.
+        => This would also be a good way to remember how to do RVI again. :D
+    - Sets these per scanline as a static image = 512 bytes per frame.
+    - Should be enough RAM spare for ~10 frames trivially or use SWRAM for 32 frames.
+    - This should be enough to prove how the effect looks or a short animation.
+    - Step through on keypress or timed loop.
+    - Can then build the custom code around the desired effect once it looks good.
+    - Gets more complicated when palette changes have to be factored in.

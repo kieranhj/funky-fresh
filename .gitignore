@@ -2,3 +2,5 @@
 *.pyc
 build
 compile.txt
+.claude/settings.local.json
+.vscode/tasks.json

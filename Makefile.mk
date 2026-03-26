@@ -4,7 +4,6 @@ MKDIR_P:=-cmd /c mkdir
 COPY:=copy
 BEEBASM?=bin\beebasm.exe
 EXO?=bin\exomizer.exe
-PYTHON2?=C:\Dev\Python27\python.exe
 PYTHON3?=python.exe
 else
 RM_RF:=rm -Rf
@@ -15,7 +14,7 @@ EXO?=exomizer
 PYTHON3?=python
 endif
 
-VGM_CONVERTER=./bin/vgmconverter.py
+VGM_CONVERTER=./bin/vgmconverter3.py
 VGM_PACKER=./bin/vgmpacker.py
 PNG2BBC=./bin/png2bbc.py
 PNG2BBC_DEPS:=./bin/png2bbc.py ./bin/bbc.py
@@ -63,7 +62,7 @@ clean:
 ./build/beeb-demo.bbc.vgc: ./build/beeb-demo.bbc.vgm
 ./build/beeb-demo.bbc.vgm: ./data/music/beeb-demo.vgm
 	$(MKDIR_P) "./build"
-	$(PYTHON2) $(VGM_CONVERTER) data/music/beeb-demo.vgm -t bbc -o build/beeb-demo.bbc.vgm
+	$(PYTHON3) $(VGM_CONVERTER) data/music/beeb-demo.vgm -t bbc -o build/beeb-demo.bbc.vgm
 
 ##########################################################################
 ##########################################################################
@@ -71,20 +70,20 @@ clean:
 ./build/doom-screen.exo: ./build/doom-screen.bin
 ./build/doom-screen.bin: ./data/gfx/Doom.png $(PNG2BBC_DEPS)
 	$(MKDIR_P) "./build"
-	$(PYTHON2) $(PNG2BBC) -q -o $@ $< --160 2
+	$(PYTHON3) $(PNG2BBC) -q -o $@ $< --160 2
 
 ./build/scr-screen.exo: ./build/scr-screen.bin
 ./build/scr-screen.bin: ./data/gfx/TitleScreen_BBC.png $(PNG2BBC_DEPS)
 	$(MKDIR_P) "./build"
-	$(PYTHON2) $(PNG2BBC) -q -o $@ $< --160 2
+	$(PYTHON3) $(PNG2BBC) -q -o $@ $< --160 2
 
 ./build/frak-sprite.bin: ./data/gfx/frak-sprite.png ./bin/png2bbc_pal.py ./bin/bbc.py
 	$(MKDIR_P) "./build"
 	$(PYTHON3) bin/png2bbc_pal.py -o $@ -c ./build/frak-lines.asm $< 2
 
-./build/scroller-font.bin: ./data/gfx/Charset_1Bitplan.png ./bin/png2bbc_font.py ./bin/bbc.py
+./build/scroller-font.bin: ./data/gfx/Charset_1Bitplan.png ./bin/png2bbc_font3.py ./bin/bbc.py
 	$(MKDIR_P) "./build"
-	$(PYTHON2) bin/png2bbc_font.py -o $@ --glyph-dim 16 15 --max-glyphs 55 --column -q $< 2
+	$(PYTHON3) bin/png2bbc_font3.py -o $@ --glyph-dim 16 15 --max-glyphs 55 --column -q $< 2
 
 ##########################################################################
 ##########################################################################
@@ -156,12 +155,12 @@ clean:
 # Rule to pack VGM files.
 %.vgc : %.vgm
 	$(MKDIR_P) "./build"
-	$(PYTHON2) $(VGM_PACKER) $< -o $@
+	$(PYTHON3) $(VGM_PACKER) $< -o $@
 
 # Rule to convert PNG files, assumes MODE 2.
 %.bin : %.png $(PNG2BBC_DEPS)
 	$(MKDIR_P) "./build"
-	$(PYTHON2) $(PNG2BBC) -q -o $@ $< 2
+	$(PYTHON3) $(PNG2BBC) -q -o $@ $< 2
 
 # Rule to EXO compress bin files.
 %.exo : %.bin
