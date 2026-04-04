@@ -187,7 +187,7 @@ transparent.
         good=True
         for y in range(len(pixels)):
             row=[]
-            for x in range(0,len(pixels[y]),4):
+            for x in range(0,len(pixels[y]),2):
                 if pixels[y][x+0]!=pixels[y][x+1]:
                     print>>sys.stderr,'pixel at (%d,%d) is different from pixel at (%d,%d)'%(x+0,y,x+1,y)
                     #good=False
