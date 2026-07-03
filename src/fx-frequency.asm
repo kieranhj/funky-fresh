@@ -137,6 +137,10 @@ NEXT
 
 .fx_frequency_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Static 312-line frame; PAL 312, vsync 272
+	\\ FRAME  : tail (R4+1)*(R9+1)=312 = 312 lines; vsync PAL 272 (R7=34)
+	\\ [/effect-summary]
     \\ 240 lines split into 6 rows = 40 lines per row.
     \\ 80 columns split into 8 stripes = 10 columns per stripe.
     \\ Set colours JIT before the corresponding stripe.

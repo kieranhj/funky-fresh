@@ -226,6 +226,10 @@ ENDIF
 
 .fx_spin_bar_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Static 312-line frame; PAL 312, vsync 272
+	\\ FRAME  : tail (R4+1)*(R9+1)=312 = 312 lines; vsync PAL 272 (R7=34)
+	\\ [/effect-summary]
 	\\ At rasterline bar_y_rasters+0 set palette to bar_y_colours+0. Etc.
 
 	; Set R12/R13 for full screen.

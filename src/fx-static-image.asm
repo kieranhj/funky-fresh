@@ -46,6 +46,10 @@ static_image_scrn_addr = screen_addr + 640
 \ might be left in a ruptured state. Reset these to defaults.
 .fx_static_image_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Static 312-line frame; PAL 312, vsync 272
+	\\ FRAME  : tail (R4+1)*(R9+1)=312 = 312 lines; vsync PAL 272 (R7=34)
+	\\ [/effect-summary]
 	; Set R12/R13 for full screen.
 	lda #12:sta &fe00								; +8 (8)
 	lda #HI(static_image_scrn_addr/8):sta &fe01		; +8 (16)

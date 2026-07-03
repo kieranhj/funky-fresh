@@ -66,6 +66,12 @@
 
 .fx_stretch_grid_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Horizontal RVI (per-scanline R0) -- computed JMP dispatch (scanlineN); 118 rows x 2 scanlines; PAL 312, vsync 272
+	\\ FRAME  : setup 2 + loop 118x2 + tail (R4+1)*(R9+1)=74 = 312 lines; vsync PAL 272 (R7=17)
+	\\ GOTCHA : R0 varies per scanline (variable scanline length)
+	\\          dispatch entry can be ~1c off; scanline0's stretched &FE01 write resyncs (absorbed)
+	\\ [/effect-summary]
 	\\ <=== HCC=0 (scanline=-2)
 
 	\\ Row 0 screen start

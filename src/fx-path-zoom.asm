@@ -131,6 +131,10 @@ CODE_ALIGN 32
 
 .fx_path_zoom_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Horizontal RVI; 239 scanlines; PAL 312, vsync 272
+	\\ FRAME  : setup 1 + loop 239x1 + tail (R4+1)*(R9+1)=72 = 312 lines; vsync PAL 272 (R7=4)
+	\\ [/effect-summary]
 	\\ <=== HCC=0 (scanline=-2)
 
 	WAIT_SCANLINES_ZERO_X 1				; +128 (0)
@@ -217,8 +221,8 @@ CODE_ALIGN 32
 	lda #8: sta &FE01					; +8 (78)
 
 	\\ R7 vsync at scanline 272 = 240 + 4*8
-	lda #7:sta &fe00					; +8 (78)
-	lda #4:sta &fe01					; +8 (86)
+	lda #7:sta &fe00					; +8 (86)
+	lda #4:sta &fe01					; +8 (94)
 
 	lda #6:sta prev_scanline
 

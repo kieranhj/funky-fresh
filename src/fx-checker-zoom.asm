@@ -136,6 +136,12 @@ FX_CHECKER_ZOOM_COLOUR_1 = PAL_yellow
 
 .fx_checker_zoom_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Horizontal RVI (per-scanline R0) -- computed JMP dispatch (scanlineN); 118 rows x 2 scanlines; PAL 312, vsync 272
+	\\ FRAME  : setup 2 + loop 118x2 + tail (R4+1)*(R9+1)=74 = 312 lines; vsync PAL 272 (R7=17)
+	\\ GOTCHA : R0 varies per scanline (variable scanline length)
+	\\          dispatch entry can be ~1c off; scanline0's stretched &FE01 write resyncs (absorbed)
+	\\ [/effect-summary]
 	\\ <=== HCC=0 (scanline=-2)
 
     \\ Ignore top character row to begin with.
@@ -205,37 +211,37 @@ FX_CHECKER_ZOOM_COLOUR_1 = PAL_yellow
         tax                                 ; +2 (118)
         \\ X=layer bitmask.
 
-        WAIT_CYCLES 10                      ; +10 (118)
+        WAIT_CYCLES 10                      ; +10 (128)
 
 			\\ <=== HCC=0 (odd)
 
     		; Set R9 for the next line.
 	    	lda #9: sta &fe00				    ; +8 (8)
             lda fx_check_zoom_bitmask_to_R9, X  ; +4 (12)
-		    sta &fe01						    ; +4 (16)
+		    sta &fe01						    ; +6 (18)
 		    \\ R9 must be set in final scanline of the row for this scheme.
 
-			lda jmptab, X:sta jmpinstruc+1	    ; +8 (24)
+			lda jmptab, X:sta jmpinstruc+1	    ; +8 (26)
 
-			ldy #1							    ; +2 (26)
-			lda #0:sta &fe00				    ; +8 (34)
+			ldy #1							    ; +2 (28)
+			lda #0:sta &fe00				    ; +8 (36)
 
-            WAIT_CYCLES 47                      ; +47 (81)
+            WAIT_CYCLES 47                      ; +47 (83)
 
             \\ Set SHADOW bit safely in hblank.
-	        lda &fe34:and #&fe                      ; +6 (87)
+	        lda &fe34:and #&fe                      ; +6 (89)
             ora fx_check_zoom_bitmask_to_shadow,X   ; +4 (93)
             sta &fe34	                            ; +4 (97)
 
-			.jmpinstruc JMP scanline0		; +3 (101)
+			.jmpinstruc JMP scanline0		; +3 (100)
 			.^jmpreturn						;    (122)
 
 			sta &fe01						; +6 (128)
 
 		\\ <=== HCC=0 (even)
-		dec row_count						; +5 (14)
-		beq scanline_last					; +2 (16)
-		jmp char_row_loop					; +3 (19)
+		dec row_count						; +5 (5)
+		beq scanline_last					; +2 (7)
+		jmp char_row_loop					; +3 (10)
 	}
 	.scanline_last
 	;CHECK_SAME_PAGE_AS char_row_loop, FALSE
@@ -253,10 +259,10 @@ FX_CHECKER_ZOOM_COLOUR_1 = PAL_yellow
     WAIT_SCANLINES_ZERO_X 2
 
    	\\ Set R9=1 so all remaining char rows are 2 scanlines each.
-	lda #9:sta &fe00						; +7 (14)
-	lda #1:sta &fe01						; +8 (22)
+	lda #9:sta &fe00						; +8 (48)
+	lda #1:sta &fe01						; +8 (56)
 
-	lda #0:sta prev_scanline				; +5 (27)
+	lda #0:sta prev_scanline				; +5 (61)
 	\\ FX responsible for resetting lower palette.
 	jmp fx_static_image_set_default_palette
 
@@ -280,7 +286,7 @@ PAGE_ALIGN_FOR_SIZE 8
 	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
 	; |                                    
 	; | next scanline 0: R0=127 R9=1                        						| (0...)
-	.scanline0							;    (101)
+	.scanline0							;    (101)  ; entered at 100 here; STA &FE01 resyncs to 108
 	LDA #127:STA &FE01					; +7 (108)
 	WAIT_CYCLES 11						; +11 (119)
 	JMP jmpreturn						; +3 (122)

@@ -186,6 +186,12 @@ EQUB &20 + PAL_cyan
 
 .fx_chunky_twister_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Horizontal RVI (per-scanline R0) -- computed JMP dispatch (scanlineN), per-row ULA palette (6x &FE2x); 118 rows x 2 scanlines; PAL 312, vsync 272
+	\\ FRAME  : setup 2 + loop 118x2 + tail (R4+1)*(R9+1)=74 = 312 lines; vsync PAL 272 (R7=17)
+	\\ GOTCHA : R0 varies per scanline (variable scanline length)
+	\\          dispatch entry can be ~1c off; scanline0's stretched &FE01 write resyncs (absorbed)
+	\\ [/effect-summary]
 	\\ <=== HCC=0 (scanline=-2)
 
 	\\ Set R12,R13 + SHADOW for row 0.
@@ -295,22 +301,22 @@ EQUB &20 + PAL_cyan
 			lda jmptab, X:sta jmpinstruc+1		; +8 (44)
 
 			ldx angle							; +3 (47)
-			ldy angle_to_quadrant, X			; +4 (52)
-			lda twister_quadrant_colour_1,Y		; +4 (56)
-			sta &fe21 							; +4 (60)
+			ldy angle_to_quadrant, X			; +4 (51)
+			lda twister_quadrant_colour_1,Y		; +4 (55)
+			sta &fe21 							; +4 (59)
 
-			lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (68)
-			lda twister_quadrant_colour_3,Y:sta &fe21	; +8 (76)
-			stz &fe00							; +5 (81)
+			lda twister_quadrant_colour_2,Y:sta &fe21	; +8 (67)
+			lda twister_quadrant_colour_3,Y:sta &fe21	; +8 (75)
+			stz &fe00							; +5 (80)
 
-			TELETEXT_ENABLE_6					; +6 (87)
+			TELETEXT_ENABLE_6					; +6 (86)
 
 			\\ Set SHADOW bit safely in hblank.
 			.^accon_sm
-			lda #0:ora shadow_bit:sta &fe34		; +9 (96)
-			WAIT_CYCLES 4						; +4 (100)
+			lda #0:ora shadow_bit:sta &fe34		; +9 (95)
+			WAIT_CYCLES 4						; +4 (99)
 
-			.jmpinstruc JMP scanline0			; +3 (103)
+			.jmpinstruc JMP scanline0			; +3 (102)
 			.^jmpreturn							;    (122)
 			; duplicating end of loop saves 3 (remove jmpreturn)
 			; double size of twister_vram_table_LO to save 2 (remove lsr)
@@ -384,7 +390,7 @@ ALIGN 4
 	;   0    6            80   86        106 108 110 112 114 116 118 120 122 124 126 128 
 	; |                                    
 	; | next scanline 0: R0=127 R9=1                        						| (0...)
-	.scanline0							;    (103)
+	.scanline0							;    (103)  ; entered at 102 here; STA &FE01 resyncs
 	LDA #127:STA &FE01					; +7 (110)
 	WAIT_CYCLES 9						; +9 (119)
 	JMP jmpreturn						; +3 (122)

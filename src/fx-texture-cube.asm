@@ -129,6 +129,12 @@ FX_TEXTURE_CUBE_BLANK_SL=0
 
 .fx_texture_cube_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Horizontal RVI (per-scanline R0) -- computed JMP dispatch (scanlineN), 4 chained loops; 119 rows x 2 scanlines; PAL 312, vsync 272
+	\\ FRAME  : loop 119x2 + tail (R4+1)*(R9+1)=74 = 312 lines; vsync PAL 272 (R7=17)
+	\\ GOTCHA : R0 varies per scanline (variable scanline length)
+	\\          dispatch entry can be ~1c off; scanline0's stretched &FE01 write resyncs (absorbed)
+	\\ [/effect-summary]
 	\\ <=== HCC=0 (scanline=-2)
 
 	WAIT_SCANLINES_ZERO_X 1				; +128 (0)
@@ -310,7 +316,7 @@ FX_TEXTURE_CUBE_BLANK_SL=0
 			lda w							; +3 (51)
 			.*texture_cube_loop2_rows_dw_LO
 			adc #0							; +2 (53)
-			sta w							; +3 (55)
+			sta w							; +3 (56)
 			lda w+1							; +3 (59)
 			.*texture_cube_loop2_rows_dw_HI
 			adc #0							; +2 (61)

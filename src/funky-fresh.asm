@@ -5,7 +5,7 @@
 
 CPU 1
 
-_DEBUG = FALSE
+_DEBUG = TRUE
 
 include "src/zp.h.asm"
 

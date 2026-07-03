@@ -147,6 +147,12 @@ ENDIF
 
 .fx_vertical_stretch_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Horizontal RVI (per-scanline R0) -- computed JMP dispatch (scanlineN); 118 rows x 2 scanlines; PAL 312, vsync 272
+	\\ FRAME  : setup 2 + loop 118x2 + tail (R4+1)*(R9+1)=74 = 312 lines; vsync PAL 272 (R7=17)
+	\\ GOTCHA : R0 varies per scanline (variable scanline length)
+	\\          dispatch entry can be ~1c off; scanline0's stretched &FE01 write resyncs (absorbed)
+	\\ [/effect-summary]
 	\\ <=== HCC=0 (scanline=-2)
 
 	\\ Row 0 screen start
@@ -213,9 +219,9 @@ ENDIF
 			; Set R9 for the next line.
 			lda #9: sta &fe00				; +7 (42)
 			txa:asl a						; +4 (46)
-			sta prev_scanline				; +3 (47)
-			ora #1							; +2 (49)
-			sta &fe01						; +5 (54)
+			sta prev_scanline				; +3 (49)
+			ora #1							; +2 (51)
+			sta &fe01						; +5 (56)
 			\\ R9 must be set in final scanline of the row for this scheme.
 
 			lda jmptab, X:sta jmpinstruc+1	; +8 (64)
@@ -229,7 +235,7 @@ ENDIF
 
 			ldy #1							; +2 (89)
 			lda #0:sta &fe00				; +7 (96)
-			WAIT_CYCLES 2					; +9 (98)
+			WAIT_CYCLES 2					; +2 (98)
 
 			.jmpinstruc JMP scanline0		; +3 (101)
 			.^jmpreturn						;    (122)

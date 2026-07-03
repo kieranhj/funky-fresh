@@ -159,6 +159,11 @@ CODE_ALIGN 32
 
 .fx_frak_zoomer_draw
 {
+	\\ [effect-summary]
+	\\ EFFECT : Horizontal RVI (per-scanline R0); 118 rows x 2 scanlines; PAL 312, vsync 272
+	\\ FRAME  : setup 2 + loop 118x2 + tail (R4+1)*(R9+1)=74 = 312 lines; vsync PAL 272 (R7=17)
+	\\ GOTCHA : R0 varies per scanline (variable scanline length)
+	\\ [/effect-summary]
 	\\ <=== HCC=0 (scanline=-2)
 
 	\\ R9 must be set before final scanline of the row.
@@ -179,15 +184,15 @@ CODE_ALIGN 32
 	\\ Set screen address for zoom.
 	lda zoom							; 3c
 	asl a:tax							; 4c
-	lda #13:sta &fe00					; 8c <= 7c
+	lda #13:sta &fe00					; 7c (odd stretch +1)
 	lda fx_zoom_crtc_addresses+0, X		; 4c
 	clc									; 2c
 	adc char_off							; 3c
-	sta &fe01							; 6c <= 5c
+	sta &fe01							; 5c (odd stretch +1)
 	lda #12:sta &fe00					; 8c
 	lda fx_zoom_crtc_addresses+1, X		; 4c
 	adc char_off+1							; 3c
-	sta &fe01							; 6c <= 5c
+	sta &fe01							; 5c (odd stretch +1)
 	\\ 48c
 
 	\\ This FX always uses screen in MAIN RAM.
@@ -259,7 +264,7 @@ CODE_ALIGN 32
 		\\ 18c
 
 		\\ Set R9=9 constant.
-		sty &fe00				; 6c <= 5c
+		sty &fe00				; 5c (odd stretch +1)
 		sty &fe01				; 6c
 
 		\\ <=== HCC=68 (scanline=even)
@@ -287,7 +292,7 @@ CODE_ALIGN 32
 		WAIT_CYCLES 4
 
 		dec row_count			; 5c
-		bne scanline_loop		; 3c
+		bne scanline_loop		; 2c
 	}
 	CHECK_SAME_PAGE_AS scanline_loop, TRUE
 	.scanline_last
